@@ -1,6 +1,7 @@
 import type { EdgeId, FaceId, VertexId } from "@modeling-kit/core";
 import { Vector3 } from "@modeling-kit/math";
 import { collectQuadEdgeLoop, collectQuadEdgeRing, type HalfEdgeMesh } from "@modeling-kit/mesh";
+import { createRayOccluder, type OcclusionSample } from "./occlusion";
 import type { SelectionSnapshot } from "./types";
 
 function allIds(mesh: HalfEdgeMesh, domain: SelectionSnapshot["domain"]): string[] {
@@ -208,16 +209,49 @@ function pointInPolygon(x: number, y: number, polygon: readonly (readonly [numbe
 
 export type MarqueeContainment = "touch" | "center" | "fully-contained";
 
+/**
+ * Window vs crossing from the pointer drag. Left-to-right (`endX >= startX`) is
+ * fully contained; right-to-left is touch/crossing. Explicit `containment`
+ * on `ScreenSelectOptions` overrides this.
+ */
+export function marqueeContainmentFromDrag(startX: number, endX: number): MarqueeContainment {
+  return endX >= startX ? "fully-contained" : "touch";
+}
+
+/**
+ * Same window/crossing split for a lasso: counter-clockwise (positive signed
+ * area in the projected plane) is fully contained; clockwise is touch.
+ */
+export function lassoContainmentFromWinding(
+  polygon: readonly (readonly [number, number])[],
+): MarqueeContainment {
+  return polygonSignedArea(polygon) >= 0 ? "fully-contained" : "touch";
+}
+
 export interface ScreenSelectOptions {
   readonly project: (x: number, y: number, z: number) => readonly [number, number];
   readonly viewDirection?: readonly [number, number, number];
   readonly frontFacingOnly?: boolean;
   readonly xray?: boolean;
   /**
-   * Optional camera-space or NDC depth (smaller = closer). Used when `xray === false`.
-   * This is not a depth-buffer occlusion test.
+   * Camera-space or NDC depth (smaller = closer). Fallback when `xray === false`
+   * and no `occluded` / `cameraOrigin` visibility backend is provided.
    */
   readonly depth?: (x: number, y: number, z: number) => number;
+  /**
+   * Camera origin in the same space as mesh vertex positions. Enables
+   * headless ray occlusion for `xray: false`.
+   */
+  readonly cameraOrigin?: readonly [number, number, number];
+  /**
+   * Viewport occlusion query. Return true when the sample is hidden.
+   * Preferred over `cameraOrigin` when a depth buffer or GPU pick is available.
+   */
+  readonly occluded?: (sample: OcclusionSample) => boolean;
+  /**
+   * When omitted, box uses drag direction and lasso uses polygon winding
+   * (window vs crossing). Pass a value to force one mode for either gesture.
+   */
   readonly containment?: MarqueeContainment;
 }
 
@@ -254,20 +288,36 @@ function isFrontFacing(mesh: HalfEdgeMesh, domain: SelectionSnapshot["domain"], 
     const n = faceNormal(mesh, id as FaceId);
     return n.x * view[0] + n.y * view[1] + n.z * view[2] < 0;
   }
+  if (domain === "vertex") {
+    return mesh.getVertexFaces(id as VertexId).some((faceId) => isFrontFacing(mesh, "face", faceId, view));
+  }
+  if (domain === "edge") {
+    const [f1, f2] = mesh.getEdgeFaces(id as EdgeId);
+    return Boolean(
+      (f1 && isFrontFacing(mesh, "face", f1, view)) || (f2 && isFrontFacing(mesh, "face", f2, view)),
+    );
+  }
   return true;
+}
+
+interface MarqueeHit {
+  readonly id: string;
+  readonly depth: number;
+  readonly sample: OcclusionSample;
 }
 
 export function boxSelectIds(
   mesh: HalfEdgeMesh,
   snapshot: SelectionSnapshot,
-  minX: number,
-  minY: number,
-  maxX: number,
-  maxY: number,
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
   options: ScreenSelectOptions,
 ): string[] {
-  const box = normalizeRect(minX, minY, maxX, maxY);
-  const hits: Array<{ id: string; depth: number }> = [];
+  const box = normalizeRect(startX, startY, endX, endY);
+  const containment = options.containment ?? marqueeContainmentFromDrag(startX, endX);
+  const hits: MarqueeHit[] = [];
   for (const id of allIds(mesh, snapshot.domain)) {
     if (options.frontFacingOnly && options.viewDirection && !isFrontFacing(mesh, snapshot.domain, id, options.viewDirection)) {
       continue;
@@ -280,15 +330,16 @@ export function boxSelectIds(
     if (projected.length === 0) {
       continue;
     }
-    if (!elementHitsMarquee(snapshot.domain, projected, box, options.containment ?? "touch")) {
+    if (!elementHitsMarquee(snapshot.domain, projected, box, containment)) {
       continue;
     }
     hits.push({
       id,
       depth: representativeDepth(projected, options.depth),
+      sample: occlusionSample(id, snapshot.domain, world, projected),
     });
   }
-  return filterOccludedHits(hits, snapshot.domain, options.xray);
+  return filterOccludedHits(mesh, hits, snapshot.domain, options);
 }
 
 export function lassoSelectIds(
@@ -297,7 +348,8 @@ export function lassoSelectIds(
   polygon: readonly (readonly [number, number])[],
   options: ScreenSelectOptions,
 ): string[] {
-  const hits: Array<{ id: string; depth: number }> = [];
+  const containment = options.containment ?? lassoContainmentFromWinding(polygon);
+  const hits: MarqueeHit[] = [];
   for (const id of allIds(mesh, snapshot.domain)) {
     if (options.frontFacingOnly && options.viewDirection && !isFrontFacing(mesh, snapshot.domain, id, options.viewDirection)) {
       continue;
@@ -310,15 +362,16 @@ export function lassoSelectIds(
     if (projected.length === 0) {
       continue;
     }
-    if (!elementHitsLasso(snapshot.domain, projected, polygon, options.containment ?? "touch")) {
+    if (!elementHitsLasso(snapshot.domain, projected, polygon, containment)) {
       continue;
     }
     hits.push({
       id,
       depth: representativeDepth(projected, options.depth),
+      sample: occlusionSample(id, snapshot.domain, world, projected),
     });
   }
-  return filterOccludedHits(hits, snapshot.domain, options.xray);
+  return filterOccludedHits(mesh, hits, snapshot.domain, options);
 }
 
 interface ProjectedPoint {
@@ -335,6 +388,19 @@ interface Rect2 {
   readonly minY: number;
   readonly maxX: number;
   readonly maxY: number;
+}
+
+function polygonSignedArea(polygon: readonly (readonly [number, number])[]): number {
+  if (polygon.length < 3) {
+    return 0;
+  }
+  let area = 0;
+  for (let i = 0; i < polygon.length; i += 1) {
+    const a = polygon[i]!;
+    const b = polygon[(i + 1) % polygon.length]!;
+    area += a[0] * b[1] - b[0] * a[1];
+  }
+  return area / 2;
 }
 
 function normalizeRect(minX: number, minY: number, maxX: number, maxY: number): Rect2 {
@@ -501,12 +567,37 @@ function representativeDepth(
   return min;
 }
 
-function filterOccludedHits(
-  hits: readonly { id: string; depth: number }[],
+function occlusionSample(
+  id: string,
   domain: SelectionSnapshot["domain"],
-  xray: boolean | undefined,
+  world: readonly { x: number; y: number; z: number }[],
+  projected: readonly ProjectedPoint[],
+): OcclusionSample {
+  const centroid = {
+    x: world.reduce((sum, p) => sum + p.x, 0) / Math.max(1, world.length),
+    y: world.reduce((sum, p) => sum + p.y, 0) / Math.max(1, world.length),
+    z: world.reduce((sum, p) => sum + p.z, 0) / Math.max(1, world.length),
+  };
+  const screen = centroid2(projected);
+  return { id, domain, world: centroid, screen };
+}
+
+function filterOccludedHits(
+  mesh: HalfEdgeMesh,
+  hits: readonly MarqueeHit[],
+  domain: SelectionSnapshot["domain"],
+  options: ScreenSelectOptions,
 ): string[] {
-  if (xray !== false || domain !== "face" || hits.length === 0) {
+  if (options.xray !== false || hits.length === 0) {
+    return hits.map((hit) => hit.id);
+  }
+  const occluded =
+    options.occluded ??
+    (options.cameraOrigin ? createRayOccluder(mesh, options.cameraOrigin) : undefined);
+  if (occluded) {
+    return hits.filter((hit) => !occluded(hit.sample)).map((hit) => hit.id);
+  }
+  if (domain !== "face") {
     return hits.map((hit) => hit.id);
   }
   const finite = hits.filter((hit) => Number.isFinite(hit.depth));

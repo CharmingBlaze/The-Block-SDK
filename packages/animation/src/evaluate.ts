@@ -1,5 +1,5 @@
 import type { BoneId } from "@modeling-kit/core";
-import type { AnimationClipData } from "@modeling-kit/document";
+import type { AnimationClipData, AnimationTrackData } from "@modeling-kit/document";
 import { identityTransform, type TransformData } from "@modeling-kit/math";
 import type { PoseMap, Skeleton } from "@modeling-kit/rigging";
 import {
@@ -21,6 +21,7 @@ export function evaluateDocumentClip(
   time: number,
   skeleton?: Skeleton,
 ): EvaluatedPose {
+  validateDocumentClip(clip);
   const wrapped = wrapTime(time, clip.duration, clip.loopMode);
   const boneLocals = new Map<BoneId, TransformData>();
   if (skeleton) {
@@ -86,4 +87,47 @@ function applyChannel(
     return { ...current, rotation: interpolateRotation(keys, time, interpolation).toJSON() };
   }
   return current;
+}
+
+export function validateDocumentClip(clip: AnimationClipData): void {
+  if (!Number.isFinite(clip.duration) || clip.duration < 0) {
+    throw new RangeError("Animation clip duration must be a finite non-negative number");
+  }
+  const seen = new Set<string>();
+  for (const track of clip.tracks) {
+    const key = `${track.targetKind}:${track.targetId}:${track.channel}`;
+    if (seen.has(key)) {
+      throw new RangeError(`Duplicate animation track for ${key}`);
+    }
+    seen.add(key);
+    validateDocumentTrack(track);
+  }
+}
+
+function validateDocumentTrack(track: AnimationTrackData): void {
+  let previous = Number.NEGATIVE_INFINITY;
+  for (const key of track.keys) {
+    if (!Number.isFinite(key.time)) {
+      throw new RangeError("Animation key times must be finite");
+    }
+    if (key.time < previous) {
+      throw new RangeError("Animation key times must be sorted in non-decreasing order");
+    }
+    if (key.time === previous) {
+      throw new RangeError("Animation key times must be unique");
+    }
+    previous = key.time;
+    const expected =
+      track.channel === "rotation" ? 4 : track.channel === "visibility" ? 1 : 3;
+    if (key.value.length < expected) {
+      throw new RangeError(
+        `Animation key at t=${key.time} needs ${expected} components for ${track.channel}`,
+      );
+    }
+    for (const component of key.value) {
+      if (!Number.isFinite(component)) {
+        throw new RangeError("Animation key values must be finite");
+      }
+    }
+  }
 }

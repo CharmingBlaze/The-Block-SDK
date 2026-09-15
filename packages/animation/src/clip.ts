@@ -1,5 +1,6 @@
 import type { AnimationId } from "@modeling-kit/core";
-import { sampleTrack, validateKeyframeTrack } from "./sampler";
+import { animationClipToDocumentClip, validateKeyframeTrack } from "./compat";
+import { evaluateDocumentClip } from "./evaluate";
 import type { AnimationClip, KeyframeTrack } from "./types";
 
 export interface EvaluatedTransform {
@@ -43,28 +44,38 @@ export class AnimationClipBuilder {
 }
 
 /**
- * Samples an entire AnimationClip at timestamp t, returning the evaluated transforms for all affected targets.
+ * Samples a legacy clip through `evaluateDocumentClip` so interpolation matches
+ * stored `AnimationClipData`.
  */
 export function evaluateClip(clip: AnimationClip, time: number): Map<string, EvaluatedTransform> {
-  const result = new Map<string, EvaluatedTransform>();
-
+  const pose = evaluateDocumentClip(animationClipToDocumentClip(clip), time);
+  const wanted = new Map<string, Set<"translation" | "rotation" | "scale">>();
   for (const track of clip.tracks) {
     const targetKey = String(track.targetId);
-    let transform = result.get(targetKey);
-    if (!transform) {
-      transform = {};
-      result.set(targetKey, transform);
+    let channels = wanted.get(targetKey);
+    if (!channels) {
+      channels = new Set();
+      wanted.set(targetKey, channels);
     }
-
-    const val = sampleTrack(track, time);
-    if (track.path === "translation") {
-      transform.translation = [val[0]!, val[1]!, val[2]!];
-    } else if (track.path === "rotation") {
-      transform.rotation = [val[0]!, val[1]!, val[2]!, val[3]!];
-    } else if (track.path === "scale") {
-      transform.scale = [val[0]!, val[1]!, val[2]!];
-    }
+    channels.add(track.path === "translation" ? "translation" : track.path);
   }
-
+  const result = new Map<string, EvaluatedTransform>();
+  for (const [id, channels] of wanted) {
+    const transform = pose.objectLocals.get(id);
+    if (!transform) {
+      continue;
+    }
+    const out: EvaluatedTransform = {};
+    if (channels.has("translation")) {
+      out.translation = [transform.position.x, transform.position.y, transform.position.z];
+    }
+    if (channels.has("rotation")) {
+      out.rotation = [transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w];
+    }
+    if (channels.has("scale")) {
+      out.scale = [transform.scale.x, transform.scale.y, transform.scale.z];
+    }
+    result.set(id, out);
+  }
   return result;
 }

@@ -191,16 +191,16 @@ export class SelectionManager {
 
   selectBox(
     mesh: HalfEdgeMesh,
-    minX: number,
-    minY: number,
-    maxX: number,
-    maxY: number,
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
     options: ScreenSelectOptions,
   ): void {
     if (!this.isMeshDomain()) {
       return;
     }
-    this.replaceElements(boxSelectIds(mesh, this.snapshot(), minX, minY, maxX, maxY, options));
+    this.replaceElements(boxSelectIds(mesh, this.snapshot(), startX, startY, endX, endY, options));
   }
 
   selectLasso(

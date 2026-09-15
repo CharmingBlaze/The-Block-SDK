@@ -16,8 +16,11 @@ export {
   shrinkElementIds,
   boxSelectIds,
   lassoSelectIds,
+  marqueeContainmentFromDrag,
+  lassoContainmentFromWinding,
   coplanarFaceIds,
   similarMaterialFaceIds,
   type MarqueeContainment,
   type ScreenSelectOptions,
 } from "./topology";
+export { createRayOccluder, type OcclusionSample, type RayOccluder } from "./occlusion";

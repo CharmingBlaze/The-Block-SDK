@@ -57,6 +57,7 @@ function findSpan(
   return { i0: last, i1: last, t: 0 };
 }
 
+/** Numeric `cubic` is Catmull-Rom through authored keys, not glTF CUBICSPLINE tangents. */
 function catmull(p0: number, p1: number, p2: number, p3: number, t: number): number {
   const t2 = t * t;
   const t3 = t2 * t;

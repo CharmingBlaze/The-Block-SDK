@@ -1,12 +1,13 @@
 import type { AnimationId, ObjectId } from "@modeling-kit/core";
 
 /**
- * Legacy glTF-shaped clip used by `sampleTrack` / `evaluateClip`.
- * Canonical stored animation is `AnimationClipData` on `ModelDocument`
+ * Legacy glTF-shaped clip accepted only at import/compat boundaries.
+ * Canonical stored and evaluated animation is `AnimationClipData`
  * (`channel: "position"`, `interpolation: "constant" | "linear" | "cubic"`).
  */
 export type AnimationPath = "translation" | "rotation" | "scale";
 
+/** @deprecated Use document `AnimationInterpolation`. CUBICSPLINE is rejected. */
 export type AnimationInterpolation = "STEP" | "LINEAR" | "CUBICSPLINE";
 
 export interface KeyframeTrack {

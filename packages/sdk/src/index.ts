@@ -256,7 +256,9 @@ export {
 } from "@modeling-kit/rigging";
 export {
   AnimationClipBuilder,
+  animationClipToDocumentClip,
   evaluateClip,
+  evaluateDocumentClip,
   findKeyframeIndex,
   sampleTrack,
   type EvaluatedTransform,

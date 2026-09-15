@@ -217,15 +217,68 @@ describe("selection topology", () => {
     selection.selectBox(mesh, -2, -2, 2, 2, {
       project: (x, y) => [x, y],
       xray: false,
-      depth: (_x, _y, z) => -z,
+      cameraOrigin: [0, 0, 8],
     });
     expect(selection.elementIds).toEqual([front]);
     expect(selection.elementIds).not.toContain(back);
     selection.selectLasso(mesh, [[-2, -2], [2, -2], [2, 2], [-2, 2]], {
       project: (x, y) => [x, y],
       xray: false,
-      depth: (_x, _y, z) => -z,
+      cameraOrigin: [0, 0, 8],
     });
     expect(selection.elementIds).toEqual([front]);
+  });
+
+  it("hides occluded vertices and honors a viewport occluded callback", () => {
+    const builder = new MeshBuilder();
+    builder.addFace([
+      builder.addVertex(-1, -1, -1),
+      builder.addVertex(1, -1, -1),
+      builder.addVertex(1, 1, -1),
+      builder.addVertex(-1, 1, -1),
+    ]);
+    const hidden = builder.addVertex(0, 0, -4);
+    const visible = builder.addVertex(0, 0, 2);
+    const mesh = builder.getMesh();
+    const selection = new SelectionManager();
+    selection.replace({ domain: "vertex", objectIds: [brand("o")], elementIds: [] });
+    selection.selectBox(mesh, -3, -3, 3, 3, {
+      project: (x, y) => [x, y],
+      xray: false,
+      cameraOrigin: [0, 0, 8],
+    });
+    expect(selection.elementIds).toContain(visible);
+    expect(selection.elementIds).not.toContain(hidden);
+    selection.selectBox(mesh, -3, -3, 3, 3, {
+      project: (x, y) => [x, y],
+      xray: false,
+      occluded: (sample) => sample.id === visible,
+    });
+    expect(selection.elementIds).not.toContain(visible);
+  });
+
+  it("keeps two side-by-side visible faces when xray is false", () => {
+    const builder = new MeshBuilder();
+    const left = builder.addFace([
+      builder.addVertex(-2, -1, 0),
+      builder.addVertex(-0.1, -1, 0),
+      builder.addVertex(-0.1, 1, 0),
+      builder.addVertex(-2, 1, 0),
+    ]);
+    const right = builder.addFace([
+      builder.addVertex(0.1, -1, 0),
+      builder.addVertex(2, -1, 0),
+      builder.addVertex(2, 1, 0),
+      builder.addVertex(0.1, 1, 0),
+    ]);
+    const mesh = builder.getMesh();
+    const selection = new SelectionManager();
+    selection.replace({ domain: "face", objectIds: [brand("o")], elementIds: [] });
+    selection.selectBox(mesh, -3, -2, 3, 2, {
+      project: (x, y) => [x, y],
+      xray: false,
+      cameraOrigin: [0, 0, 8],
+    });
+    expect(selection.elementIds.sort()).toEqual([left, right].sort());
   });
 });
