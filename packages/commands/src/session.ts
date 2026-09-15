@@ -136,6 +136,7 @@ export class ModelingSession {
         objectIds,
         ...(meshId !== undefined ? { meshId } : {}),
         ...(vertexIds !== undefined ? { vertexIds } : {}),
+        activeId: request.activeId ?? this.selection.activeId,
       },
     );
   }

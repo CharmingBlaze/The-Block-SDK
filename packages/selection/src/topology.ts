@@ -1,6 +1,6 @@
 import type { EdgeId, FaceId, VertexId } from "@modeling-kit/core";
 import { Vector3 } from "@modeling-kit/math";
-import { collectQuadEdgeLoop, type HalfEdgeMesh } from "@modeling-kit/mesh";
+import { collectQuadEdgeLoop, collectQuadEdgeRing, type HalfEdgeMesh } from "@modeling-kit/mesh";
 import type { SelectionSnapshot } from "./types";
 
 function allIds(mesh: HalfEdgeMesh, domain: SelectionSnapshot["domain"]): string[] {
@@ -153,26 +153,10 @@ export function edgeRingIds(mesh: HalfEdgeMesh, snapshot: SelectionSnapshot): st
     return liveSet(mesh, snapshot.domain, snapshot.elementIds);
   }
   const start = liveSet(mesh, "edge", snapshot.elementIds)[0] as EdgeId | undefined;
-  if (!start) {
+  if (!start || !mesh.edges.has(start)) {
     return [];
   }
-  const ring = new Set<string>([start]);
-  const [f1, f2] = mesh.getEdgeFaces(start);
-  for (const faceId of [f1, f2]) {
-    if (!faceId) {
-      continue;
-    }
-    const loop = mesh.getFaceEdges(faceId);
-    if (loop.length !== 4) {
-      continue;
-    }
-    const index = loop.indexOf(start);
-    if (index < 0) {
-      continue;
-    }
-    ring.add(loop[(index + 2) % loop.length]!);
-  }
-  return [...ring];
+  return collectQuadEdgeRing(mesh, start);
 }
 
 export function boundaryElementIds(mesh: HalfEdgeMesh, snapshot: SelectionSnapshot): string[] {
@@ -222,11 +206,19 @@ function pointInPolygon(x: number, y: number, polygon: readonly (readonly [numbe
   return inside;
 }
 
+export type MarqueeContainment = "touch" | "center" | "fully-contained";
+
 export interface ScreenSelectOptions {
   readonly project: (x: number, y: number, z: number) => readonly [number, number];
   readonly viewDirection?: readonly [number, number, number];
   readonly frontFacingOnly?: boolean;
   readonly xray?: boolean;
+  /**
+   * Optional camera-space or NDC depth (smaller = closer). Used when `xray === false`.
+   * This is not a depth-buffer occlusion test.
+   */
+  readonly depth?: (x: number, y: number, z: number) => number;
+  readonly containment?: MarqueeContainment;
 }
 
 function elementScreenPoints(
@@ -274,24 +266,29 @@ export function boxSelectIds(
   maxY: number,
   options: ScreenSelectOptions,
 ): string[] {
-  const hits: string[] = [];
+  const box = normalizeRect(minX, minY, maxX, maxY);
+  const hits: Array<{ id: string; depth: number }> = [];
   for (const id of allIds(mesh, snapshot.domain)) {
     if (options.frontFacingOnly && options.viewDirection && !isFrontFacing(mesh, snapshot.domain, id, options.viewDirection)) {
       continue;
     }
-    const pts = elementScreenPoints(mesh, snapshot.domain, id);
-    const inside = pts.some((p) => {
+    const world = elementScreenPoints(mesh, snapshot.domain, id);
+    const projected = world.map((p) => {
       const [sx, sy] = options.project(p.x, p.y, p.z);
-      return sx >= minX && sx <= maxX && sy >= minY && sy <= maxY;
+      return { x: sx, y: sy, z: p.z, wx: p.x, wy: p.y, wz: p.z };
     });
-    if (inside) {
-      hits.push(id);
-      if (options.xray === false && hits.length > 0 && snapshot.domain === "face") {
-        break;
-      }
+    if (projected.length === 0) {
+      continue;
     }
+    if (!elementHitsMarquee(snapshot.domain, projected, box, options.containment ?? "touch")) {
+      continue;
+    }
+    hits.push({
+      id,
+      depth: representativeDepth(projected, options.depth),
+    });
   }
-  return hits;
+  return filterOccludedHits(hits, snapshot.domain, options.xray);
 }
 
 export function lassoSelectIds(
@@ -300,21 +297,228 @@ export function lassoSelectIds(
   polygon: readonly (readonly [number, number])[],
   options: ScreenSelectOptions,
 ): string[] {
-  const hits: string[] = [];
+  const hits: Array<{ id: string; depth: number }> = [];
   for (const id of allIds(mesh, snapshot.domain)) {
     if (options.frontFacingOnly && options.viewDirection && !isFrontFacing(mesh, snapshot.domain, id, options.viewDirection)) {
       continue;
     }
-    const pts = elementScreenPoints(mesh, snapshot.domain, id);
-    const inside = pts.some((p) => {
+    const world = elementScreenPoints(mesh, snapshot.domain, id);
+    const projected = world.map((p) => {
       const [sx, sy] = options.project(p.x, p.y, p.z);
-      return pointInPolygon(sx, sy, polygon);
+      return { x: sx, y: sy, z: p.z, wx: p.x, wy: p.y, wz: p.z };
     });
-    if (inside) {
-      hits.push(id);
+    if (projected.length === 0) {
+      continue;
+    }
+    if (!elementHitsLasso(snapshot.domain, projected, polygon, options.containment ?? "touch")) {
+      continue;
+    }
+    hits.push({
+      id,
+      depth: representativeDepth(projected, options.depth),
+    });
+  }
+  return filterOccludedHits(hits, snapshot.domain, options.xray);
+}
+
+interface ProjectedPoint {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly wx: number;
+  readonly wy: number;
+  readonly wz: number;
+}
+
+interface Rect2 {
+  readonly minX: number;
+  readonly minY: number;
+  readonly maxX: number;
+  readonly maxY: number;
+}
+
+function normalizeRect(minX: number, minY: number, maxX: number, maxY: number): Rect2 {
+  return {
+    minX: Math.min(minX, maxX),
+    minY: Math.min(minY, maxY),
+    maxX: Math.max(minX, maxX),
+    maxY: Math.max(minY, maxY),
+  };
+}
+
+function pointInRect(x: number, y: number, rect: Rect2): boolean {
+  return x >= rect.minX && x <= rect.maxX && y >= rect.minY && y <= rect.maxY;
+}
+
+function segmentsIntersect(
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  cx: number,
+  cy: number,
+  dx: number,
+  dy: number,
+): boolean {
+  const denom = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx);
+  if (Math.abs(denom) <= 1e-12) {
+    return false;
+  }
+  const t = ((cx - ax) * (dy - cy) - (cy - ay) * (dx - cx)) / denom;
+  const u = ((cx - ax) * (by - ay) - (cy - ay) * (bx - ax)) / denom;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1;
+}
+
+function segmentIntersectsRect(x0: number, y0: number, x1: number, y1: number, rect: Rect2): boolean {
+  if (pointInRect(x0, y0, rect) || pointInRect(x1, y1, rect)) {
+    return true;
+  }
+  return (
+    segmentsIntersect(x0, y0, x1, y1, rect.minX, rect.minY, rect.maxX, rect.minY) ||
+    segmentsIntersect(x0, y0, x1, y1, rect.maxX, rect.minY, rect.maxX, rect.maxY) ||
+    segmentsIntersect(x0, y0, x1, y1, rect.maxX, rect.maxY, rect.minX, rect.maxY) ||
+    segmentsIntersect(x0, y0, x1, y1, rect.minX, rect.maxY, rect.minX, rect.minY)
+  );
+}
+
+function polygonIntersectsRect(points: readonly ProjectedPoint[], rect: Rect2): boolean {
+  if (points.some((p) => pointInRect(p.x, p.y, rect))) {
+    return true;
+  }
+  const corners: Array<readonly [number, number]> = [
+    [rect.minX, rect.minY],
+    [rect.maxX, rect.minY],
+    [rect.maxX, rect.maxY],
+    [rect.minX, rect.maxY],
+  ];
+  const poly = points.map((p) => [p.x, p.y] as const);
+  if (corners.some((c) => pointInPolygon(c[0], c[1], poly))) {
+    return true;
+  }
+  for (let i = 0; i < points.length; i += 1) {
+    const a = points[i]!;
+    const b = points[(i + 1) % points.length]!;
+    if (segmentIntersectsRect(a.x, a.y, b.x, b.y, rect)) {
+      return true;
     }
   }
-  return hits;
+  return false;
+}
+
+function centroid2(points: readonly ProjectedPoint[]): { x: number; y: number } {
+  let x = 0;
+  let y = 0;
+  for (const p of points) {
+    x += p.x;
+    y += p.y;
+  }
+  const n = Math.max(1, points.length);
+  return { x: x / n, y: y / n };
+}
+
+function elementHitsMarquee(
+  domain: SelectionSnapshot["domain"],
+  points: readonly ProjectedPoint[],
+  rect: Rect2,
+  containment: MarqueeContainment,
+): boolean {
+  if (containment === "fully-contained") {
+    return points.length > 0 && points.every((p) => pointInRect(p.x, p.y, rect));
+  }
+  if (containment === "center") {
+    const c = centroid2(points);
+    return pointInRect(c.x, c.y, rect);
+  }
+  if (domain === "vertex") {
+    return points.some((p) => pointInRect(p.x, p.y, rect));
+  }
+  if (domain === "edge" && points.length >= 2) {
+    return segmentIntersectsRect(points[0]!.x, points[0]!.y, points[1]!.x, points[1]!.y, rect);
+  }
+  if (domain === "face") {
+    return polygonIntersectsRect(points, rect);
+  }
+  return points.some((p) => pointInRect(p.x, p.y, rect));
+}
+
+function polygonTouchesPolygon(
+  points: readonly ProjectedPoint[],
+  lasso: readonly (readonly [number, number])[],
+): boolean {
+  if (points.some((p) => pointInPolygon(p.x, p.y, lasso))) {
+    return true;
+  }
+  for (const vertex of lasso) {
+    const poly = points.map((p) => [p.x, p.y] as const);
+    if (pointInPolygon(vertex[0], vertex[1], poly)) {
+      return true;
+    }
+  }
+  for (let i = 0; i < points.length; i += 1) {
+    const a = points[i]!;
+    const b = points[(i + 1) % points.length]!;
+    for (let j = 0; j < lasso.length; j += 1) {
+      const c = lasso[j]!;
+      const d = lasso[(j + 1) % lasso.length]!;
+      if (segmentsIntersect(a.x, a.y, b.x, b.y, c[0], c[1], d[0], d[1])) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function elementHitsLasso(
+  domain: SelectionSnapshot["domain"],
+  points: readonly ProjectedPoint[],
+  lasso: readonly (readonly [number, number])[],
+  containment: MarqueeContainment,
+): boolean {
+  if (containment === "fully-contained") {
+    return points.length > 0 && points.every((p) => pointInPolygon(p.x, p.y, lasso));
+  }
+  if (containment === "center") {
+    const c = centroid2(points);
+    return pointInPolygon(c.x, c.y, lasso);
+  }
+  if (domain === "vertex") {
+    return points.some((p) => pointInPolygon(p.x, p.y, lasso));
+  }
+  return polygonTouchesPolygon(points, lasso);
+}
+
+function representativeDepth(
+  points: readonly ProjectedPoint[],
+  depth?: (x: number, y: number, z: number) => number,
+): number {
+  if (!depth) {
+    return Number.POSITIVE_INFINITY;
+  }
+  let min = Number.POSITIVE_INFINITY;
+  for (const p of points) {
+    min = Math.min(min, depth(p.wx, p.wy, p.wz));
+  }
+  return min;
+}
+
+function filterOccludedHits(
+  hits: readonly { id: string; depth: number }[],
+  domain: SelectionSnapshot["domain"],
+  xray: boolean | undefined,
+): string[] {
+  if (xray !== false || domain !== "face" || hits.length === 0) {
+    return hits.map((hit) => hit.id);
+  }
+  const finite = hits.filter((hit) => Number.isFinite(hit.depth));
+  if (finite.length === 0) {
+    return hits.map((hit) => hit.id);
+  }
+  let closest = Number.POSITIVE_INFINITY;
+  for (const hit of finite) {
+    closest = Math.min(closest, hit.depth);
+  }
+  const epsilon = 1e-6;
+  return finite.filter((hit) => hit.depth <= closest + epsilon).map((hit) => hit.id);
 }
 
 function faceNormal(mesh: HalfEdgeMesh, faceId: FaceId): Vector3 {

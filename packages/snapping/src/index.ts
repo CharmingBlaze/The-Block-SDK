@@ -1,5 +1,6 @@
 export {
   closestOnSegment,
+  closestPointOnTriangle,
   snapAngle,
   snapIncrement,
   snapToClosestOnSegment,

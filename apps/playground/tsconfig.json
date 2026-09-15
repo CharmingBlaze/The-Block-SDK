@@ -9,15 +9,7 @@
       "DOM",
       "DOM.Iterable"
     ],
-    "noEmit": true,
-    "paths": {
-      "@modeling-kit/sdk": [
-        "../../packages/sdk/src/index.ts"
-      ],
-      "@modeling-kit/three-adapter": [
-        "../../packages/three-adapter/src/index.ts"
-      ]
-    }
+    "noEmit": true
   },
   "include": [
     "src"

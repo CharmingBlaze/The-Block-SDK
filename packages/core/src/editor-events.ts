@@ -78,6 +78,10 @@ export interface HistoryState {
   readonly undoCount?: number;
   readonly redoCount?: number;
   readonly transactionDepth?: number;
+  /** False after the saved command is trimmed off the undo stack. */
+  readonly isSavedStateReachable?: boolean;
+  /** True when the last history mutation failed and left recoverable work. */
+  readonly hasPartialRollback?: boolean;
 }
 
 export interface ToolChange {

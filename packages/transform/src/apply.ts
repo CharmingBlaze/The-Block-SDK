@@ -1,5 +1,6 @@
-import type { ObjectId } from "@modeling-kit/core";
+import type { MeshId, ObjectId } from "@modeling-kit/core";
 import type { ModelDocument, SceneNode } from "@modeling-kit/document";
+import { nodeMeshId } from "@modeling-kit/document";
 import {
   Matrix4,
   Quaternion,
@@ -10,6 +11,7 @@ import {
   type TransformData,
   type Vec3,
 } from "@modeling-kit/math";
+import type { HalfEdgeMesh } from "@modeling-kit/mesh";
 import { getNode, isDescendant, setLocalTransform, worldMatrix } from "@modeling-kit/scene";
 import { snapAngle, snapToGrid, snapVectorIncrement } from "@modeling-kit/snapping";
 import type { TransformDelta, TransformPivot, TransformRequest, TransformSpace } from "./types";
@@ -44,22 +46,48 @@ export function worldPositionOf(document: ModelDocument, id: ObjectId): Vector3 
   return worldMatrix(document, id).transformPoint(new Vector3(0, 0, 0));
 }
 
+export interface ComputePivotOptions {
+  readonly activeId?: string | null | undefined;
+  readonly activeWorldPoint?: Vec3 | undefined;
+  readonly worldPoints?: readonly Vec3[] | undefined;
+  readonly meshes?: ReadonlyMap<MeshId, HalfEdgeMesh> | undefined;
+}
+
 export function computePivot(
   document: ModelDocument,
   roots: readonly ObjectId[],
   pivot: TransformPivot,
   cursor?: Vec3,
+  options: ComputePivotOptions = {},
 ): Vector3 {
   if (pivot === "cursor" && cursor) {
     return Vector3.from(cursor);
+  }
+  const points = options.worldPoints;
+  if (points && points.length > 0) {
+    if (pivot === "individual" || pivot === "active") {
+      return Vector3.from(options.activeWorldPoint ?? points[0]!);
+    }
+    return boundsOrMedian(points.map((p) => Vector3.from(p)), pivot);
   }
   if (roots.length === 0) {
     return Vector3.zero;
   }
   if (pivot === "individual" || pivot === "active") {
-    return worldPositionOf(document, roots[0]!);
+    const activeRoot =
+      (options.activeId && roots.includes(options.activeId as ObjectId)
+        ? (options.activeId as ObjectId)
+        : roots[0])!;
+    return worldPositionOf(document, activeRoot);
   }
-  const points = roots.map((id) => worldPositionOf(document, id));
+  if (pivot === "bounds") {
+    return unionWorldBoundsCenter(document, roots, options.meshes);
+  }
+  const origins = roots.map((id) => worldPositionOf(document, id));
+  return boundsOrMedian(origins, "median");
+}
+
+function boundsOrMedian(points: readonly Vector3[], pivot: TransformPivot): Vector3 {
   if (pivot === "bounds") {
     let minX = Infinity;
     let minY = Infinity;
@@ -82,6 +110,45 @@ export function computePivot(
     sum = sum.add(point);
   }
   return sum.scale(1 / points.length);
+}
+
+function unionWorldBoundsCenter(
+  document: ModelDocument,
+  roots: readonly ObjectId[],
+  meshes?: ReadonlyMap<MeshId, HalfEdgeMesh>,
+): Vector3 {
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  let found = false;
+  const expand = (point: Vector3): void => {
+    found = true;
+    minX = Math.min(minX, point.x);
+    minY = Math.min(minY, point.y);
+    minZ = Math.min(minZ, point.z);
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
+    maxZ = Math.max(maxZ, point.z);
+  };
+  for (const id of roots) {
+    const world = worldMatrix(document, id);
+    const meshId = nodeMeshId(getNode(document, id));
+    const mesh = meshId && meshes ? meshes.get(meshId) : undefined;
+    if (mesh && mesh.vertices.size > 0) {
+      for (const vertex of mesh.vertices.values()) {
+        expand(world.transformPoint(new Vector3(vertex.position[0], vertex.position[1], vertex.position[2])));
+      }
+      continue;
+    }
+    expand(world.transformPoint(new Vector3(0, 0, 0)));
+  }
+  if (!found) {
+    return Vector3.zero;
+  }
+  return new Vector3((minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2);
 }
 
 function parentWorldMatrix(document: ModelDocument, node: SceneNode): Matrix4 {
@@ -165,9 +232,10 @@ export function deltaMatrix(
 
   const scale = delta.scale ?? { x: 1, y: 1, z: 1 };
   const scaling = Matrix4.scaling(scale);
+  const rotation = Matrix4.fromQuaternion(orientation);
   const toPivot = Matrix4.translation(pivot);
   const fromPivot = Matrix4.translation(pivot.negate());
-  return toPivot.multiply(scaling).multiply(fromPivot);
+  return toPivot.multiply(rotation).multiply(scaling).multiply(rotation.invert()).multiply(fromPivot);
 }
 
 export function applyWorldToLocal(

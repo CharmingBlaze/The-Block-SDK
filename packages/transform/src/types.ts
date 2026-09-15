@@ -20,6 +20,7 @@ export interface TransformRequest {
   readonly objectIds?: readonly ObjectId[];
   readonly meshId?: MeshId;
   readonly vertexIds?: readonly VertexId[];
+  readonly activeId?: string | null;
   readonly axis?: Vec3;
   /** Camera orientation for `space: "view"`. Local +Y is up in view if omitted, identity. */
   readonly viewRotation?: Quat;

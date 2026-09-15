@@ -9,7 +9,7 @@ export {
   type GltfExportResult,
   type GlbExportResult,
 } from "./gltf";
-export { importGltf, type GltfImportOptions, type GltfImportResult, type GltfImportSource } from "./gltf-import";
+export { importGltf, type GltfImportOptions, type GltfImportResult, type GltfImportSource, type GltfWeldMode } from "./gltf-import";
 export { exportImagePpm, importImagePpm, type ImageIoOptions } from "./image-io";
 export { throwIfAborted, type IoCancelOptions } from "./cancel";
 export {

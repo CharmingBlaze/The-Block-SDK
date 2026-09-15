@@ -4,14 +4,13 @@
   "description": "Topological and geometric invariant validator for modeling-kit",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     }
   },
   "dependencies": {
@@ -22,5 +21,9 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
     "typecheck": "tsc --noEmit -p tsconfig.json"
-  }
+  },
+  "license": "UNLICENSED",
+  "files": [
+    "dist"
+  ]
 }

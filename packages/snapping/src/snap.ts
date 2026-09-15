@@ -8,6 +8,8 @@ export type SnapTargetType =
   | "edge"
   | "midpoint"
   | "face"
+  | "face-center"
+  | "face-surface"
   | "surface"
   | "uv-pixel"
   | "bbox"
@@ -147,4 +149,53 @@ export function snapToClosestOnSegment(
     distance,
     score: 1 - distance / radius,
   };
+}
+
+/**
+ * Closest point on triangle ABC to P (Ericson, Real-Time Collision Detection).
+ */
+export function closestPointOnTriangle(point: Vec3, a: Vec3, b: Vec3, c: Vec3): Vector3 {
+  const p = Vector3.from(point);
+  const va = Vector3.from(a);
+  const vb = Vector3.from(b);
+  const vc = Vector3.from(c);
+  const ab = vb.sub(va);
+  const ac = vc.sub(va);
+  const ap = p.sub(va);
+  const d1 = ab.dot(ap);
+  const d2 = ac.dot(ap);
+  if (d1 <= 0 && d2 <= 0) {
+    return va;
+  }
+  const bp = p.sub(vb);
+  const d3 = ab.dot(bp);
+  const d4 = ac.dot(bp);
+  if (d3 >= 0 && d4 <= d3) {
+    return vb;
+  }
+  const vcEdge = d1 * d4 - d3 * d2;
+  if (vcEdge <= 0 && d1 >= 0 && d3 <= 0) {
+    const v = d1 / (d1 - d3);
+    return va.add(ab.scale(v));
+  }
+  const cp = p.sub(vc);
+  const d5 = ab.dot(cp);
+  const d6 = ac.dot(cp);
+  if (d6 >= 0 && d5 <= d6) {
+    return vc;
+  }
+  const vbEdge = d5 * d2 - d1 * d6;
+  if (vbEdge <= 0 && d2 >= 0 && d6 <= 0) {
+    const w = d2 / (d2 - d6);
+    return va.add(ac.scale(w));
+  }
+  const vaEdge = d3 * d6 - d5 * d4;
+  if (vaEdge <= 0 && d4 - d3 >= 0 && d5 - d6 >= 0) {
+    const w = (d4 - d3) / (d4 - d3 + (d5 - d6));
+    return vb.add(vc.sub(vb).scale(w));
+  }
+  const denom = 1 / (vaEdge + vbEdge + vcEdge);
+  const v = vbEdge * denom;
+  const w = vcEdge * denom;
+  return va.add(ab.scale(v)).add(ac.scale(w));
 }

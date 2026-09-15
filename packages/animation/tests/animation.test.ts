@@ -1,7 +1,7 @@
 import { createSequenceIdFactory } from "@modeling-kit/core";
 import { createAnimationClipData } from "@modeling-kit/document";
 import { describe, expect, it } from "vitest";
-import { AnimationPlayer, evaluateDocumentClip, interpolateNumbers, wrapTime } from "../src/index";
+import { AnimationPlayer, evaluateDocumentClip, interpolateNumbers, sampleTrack, wrapTime } from "../src/index";
 
 describe("@modeling-kit/animation", () => {
   it("interpolates linear keys at the midpoint", () => {
@@ -46,5 +46,33 @@ describe("@modeling-kit/animation", () => {
     player.play();
     player.tick(0.5);
     expect(player.time).toBeCloseTo(0.5);
+  });
+
+  it("rejects CUBICSPLINE and unsorted tracks", () => {
+    const ids = createSequenceIdFactory("legacy");
+    expect(() =>
+      sampleTrack(
+        {
+          targetId: ids.object(),
+          path: "translation",
+          interpolation: "CUBICSPLINE",
+          times: [0, 1],
+          values: [0, 0, 0, 1, 1, 1],
+        },
+        0.5,
+      ),
+    ).toThrow(/CUBICSPLINE/);
+    expect(() =>
+      sampleTrack(
+        {
+          targetId: ids.object(),
+          path: "translation",
+          interpolation: "LINEAR",
+          times: [1, 0],
+          values: [0, 0, 0, 1, 1, 1],
+        },
+        0.5,
+      ),
+    ).toThrow(/sorted/);
   });
 });

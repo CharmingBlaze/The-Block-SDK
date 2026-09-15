@@ -11,6 +11,7 @@ export default tseslint.config(
       "generated/**",
       ".dependency-cruiser.cjs",
       "**/vite.config.ts",
+      "**/tsup.config.ts",
     ],
   },
   js.configs.recommended,

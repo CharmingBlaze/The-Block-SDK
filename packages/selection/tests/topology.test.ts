@@ -135,4 +135,97 @@ describe("selection topology", () => {
     selection.selectSimilarMaterial(mesh);
     expect(selection.elementIds.sort()).toEqual([faces[0]!, faces[1]!].sort());
   });
+
+  it("selects a closed cube edge ring, not only the opposite edges of one face", () => {
+    const mesh = MeshBuilder.createCube(1, 1, 1);
+    const start = [...mesh.edges.keys()][0]!;
+    const selection = new SelectionManager();
+    selection.replace({ domain: "edge", objectIds: [brand("o")], elementIds: [start] });
+    selection.selectEdgeRing(mesh);
+    expect(selection.elementIds).toHaveLength(4);
+    expect(selection.elementIds).toContain(start);
+  });
+
+  it("walks an edge ring across a three-quad strip", () => {
+    const builder = new MeshBuilder();
+    const v0 = [builder.addVertex(0, 0, 0), builder.addVertex(1, 0, 0), builder.addVertex(2, 0, 0), builder.addVertex(3, 0, 0)];
+    const v1 = [builder.addVertex(0, 0, 1), builder.addVertex(1, 0, 1), builder.addVertex(2, 0, 1), builder.addVertex(3, 0, 1)];
+    builder.addFace([v0[0]!, v0[1]!, v1[1]!, v1[0]!]);
+    builder.addFace([v0[1]!, v0[2]!, v1[2]!, v1[1]!]);
+    builder.addFace([v0[2]!, v0[3]!, v1[3]!, v1[2]!]);
+    const mesh = builder.getMesh();
+    const start = [...mesh.edges.keys()].find((edgeId) => {
+      const [f1, f2] = mesh.getEdgeFaces(edgeId);
+      return Boolean(f1 && f2);
+    })!;
+    const selection = new SelectionManager();
+    selection.replace({ domain: "edge", objectIds: [brand("o")], elementIds: [start] });
+    selection.selectEdgeRing(mesh);
+    expect(selection.elementIds.length).toBe(4);
+  });
+
+  it("selects an edge that crosses a box when both endpoints are outside", () => {
+    const mesh = MeshBuilder.createQuad([-2, 0, 0], [2, 0, 0], [2, 1, 0], [-2, 1, 0]);
+    const selection = new SelectionManager();
+    selection.replace({ domain: "edge", objectIds: [brand("o")], elementIds: [] });
+    selection.selectBox(mesh, -0.25, -0.25, 0.25, 0.25, {
+      project: (x, y) => [x, y],
+      containment: "touch",
+    });
+    expect(selection.elementIds.length).toBeGreaterThan(0);
+  });
+
+  it("selects a surrounding face in touch mode and not in fully-contained mode", () => {
+    const mesh = MeshBuilder.createQuad([-2, -2, 0], [2, -2, 0], [2, 2, 0], [-2, 2, 0]);
+    const faceId = [...mesh.faces.keys()][0]!;
+    const selection = new SelectionManager();
+    selection.replace({ domain: "face", objectIds: [brand("o")], elementIds: [] });
+    selection.selectBox(mesh, -0.2, -0.2, 0.2, 0.2, {
+      project: (x, y) => [x, y],
+      containment: "touch",
+    });
+    expect(selection.elementIds).toEqual([faceId]);
+    selection.selectBox(mesh, -0.2, -0.2, 0.2, 0.2, {
+      project: (x, y) => [x, y],
+      containment: "fully-contained",
+    });
+    expect(selection.elementIds).toEqual([]);
+    selection.selectBox(mesh, -0.2, -0.2, 0.2, 0.2, {
+      project: (x, y) => [x, y],
+      containment: "center",
+    });
+    expect(selection.elementIds).toEqual([faceId]);
+  });
+
+  it("uses depth, not map order, when xray is false for faces", () => {
+    const builder = new MeshBuilder();
+    const back = builder.addFace([
+      builder.addVertex(-1, -1, -5),
+      builder.addVertex(1, -1, -5),
+      builder.addVertex(1, 1, -5),
+      builder.addVertex(-1, 1, -5),
+    ]);
+    const front = builder.addFace([
+      builder.addVertex(-1, -1, -1),
+      builder.addVertex(1, -1, -1),
+      builder.addVertex(1, 1, -1),
+      builder.addVertex(-1, 1, -1),
+    ]);
+    const mesh = builder.getMesh();
+    const selection = new SelectionManager();
+    selection.replace({ domain: "face", objectIds: [brand("o")], elementIds: [] });
+    selection.selectBox(mesh, -2, -2, 2, 2, {
+      project: (x, y) => [x, y],
+      xray: false,
+      depth: (_x, _y, z) => -z,
+    });
+    expect(selection.elementIds).toEqual([front]);
+    expect(selection.elementIds).not.toContain(back);
+    selection.selectLasso(mesh, [[-2, -2], [2, -2], [2, 2], [-2, 2]], {
+      project: (x, y) => [x, y],
+      xray: false,
+      depth: (_x, _y, z) => -z,
+    });
+    expect(selection.elementIds).toEqual([front]);
+  });
 });

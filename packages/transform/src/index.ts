@@ -8,6 +8,7 @@ export {
   transformsNearlyEqual,
   worldPositionOf,
   writeObjectWorld,
+  type ComputePivotOptions,
 } from "./apply";
 export type {
   ObjectTransformPatch,

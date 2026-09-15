@@ -83,32 +83,36 @@ export class SelectionManager {
   }
 
   add(ids: readonly string[]): void {
-    if (ids.length === 0) {
+    if (ids.length === 0 || this.domain === "none") {
       return;
     }
-    const set = new Set(this.elementIds);
+    const set = new Set(this.selectedIds());
     for (const id of ids) {
       set.add(id);
     }
-    this.elementIds = [...set];
+    this.writeSelectedIds([...set]);
     this.activeId = ids[ids.length - 1] ?? this.activeId;
     this.notify();
   }
 
   remove(ids: readonly string[]): void {
-    if (ids.length === 0) {
+    if (ids.length === 0 || this.domain === "none") {
       return;
     }
     const drop = new Set(ids);
-    this.elementIds = this.elementIds.filter((id) => !drop.has(id));
+    const next = this.selectedIds().filter((id) => !drop.has(id));
+    this.writeSelectedIds(next);
     if (this.activeId && drop.has(this.activeId)) {
-      this.activeId = this.elementIds[0] ?? null;
+      this.activeId = next[0] ?? null;
     }
     this.notify();
   }
 
   toggle(id: string): void {
-    if (this.elementIds.includes(id)) {
+    if (this.domain === "none") {
+      return;
+    }
+    if (this.selectedIds().includes(id)) {
       this.remove([id]);
     } else {
       this.add([id]);
@@ -211,16 +215,21 @@ export class SelectionManager {
   }
 
   applyRemap(remap: IdRemap): void {
-    const next: string[] = [];
-    for (const id of this.elementIds) {
-      if (remap.deleted?.has(id)) {
-        continue;
+    const remapList = (ids: readonly string[]): string[] => {
+      const next: string[] = [];
+      for (const id of ids) {
+        if (remap.deleted?.has(id)) {
+          continue;
+        }
+        next.push(remap.map.get(id) ?? id);
       }
-      next.push(remap.map.get(id) ?? id);
-    }
-    this.elementIds = [...new Set(next)];
+      return [...new Set(next)];
+    };
+    this.objectIds = remapList(this.objectIds) as ObjectId[];
+    this.elementIds = remapList(this.elementIds);
+    const selected = this.selectedIds();
     if (this.activeId && remap.deleted?.has(this.activeId)) {
-      this.activeId = this.elementIds[0] ?? null;
+      this.activeId = selected[0] ?? null;
     } else if (this.activeId && remap.map.has(this.activeId)) {
       this.activeId = remap.map.get(this.activeId) ?? null;
     }
@@ -237,6 +246,18 @@ export class SelectionManager {
 
   private isMeshDomain(): boolean {
     return this.domain === "vertex" || this.domain === "edge" || this.domain === "face";
+  }
+
+  private selectedIds(): string[] {
+    return this.domain === "object" ? this.objectIds : this.elementIds;
+  }
+
+  private writeSelectedIds(ids: readonly string[]): void {
+    if (this.domain === "object") {
+      this.objectIds = [...ids] as ObjectId[];
+      return;
+    }
+    this.elementIds = [...ids];
   }
 
   private replaceElements(elementIds: readonly string[]): void {

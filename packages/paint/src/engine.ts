@@ -52,7 +52,7 @@ export class PaintEngine {
     this.lifecycle.transition("beginning");
     this.originals.clear();
     this.dirty = null;
-    this.baseline = new Uint8ClampedArray(this.buffer.data);
+    this.baseline = null;
     this.lifecycle.transition("active");
   }
 
@@ -65,8 +65,7 @@ export class PaintEngine {
 
   strokeTo(x0: number, y0: number, x1: number, y1: number, options: BrushOptions): void {
     this.assertActive();
-    this.captureTiles(x0, y0, options.size);
-    this.captureTiles(x1, y1, options.size);
+    this.captureStroke(x0, y0, x1, y1, options.size);
     drawBrushLine(this.buffer, x0, y0, x1, y1, options);
     this.expandDirty(x0, y0, options.size);
     this.expandDirty(x1, y1, options.size);
@@ -161,45 +160,37 @@ export class PaintEngine {
   }
 
   private hydrateOriginalsFromBaseline(): void {
-    if (!this.baseline || this.originals.size > 0) {
+    if (!this.baseline) {
       return;
     }
     const width = this.buffer.width;
     const height = this.buffer.height;
     const before = this.baseline;
     const after = this.buffer.data;
-    let minX = width;
-    let minY = height;
-    let maxX = -1;
-    let maxY = -1;
-    for (let y = 0; y < height; y += 1) {
-      for (let x = 0; x < width; x += 1) {
-        const i = (y * width + x) * 4;
-        if (
-          before[i] !== after[i] ||
-          before[i + 1] !== after[i + 1] ||
-          before[i + 2] !== after[i + 2] ||
-          before[i + 3] !== after[i + 3]
-        ) {
-          if (x < minX) minX = x;
-          if (y < minY) minY = y;
-          if (x > maxX) maxX = x;
-          if (y > maxY) maxY = y;
+    const txMax = Math.floor((width - 1) / PAINT_TILE_SIZE);
+    const tyMax = Math.floor((height - 1) / PAINT_TILE_SIZE);
+    for (let ty = 0; ty <= tyMax; ty += 1) {
+      for (let tx = 0; tx <= txMax; tx += 1) {
+        const key = `${tx},${ty}`;
+        if (this.originals.has(key)) {
+          continue;
+        }
+        const original = copyTile(before, width, height, tx, ty);
+        const current = copyTile(after, width, height, tx, ty);
+        if (!tilesEqual(original, current)) {
+          this.originals.set(key, original);
         }
       }
     }
-    if (maxX < 0) {
-      return;
-    }
-    const tx0 = Math.floor(minX / PAINT_TILE_SIZE);
-    const ty0 = Math.floor(minY / PAINT_TILE_SIZE);
-    const tx1 = Math.floor(maxX / PAINT_TILE_SIZE);
-    const ty1 = Math.floor(maxY / PAINT_TILE_SIZE);
-    for (let ty = ty0; ty <= ty1; ty += 1) {
-      for (let tx = tx0; tx <= tx1; tx += 1) {
-        this.originals.set(`${tx},${ty}`, copyTile(before, width, height, tx, ty));
-      }
-    }
+  }
+
+  private captureStroke(x0: number, y0: number, x1: number, y1: number, radius: number): void {
+    const pad = Math.ceil(Math.max(1, radius)) + 1;
+    const minX = Math.max(0, Math.floor(Math.min(x0, x1) - pad));
+    const minY = Math.max(0, Math.floor(Math.min(y0, y1) - pad));
+    const maxX = Math.min(this.buffer.width, Math.ceil(Math.max(x0, x1) + pad));
+    const maxY = Math.min(this.buffer.height, Math.ceil(Math.max(y0, y1) + pad));
+    this.captureRect({ x: minX, y: minY, width: maxX - minX, height: maxY - minY });
   }
 
   private captureTiles(x: number, y: number, radius: number): void {

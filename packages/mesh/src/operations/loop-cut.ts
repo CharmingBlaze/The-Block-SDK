@@ -38,6 +38,21 @@ export function collectQuadEdgeLoop(mesh: HalfEdgeMesh, startEdgeId: EdgeId): Ed
   return collectOrientedQuadEdgeLoop(mesh, startEdgeId).map((edge) => edge.edgeId);
 }
 
+/**
+ * Walks a quad edge ring until a boundary, a non-quad, a visited edge, or the start (closed ring).
+ */
+export function collectQuadEdgeRing(mesh: HalfEdgeMesh, startEdgeId: EdgeId): EdgeId[] {
+  if (!mesh.edges.has(startEdgeId)) {
+    throw new RangeError(`Edge ${startEdgeId} does not exist`);
+  }
+  const visited = new Set<EdgeId>([startEdgeId]);
+  const ring: EdgeId[] = [startEdgeId];
+  const [f1, f2] = mesh.getEdgeFaces(startEdgeId);
+  extendRing(mesh, startEdgeId, f1, visited, ring);
+  extendRing(mesh, startEdgeId, f2, visited, ring);
+  return ring;
+}
+
 export function collectOrientedQuadEdgeLoop(
   mesh: HalfEdgeMesh,
   startEdgeId: EdgeId,
@@ -307,6 +322,40 @@ function isClosedLoop(mesh: HalfEdgeMesh, oriented: readonly OrientedLoopEdge[])
   const a = oppositeEdge(mesh, f1, start.edgeId);
   const b = oppositeEdge(mesh, f2, start.edgeId);
   return Boolean(a && b && ids.has(a) && ids.has(b));
+}
+
+function extendRing(
+  mesh: HalfEdgeMesh,
+  startEdgeId: EdgeId,
+  faceId: FaceId | null,
+  visited: Set<EdgeId>,
+  ring: EdgeId[],
+): void {
+  let current = startEdgeId;
+  let currentFace = faceId;
+  let steps = 0;
+  const limit = mesh.edges.size + 1;
+  while (currentFace) {
+    steps += 1;
+    if (steps > limit) {
+      throw new RangeError("edge ring walk exceeded mesh size");
+    }
+    const opposite = oppositeEdge(mesh, currentFace, current);
+    if (!opposite) {
+      return;
+    }
+    if (opposite === startEdgeId) {
+      return;
+    }
+    if (visited.has(opposite)) {
+      return;
+    }
+    visited.add(opposite);
+    ring.push(opposite);
+    const [fa, fb] = mesh.getEdgeFaces(opposite);
+    currentFace = fa === currentFace ? fb : fa;
+    current = opposite;
+  }
 }
 
 function oppositeEdge(mesh: HalfEdgeMesh, faceId: FaceId, edgeId: EdgeId): EdgeId | null {

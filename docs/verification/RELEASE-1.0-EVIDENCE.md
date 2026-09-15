@@ -1,9 +1,10 @@
 # Release 1.0 evidence matrix
 
-**Audit date:** 2026-09-16  
+**Audit date:** 2026-09-16 (pipeline re-verified after release-readiness fixes)  
 **Specification:** `docs/architecture/modeling-operator-specification.md`  
-**Baseline command:** `pnpm test` → **55 files, 355 tests passed**; `pnpm typecheck` passed; `pnpm lint` 0 errors; `pnpm build` passed; `pnpm arch:check` 355 modules (2026-09-16).  
-**Repo:** uncommitted tree, no git commits yet.  
+**Baseline command:** `pnpm check:release` → **55 files, 356 tests passed**; clean-checkout `pnpm typecheck` passed; `pnpm examples:typecheck` passed; `pnpm lint` 0 errors; `pnpm build` passed; `pnpm arch:check` 356 modules (2026-09-16).  
+**Repo:** `3777e45` on `main` at `https://github.com/CharmingBlaze/The-Block-SDK.git` (release pipeline fixes pending commit).  
+**Release gate status:** Clean workspace TypeScript resolution, dist-based package exports, and CI/`check:release` alignment are **fixed**. Remaining before npm 1.0: public licence decision, packed-tarball consumer smoke tests, tagged release workflow, dead-code triage, README preview/deferred labelling for rigging/animation.  
 **Rule:** `VERIFIED` requires named tests plus a recorded passing command. Non-deferred requirement rows are `VERIFIED`. Out of 1.0 scope: RIG-001, ANIM-001, BOOL-001, GPU-PICK-001, LSCM/ABF.
 
 Owner: Cursor unless a task ID assigns implementation to Antigravity.
@@ -185,16 +186,22 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 
 ## Baseline evidence (this audit)
 
+Verified from a **clean checkout** (no pre-existing `packages/*/dist`) on 2026-09-16:
+
 ```text
-pnpm test
-# Test Files  55 passed (55)
-# Tests       355 passed (355)
-pnpm typecheck
-# packages typecheck passed 2026-09-16
-pnpm lint
-# eslint .  (0 errors)
-pnpm build
-# packages/* tsup passed
-pnpm arch:check
-# no dependency violations (355 modules, 1458 dependencies)
+pnpm install --frozen-lockfile
+pnpm check:release
+# pnpm typecheck          — 23 packages, clean checkout (no dist)
+# pnpm examples:typecheck — 4 apps
+# pnpm lint               — eslint . (0 errors)
+# pnpm test               — Test Files 55 passed; Tests 356 passed
+# pnpm build              — packages/* tsup ESM + d.ts
+# pnpm arch:check         — no dependency violations (356 modules, 1471 dependencies)
 ```
+
+Release-readiness fixes applied in this pass:
+
+- Central workspace `paths` in `tsconfig.base.json` (replaces incomplete per-package path tables).
+- All publishable packages export compiled `dist/` (`files: ["dist"]`, version `0.1.0`, `license: UNLICENSED`).
+- Removed bogus `@modeling-kit/validation` CommonJS export (`index.cjs` was never built).
+- CI and `check:release` run the full gate sequence including `lint` and `examples:typecheck`.

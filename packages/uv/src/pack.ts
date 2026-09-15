@@ -5,11 +5,31 @@ import { findUvIslands } from "./islands";
 
 export interface PackUvsOptions {
   readonly padding?: number;
+  readonly strict?: boolean;
+  /** Not implemented. Providing a value throws. */
+  readonly pinnedIslandIds?: readonly string[];
+  /** Not implemented. Providing true throws. */
+  readonly rotate?: boolean;
 }
 
 export function packUvs(mesh: HalfEdgeMesh, options: PackUvsOptions = {}): void {
+  if (options.pinnedIslandIds !== undefined) {
+    throw new RangeError("packUvs does not support pinned islands");
+  }
+  if (options.rotate === true) {
+    throw new RangeError("packUvs does not support island rotation");
+  }
   const padding = options.padding ?? 0.02;
+  if (!Number.isFinite(padding) || padding < 0) {
+    throw new RangeError("packUvs padding must be a finite number >= 0");
+  }
   const islands = findUvIslands(mesh);
+  if (islands.length === 0) {
+    if (options.strict) {
+      throw new RangeError("packUvs requires at least one UV island");
+    }
+    return;
+  }
   const placed: Array<{
     corners: readonly CornerId[];
     uvs: Array<[number, number]>;
@@ -20,12 +40,21 @@ export function packUvs(mesh: HalfEdgeMesh, options: PackUvsOptions = {}): void 
   }> = [];
 
   const prepared = islands.map((island) => {
+    if (island.cornerIds.length === 0) {
+      if (options.strict) {
+        throw new RangeError("packUvs received an empty UV island");
+      }
+      return { corners: island.cornerIds, uvs: [] as Array<[number, number]>, w: 1e-6, h: 1e-6 };
+    }
     let minU = Infinity;
     let minV = Infinity;
     let maxU = -Infinity;
     let maxV = -Infinity;
     const uvs: Array<[number, number]> = island.cornerIds.map((id) => {
       const uv = getCornerUv(mesh, id);
+      if (!Number.isFinite(uv[0]) || !Number.isFinite(uv[1])) {
+        throw new RangeError("packUvs requires finite UV coordinates");
+      }
       minU = Math.min(minU, uv[0]);
       minV = Math.min(minV, uv[1]);
       maxU = Math.max(maxU, uv[0]);
@@ -34,6 +63,9 @@ export function packUvs(mesh: HalfEdgeMesh, options: PackUvsOptions = {}): void 
     });
     const w = Math.max(1e-6, maxU - minU);
     const h = Math.max(1e-6, maxV - minV);
+    if (options.strict && (!Number.isFinite(w) || !Number.isFinite(h) || w <= 1e-6 || h <= 1e-6)) {
+      throw new RangeError("packUvs received a degenerate UV island");
+    }
     const local = uvs.map(([u, v]) => [u - minU, v - minV] as [number, number]);
     return { corners: island.cornerIds, uvs: local, w, h };
   });

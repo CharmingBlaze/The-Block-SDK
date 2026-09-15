@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { MeshBuilder, triangulateMesh, faceNormal } from "../src/index";
+import { MeshBuilder, triangulateMesh, triangulatePolygon, faceNormal } from "../src/index";
 
 describe("HalfEdgeMesh & MeshBuilder", () => {
   it("procedurally generates a valid 6-face polygonal box", () => {
@@ -120,3 +120,112 @@ describe("triangulateMesh", () => {
     expect(triangulated.normals[8]).toBe(1);
   });
 });
+
+describe("MeshBuilder validation", () => {
+  it("rejects duplicate vertex and face ids", () => {
+    const builder = new MeshBuilder();
+    const v0 = builder.addVertex(0, 0, 0);
+    expect(() => builder.addVertex(1, 0, 0, v0)).toThrow(/Duplicate vertex id/);
+    const v1 = builder.addVertex(1, 0, 0);
+    const v2 = builder.addVertex(0, 1, 0);
+    const faceId = builder.addFace([v0, v1, v2]);
+    expect(() => builder.addFace([v0, v1, v2], { id: faceId })).toThrow(/Duplicate face id/);
+  });
+
+  it("rejects faces that reference missing vertices or repeat a corner", () => {
+    const builder = new MeshBuilder();
+    const v0 = builder.addVertex(0, 0, 0);
+    const v1 = builder.addVertex(1, 0, 0);
+    const v2 = builder.addVertex(0, 1, 0);
+    expect(() => builder.addFace([v0, v1, "missing" as typeof v0])).toThrow(/does not exist/);
+    expect(() => builder.addFace([v0, v1, v1])).toThrow(/consecutive duplicate/);
+  });
+
+  it("rejects a third face on an existing edge in strict-manifold mode", () => {
+    const builder = new MeshBuilder();
+    const v0 = builder.addVertex(0, 0, 0);
+    const v1 = builder.addVertex(1, 0, 0);
+    const v2 = builder.addVertex(0.5, 1, 0);
+    const v3 = builder.addVertex(0.5, -1, 0);
+    const v4 = builder.addVertex(0.5, 0, 1);
+    builder.addFace([v0, v1, v2]);
+    builder.addFace([v0, v3, v1]);
+    expect(() => builder.addFace([v0, v1, v4])).toThrow(/two incident faces|already occupied|non-manifold/);
+  });
+});
+
+describe("concave and failure triangulation", () => {
+  it("ear-clips a concave L n-gon without covering the notch", () => {
+    const builder = new MeshBuilder();
+    const v0 = builder.addVertex(0, 0, 0);
+    const v1 = builder.addVertex(2, 0, 0);
+    const v2 = builder.addVertex(2, 0, 1);
+    const v3 = builder.addVertex(1, 0, 1);
+    const v4 = builder.addVertex(1, 0, 2);
+    const v5 = builder.addVertex(0, 0, 2);
+    builder.addFace([v0, v1, v2, v3, v4, v5]);
+    const mesh = builder.getMesh();
+    const tri = triangulateMesh(mesh);
+    expect(tri.triangleFaceIds.length).toBe(4);
+    const notch = { x: 1.6, z: 1.6 };
+    for (let i = 0; i < tri.indices.length; i += 3) {
+      const a = tri.indices[i]!;
+      const b = tri.indices[i + 1]!;
+      const c = tri.indices[i + 2]!;
+      const ax = tri.positions[a * 3]!;
+      const az = tri.positions[a * 3 + 2]!;
+      const bx = tri.positions[b * 3]!;
+      const bz = tri.positions[b * 3 + 2]!;
+      const cx = tri.positions[c * 3]!;
+      const cz = tri.positions[c * 3 + 2]!;
+      expect(pointInTriangle2(notch.x, notch.z, ax, az, bx, bz, cx, cz)).toBe(false);
+    }
+  });
+
+  it("skips self-intersecting bowtie faces in render triangulation", () => {
+    const result = triangulatePolygon(
+      [
+        [0, 0, 0],
+        [1, 0.25, 1],
+        [1, 0, 0],
+        [0, 0, 1],
+      ],
+      { rejectSelfIntersecting: true },
+    );
+    expect(result.status).toBe("self-intersecting");
+    expect(result.triangles).toHaveLength(0);
+  });
+
+  it("triangulates a reversed winding concave polygon", () => {
+    const builder = new MeshBuilder();
+    const v0 = builder.addVertex(0, 0, 0);
+    const v1 = builder.addVertex(0, 0, 2);
+    const v2 = builder.addVertex(1, 0, 2);
+    const v3 = builder.addVertex(1, 0, 1);
+    const v4 = builder.addVertex(2, 0, 1);
+    const v5 = builder.addVertex(2, 0, 0);
+    builder.addFace([v0, v1, v2, v3, v4, v5]);
+    const tri = triangulateMesh(builder.getMesh());
+    expect(tri.triangleFaceIds.length).toBe(4);
+  });
+});
+
+function pointInTriangle2(
+  px: number,
+  pz: number,
+  ax: number,
+  az: number,
+  bx: number,
+  bz: number,
+  cx: number,
+  cz: number,
+): boolean {
+  const sign = (x1: number, z1: number, x2: number, z2: number, x3: number, z3: number) =>
+    (x1 - x3) * (z2 - z3) - (x2 - x3) * (z1 - z3);
+  const b1 = sign(px, pz, ax, az, bx, bz);
+  const b2 = sign(px, pz, bx, bz, cx, cz);
+  const b3 = sign(px, pz, cx, cz, ax, az);
+  const hasNeg = b1 < -1e-9 || b2 < -1e-9 || b3 < -1e-9;
+  const hasPos = b1 > 1e-9 || b2 > 1e-9 || b3 > 1e-9;
+  return !(hasNeg && hasPos);
+}

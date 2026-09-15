@@ -23,7 +23,7 @@
     "deadcode": "knip --no-exit-code",
     "check:changed": "tsx scripts/check-changed-packages.ts",
     "check:agent": "tsx scripts/check-agent-task.ts",
-    "check:release": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm arch:check"
+    "check:release": "pnpm typecheck && pnpm examples:typecheck && pnpm lint && pnpm test && pnpm build && pnpm arch:check"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",

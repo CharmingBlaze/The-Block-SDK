@@ -432,11 +432,37 @@ export function groupNodes(
   if (ids.length === 0) {
     throw new NodeNotFoundError("empty-group");
   }
-  const first = getNode(document, ids[0]!);
-  const parentId = first.parentId ?? document.scene.rootNodeId;
+  if (new Set(ids).size !== ids.length) {
+    throw new HierarchyError("DUPLICATE_CHILD", "groupNodes received duplicate ids");
+  }
+  if (ids.includes(groupId)) {
+    throw new HierarchyError("INVALID_NODE", "Cannot include the new group id in the grouped set");
+  }
+  const nodes = ids.map((id) => getNode(document, id));
+  for (const node of nodes) {
+    if (effectiveLocked(document, node.id)) {
+      throw new HierarchyError("LOCKED", `Cannot group locked node '${node.id}'`);
+    }
+  }
+  const parentId = nodes[0]!.parentId ?? document.scene.rootNodeId;
+  getNode(document, parentId);
   addNode(document, groupId, { name, type: "group", parentId });
-  for (const id of ids) {
-    reparent(document, id, groupId, { preserveWorld: true });
+  const moved: Array<{ id: NodeId; parentId: NodeId; index: number }> = [];
+  try {
+    for (const id of ids) {
+      const node = getNode(document, id);
+      const oldParentId = node.parentId ?? document.scene.rootNodeId;
+      const index = getNode(document, oldParentId).childIds.indexOf(id);
+      reparent(document, id, groupId, { preserveWorld: true });
+      moved.push({ id, parentId: oldParentId, index });
+    }
+  } catch (error) {
+    for (let i = moved.length - 1; i >= 0; i -= 1) {
+      const item = moved[i]!;
+      reparent(document, item.id, item.parentId, { preserveWorld: true, index: item.index });
+    }
+    removeNode(document, groupId);
+    throw error;
   }
   return groupId;
 }
@@ -447,10 +473,26 @@ export function ungroupNode(document: ModelDocument, groupId: NodeId): void {
     throw new NodeNotFoundError(groupId);
   }
   const parentId = group.parentId ?? document.scene.rootNodeId;
-  for (const childId of [...group.childIds]) {
-    reparent(document, childId, parentId, { preserveWorld: true });
+  getNode(document, parentId);
+  const children = [...group.childIds];
+  for (const childId of children) {
+    getNode(document, childId);
   }
-  removeNode(document, groupId);
+  const moved: Array<{ id: NodeId; index: number }> = [];
+  try {
+    for (const childId of children) {
+      const index = getNode(document, groupId).childIds.indexOf(childId);
+      reparent(document, childId, parentId, { preserveWorld: true });
+      moved.push({ id: childId, index });
+    }
+    removeNode(document, groupId);
+  } catch (error) {
+    for (let i = moved.length - 1; i >= 0; i -= 1) {
+      const item = moved[i]!;
+      reparent(document, item.id, groupId, { preserveWorld: true, index: item.index });
+    }
+    throw error;
+  }
 }
 
 export function traverse(document: ModelDocument, visit: (node: SceneNode) => void): void {
@@ -518,6 +560,22 @@ export interface ResourceUsageIndex {
   skeletonUsers(skeletonId: SkeletonId): ReadonlySet<NodeId>;
 }
 
+function addTextureUser(
+  textures: Map<string, Set<MaterialId>>,
+  textureId: TextureId | undefined,
+  materialId: MaterialId,
+): void {
+  if (!textureId) {
+    return;
+  }
+  let set = textures.get(textureId);
+  if (!set) {
+    set = new Set();
+    textures.set(textureId, set);
+  }
+  set.add(materialId);
+}
+
 export function buildResourceUsageIndex(document: ModelDocument): ResourceUsageIndex {
   const meshes = new Map<string, Set<NodeId>>();
   const materials = new Map<string, Set<NodeId>>();
@@ -561,15 +619,21 @@ export function buildResourceUsageIndex(document: ModelDocument): ResourceUsageI
       material.occlusionTexture,
     ];
     for (const textureId of ids) {
-      if (!textureId) {
-        continue;
+      addTextureUser(textures, textureId, material.id);
+    }
+    for (const binding of Object.values(material.textureBindings ?? {})) {
+      addTextureUser(textures, binding?.textureId, material.id);
+    }
+    if (material.textureSetId) {
+      const set = document.textureSets.get(material.textureSetId);
+      if (set) {
+        for (const textureId of Object.values(set.channels)) {
+          addTextureUser(textures, textureId, material.id);
+        }
+        for (const textureId of set.textureIds) {
+          addTextureUser(textures, textureId, material.id);
+        }
       }
-      let set = textures.get(textureId);
-      if (!set) {
-        set = new Set();
-        textures.set(textureId, set);
-      }
-      set.add(material.id);
     }
   }
   return {

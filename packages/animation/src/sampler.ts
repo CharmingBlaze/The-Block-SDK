@@ -1,6 +1,38 @@
 import { Quaternion, Vector3 } from "@modeling-kit/math";
 import type { KeyframeTrack } from "./types";
 
+export function validateKeyframeTrack(track: KeyframeTrack): void {
+  const stride = track.path === "rotation" ? 4 : 3;
+  if (track.times.length === 0) {
+    return;
+  }
+  if (track.interpolation === "CUBICSPLINE") {
+    throw new RangeError("CUBICSPLINE interpolation is not implemented");
+  }
+  let previous = Number.NEGATIVE_INFINITY;
+  for (const time of track.times) {
+    if (!Number.isFinite(time)) {
+      throw new RangeError("Keyframe times must be finite");
+    }
+    if (time < previous) {
+      throw new RangeError("Keyframe times must be sorted in non-decreasing order");
+    }
+    if (time === previous) {
+      throw new RangeError("Keyframe times must be unique");
+    }
+    previous = time;
+  }
+  const expected = track.times.length * stride;
+  if (track.values.length < expected) {
+    throw new RangeError(`Keyframe values length ${track.values.length} is shorter than ${expected}`);
+  }
+  for (let i = 0; i < expected; i += 1) {
+    if (!Number.isFinite(track.values[i])) {
+      throw new RangeError("Keyframe values must be finite");
+    }
+  }
+}
+
 /**
  * Finds the lower keyframe index for timestamp t using binary search.
  */
@@ -31,6 +63,7 @@ export function findKeyframeIndex(times: readonly number[], t: number): number {
  * Returns a 3-element vector [x, y, z] for translation/scale, or a 4-element quaternion [x, y, z, w] for rotation.
  */
 export function sampleTrack(track: KeyframeTrack, time: number): number[] {
+  validateKeyframeTrack(track);
   const { times, values, interpolation, path } = track;
   const stride = path === "rotation" ? 4 : 3;
 

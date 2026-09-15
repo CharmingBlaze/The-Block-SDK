@@ -1,3 +1,4 @@
+import { HistoryFailureError } from "./errors";
 import type { Command, CommandContext } from "./types";
 
 export class CompositeCommand implements Command<unknown> {
@@ -8,7 +9,11 @@ export class CompositeCommand implements Command<unknown> {
   constructor(label: string, commands: Command[], id = crypto.randomUUID()) {
     this.id = id;
     this.label = label;
-    this.commands = commands;
+    this.commands = [...commands];
+  }
+
+  get commandIds(): readonly string[] {
+    return this.commands.map((command) => command.id);
   }
 
   execute(context: CommandContext): unknown {
@@ -20,17 +25,32 @@ export class CompositeCommand implements Command<unknown> {
         ran += 1;
       }
       return result;
-    } catch (error) {
-      for (let i = ran - 1; i >= 0; i--) {
-        this.commands[i]!.undo(context);
-      }
-      throw error;
+    } catch (cause) {
+      this.rollbackExecuted(context, ran, "execute", cause);
+      throw cause;
     }
   }
 
   undo(context: CommandContext): void {
+    const completed: string[] = [];
     for (let i = this.commands.length - 1; i >= 0; i--) {
-      this.commands[i]!.undo(context);
+      const command = this.commands[i]!;
+      try {
+        command.undo(context);
+        completed.push(command.id);
+      } catch (cause) {
+        throw new HistoryFailureError(
+          `Composite undo failed for command '${command.label}' (${command.id})`,
+          {
+            operation: "undo",
+            commandId: command.id,
+            commandLabel: command.label,
+            remainingCommandIds: this.commands.slice(0, i + 1).map((item) => item.id),
+            completedCommandIds: completed,
+            cause,
+          },
+        );
+      }
     }
   }
 
@@ -43,11 +63,42 @@ export class CompositeCommand implements Command<unknown> {
         ran += 1;
       }
       return result;
-    } catch (error) {
-      for (let i = ran - 1; i >= 0; i--) {
-        this.commands[i]!.undo(context);
-      }
-      throw error;
+    } catch (cause) {
+      this.rollbackExecuted(context, ran, "redo", cause);
+      throw cause;
     }
   }
+
+  private rollbackExecuted(
+    context: CommandContext,
+    ran: number,
+    operation: "execute" | "redo",
+    cause: unknown,
+  ): void {
+    const completed: string[] = [];
+    for (let i = ran - 1; i >= 0; i--) {
+      const command = this.commands[i]!;
+      try {
+        command.undo(context);
+        completed.push(command.id);
+      } catch (rollbackCause) {
+        throw new HistoryFailureError(
+          `Composite ${operation} failed (${causeMessage(cause)}) and rollback was incomplete at '${command.label}' (${command.id}): ${causeMessage(rollbackCause)}`,
+          {
+            operation: "rollback",
+            commandId: command.id,
+            commandLabel: command.label,
+            remainingCommandIds: this.commands.slice(0, i + 1).map((item) => item.id),
+            completedCommandIds: completed,
+            cause: rollbackCause,
+            originalCause: cause,
+          },
+        );
+      }
+    }
+  }
+}
+
+function causeMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause);
 }

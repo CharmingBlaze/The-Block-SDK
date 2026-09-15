@@ -1,24 +1,43 @@
 import { ObjectUrlRegistry } from "@modeling-kit/core";
-import { deserializeMesh, serializeMesh, triangulateMesh } from "@modeling-kit/mesh";
-import { validateMesh } from "@modeling-kit/validation";
-import { packUvs, type PackUvsOptions } from "@modeling-kit/uv";
 import type { SerializedMesh, TriangulatedMesh } from "@modeling-kit/mesh";
+import type { PackUvsOptions } from "@modeling-kit/uv";
 import type { MeshValidationResult } from "@modeling-kit/validation";
+import { runComputeTask } from "./compute-task";
 import type { WorkerTaskRequest, WorkerTaskResponse } from "./types";
 
 type PendingFinish = (response: WorkerTaskResponse<unknown>) => void;
 
+interface InFlight {
+  readonly id: string;
+  readonly finish: PendingFinish;
+  worker?: WorkerLike;
+}
+
+interface WorkerLike {
+  postMessage(value: unknown): void;
+  terminate(): Promise<number> | number | void;
+  on(event: "message" | "error" | "exit", listener: (...args: unknown[]) => void): void;
+}
+
+export type ComputeBackend = "worker-threads" | "inline";
+
 /**
- * In-process compute pool. Real worker threads can wrap the same request/response
- * types. Generation tokens cancel in-flight work without busy-waiting.
+ * Background compute pool. Prefers Node `worker_threads` so heavy triangulation
+ * can be interrupted with `terminate()`. Falls back to cooperative inline work
+ * with abort checkpoints inside `triangulateMesh`.
  */
 export class AsyncComputePool {
   private taskCounter = 0;
   private generation = 0;
   private disposed = false;
   private readonly timers = new Set<ReturnType<typeof setTimeout>>();
-  private readonly pending = new Set<PendingFinish>();
+  private readonly pending = new Set<InFlight>();
   readonly objectUrls = new ObjectUrlRegistry();
+  readonly backend: ComputeBackend;
+
+  constructor(options: { backend?: ComputeBackend } = {}) {
+    this.backend = options.backend ?? detectBackend();
+  }
 
   async dispatch<T>(request: WorkerTaskRequest): Promise<WorkerTaskResponse<T>> {
     const generation = this.generation;
@@ -26,72 +45,10 @@ export class AsyncComputePool {
       return { id: request.id, success: false, error: "cancelled" };
     }
 
-    return new Promise((resolve) => {
-      let settled = false;
-      const finish: PendingFinish = (response) => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        this.pending.delete(finish);
-        request.signal?.removeEventListener("abort", onAbort);
-        resolve(response as WorkerTaskResponse<T>);
-      };
-      const onAbort = (): void => {
-        finish({ id: request.id, success: false, error: "cancelled" });
-      };
-      this.pending.add(finish);
-      request.signal?.addEventListener("abort", onAbort, { once: true });
-
-      const timer = setTimeout(() => {
-        this.timers.delete(timer);
-        if (this.disposed || generation !== this.generation || request.signal?.aborted) {
-          finish({ id: request.id, success: false, error: "cancelled" });
-          return;
-        }
-        try {
-          const task = request.task;
-          if (task.type === "triangulate") {
-            const mesh = deserializeMesh(task.payload.serializedMesh);
-            const tri = triangulateMesh(mesh);
-            finish({
-              id: request.id,
-              success: true,
-              result: tri,
-            });
-          } else if (task.type === "pack-uv") {
-            const mesh = deserializeMesh(task.payload.serializedMesh);
-            packUvs(mesh, task.payload.options);
-            finish({
-              id: request.id,
-              success: true,
-              result: serializeMesh(mesh),
-            });
-          } else if (task.type === "validate") {
-            const mesh = deserializeMesh(task.payload.serializedMesh);
-            const result = validateMesh(mesh);
-            finish({
-              id: request.id,
-              success: true,
-              result,
-            });
-          } else {
-            finish({
-              id: request.id,
-              success: false,
-              error: "Unknown task type",
-            });
-          }
-        } catch (err) {
-          finish({
-            id: request.id,
-            success: false,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      }, 0);
-      this.timers.add(timer);
-    });
+    if (this.backend === "worker-threads") {
+      return this.dispatchOnWorker<T>(request, generation);
+    }
+    return this.dispatchInline<T>(request, generation);
   }
 
   dispose(): void {
@@ -104,8 +61,9 @@ export class AsyncComputePool {
       clearTimeout(timer);
     }
     this.timers.clear();
-    for (const finish of [...this.pending]) {
-      finish({ id: "disposed", success: false, error: "cancelled" });
+    for (const item of [...this.pending]) {
+      void item.worker?.terminate();
+      item.finish({ id: item.id, success: false, error: "cancelled" });
     }
     this.pending.clear();
     this.objectUrls.dispose();
@@ -145,6 +103,116 @@ export class AsyncComputePool {
     );
   }
 
+  private async dispatchOnWorker<T>(
+    request: WorkerTaskRequest,
+    generation: number,
+  ): Promise<WorkerTaskResponse<T>> {
+    try {
+      const { Worker } = await import("node:worker_threads");
+      const worker = new Worker(resolveWorkerUrl()) as unknown as WorkerLike;
+      return await new Promise<WorkerTaskResponse<T>>((resolve) => {
+        let settled = false;
+        const finish: PendingFinish = (response) => {
+          if (settled) {
+            return;
+          }
+          settled = true;
+          request.signal?.removeEventListener("abort", onAbort);
+          this.pending.delete(item);
+          void worker.terminate();
+          resolve(response as WorkerTaskResponse<T>);
+        };
+        const item: InFlight = { id: request.id, finish, worker };
+        const onAbort = (): void => {
+          void worker.terminate();
+          finish({ id: request.id, success: false, error: "cancelled" });
+        };
+        this.pending.add(item);
+        request.signal?.addEventListener("abort", onAbort, { once: true });
+        worker.on("message", (message) => {
+          finish(message as WorkerTaskResponse<unknown>);
+        });
+        worker.on("error", (err) => {
+          if (generation !== this.generation || this.disposed || request.signal?.aborted) {
+            finish({ id: request.id, success: false, error: "cancelled" });
+            return;
+          }
+          try {
+            const result = runComputeTask(request.task, request.signal);
+            finish({ id: request.id, success: true, result });
+          } catch (fallbackErr) {
+            finish({
+              id: request.id,
+              success: false,
+              error:
+                fallbackErr instanceof Error
+                  ? fallbackErr.message
+                  : err instanceof Error
+                    ? err.message
+                    : String(fallbackErr),
+            });
+          }
+        });
+        worker.on("exit", (code) => {
+          if (settled) {
+            return;
+          }
+          finish({
+            id: request.id,
+            success: false,
+            error: code === 1 ? "cancelled" : `Worker exited with code ${String(code)}`,
+          });
+        });
+        worker.postMessage({ id: request.id, task: request.task });
+      });
+    } catch {
+      return this.dispatchInline<T>(request, generation);
+    }
+  }
+
+  private async dispatchInline<T>(
+    request: WorkerTaskRequest,
+    generation: number,
+  ): Promise<WorkerTaskResponse<T>> {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish: PendingFinish = (response) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        this.pending.delete(item);
+        request.signal?.removeEventListener("abort", onAbort);
+        resolve(response as WorkerTaskResponse<T>);
+      };
+      const item: InFlight = { id: request.id, finish };
+      const onAbort = (): void => {
+        finish({ id: request.id, success: false, error: "cancelled" });
+      };
+      this.pending.add(item);
+      request.signal?.addEventListener("abort", onAbort, { once: true });
+
+      const timer = setTimeout(() => {
+        this.timers.delete(timer);
+        if (this.disposed || generation !== this.generation || request.signal?.aborted) {
+          finish({ id: request.id, success: false, error: "cancelled" });
+          return;
+        }
+        try {
+          const result = runComputeTask(request.task, request.signal);
+          finish({ id: request.id, success: true, result });
+        } catch (err) {
+          finish({
+            id: request.id,
+            success: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }, 0);
+      this.timers.add(timer);
+    });
+  }
+
   private async requireSuccess<T>(promise: Promise<WorkerTaskResponse<T>>): Promise<T> {
     const resp = await promise;
     if (!resp.success) {
@@ -154,4 +222,16 @@ export class AsyncComputePool {
   }
 }
 
-export const defaultComputePool = new AsyncComputePool();
+function detectBackend(): ComputeBackend {
+  if (typeof process === "undefined" || !process.versions?.node) {
+    return "inline";
+  }
+  return resolveWorkerUrl().href.endsWith(".js") ? "worker-threads" : "inline";
+}
+
+function resolveWorkerUrl(): URL {
+  const inDist = /[/\\]dist[/\\]/.test(import.meta.url);
+  return new URL(inDist ? "./node-worker.js" : "./node-worker.ts", import.meta.url);
+}
+
+export const defaultComputePool = new AsyncComputePool({ backend: "inline" });

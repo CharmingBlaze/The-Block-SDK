@@ -2,6 +2,7 @@ import type { HalfEdgeMesh } from "@modeling-kit/mesh";
 import { Vector3, type Vec3 } from "@modeling-kit/math";
 import {
   closestOnSegment,
+  closestPointOnTriangle,
   snapToGrid,
   type SnapResult,
   type SnapTargetType,
@@ -29,8 +30,10 @@ export const defaultSnapPriorities: Record<SnapTargetType, number> = {
   midpoint: 80,
   edge: 60,
   face: 40,
-  grid: 20,
+  "face-center": 40,
+  "face-surface": 30,
   surface: 30,
+  grid: 20,
   bbox: 10,
   increment: 10,
   angle: 10,
@@ -94,6 +97,12 @@ export function querySnap(
   const targets = options?.targets;
   const isEnabled = (type: SnapTargetType): boolean => {
     if (targets) {
+      if (type === "face" || type === "face-center") {
+        return targets.includes("face") || targets.includes("face-center");
+      }
+      if (type === "surface" || type === "face-surface") {
+        return targets.includes("surface") || targets.includes("face-surface");
+      }
       return targets.includes(type);
     }
     switch (type) {
@@ -104,6 +113,9 @@ export function querySnap(
       case "midpoint":
         return options?.snapToMidpoints !== false;
       case "face":
+      case "face-center":
+      case "surface":
+      case "face-surface":
         return options?.snapToFaces !== false;
       case "grid":
         return (
@@ -180,26 +192,29 @@ export function querySnap(
       }
     }
 
-    // 3. Faces (Centroid)
-    if (isEnabled("face")) {
+    // 3. Faces (center) and surface (closest point on triangulated n-gon)
+    if (isEnabled("face") || isEnabled("surface")) {
       for (const [fId] of mesh.faces) {
         const vIds = mesh.getFaceVertices(fId);
         if (vIds.length < 3) continue;
-        let sumX = 0;
-        let sumY = 0;
-        let sumZ = 0;
-        let count = 0;
+        const pts: Vector3[] = [];
         for (const vId of vIds) {
           const v = mesh.vertices.get(vId);
           if (v) {
-            sumX += v.position[0];
-            sumY += v.position[1];
-            sumZ += v.position[2];
-            count += 1;
+            pts.push(new Vector3(v.position[0], v.position[1], v.position[2]));
           }
         }
-        if (count >= 3) {
-          const centroid = new Vector3(sumX / count, sumY / count, sumZ / count);
+        if (pts.length < 3) continue;
+        if (isEnabled("face")) {
+          let sumX = 0;
+          let sumY = 0;
+          let sumZ = 0;
+          for (const pt of pts) {
+            sumX += pt.x;
+            sumY += pt.y;
+            sumZ += pt.z;
+          }
+          const centroid = new Vector3(sumX / pts.length, sumY / pts.length, sumZ / pts.length);
           const centroidDist = p.distanceTo(centroid);
           if (centroidDist <= radius) {
             candidates.push({
@@ -208,6 +223,27 @@ export function querySnap(
               worldPosition: centroid,
               distance: centroidDist,
               priority: priorities.face,
+            });
+          }
+        }
+        if (isEnabled("surface")) {
+          let bestPoint = pts[0]!;
+          let bestDist = p.distanceTo(bestPoint);
+          for (let i = 1; i < pts.length - 1; i += 1) {
+            const closest = closestPointOnTriangle(p, pts[0]!, pts[i]!, pts[i + 1]!);
+            const dist = p.distanceTo(closest);
+            if (dist < bestDist) {
+              bestDist = dist;
+              bestPoint = closest;
+            }
+          }
+          if (bestDist <= radius) {
+            candidates.push({
+              targetType: "surface",
+              targetId: fId,
+              worldPosition: bestPoint,
+              distance: bestDist,
+              priority: priorities.surface,
             });
           }
         }
@@ -245,8 +281,13 @@ export function querySnap(
   }
 
   filtered.sort((a, b) => {
-    if (b.priority !== a.priority) {
-      return b.priority - a.priority;
+    const scoreOf = (candidate: SnapCandidate): number => {
+      const normalized = radius > 0 ? candidate.distance / radius : candidate.distance;
+      return normalized - candidate.priority / 200;
+    };
+    const delta = scoreOf(a) - scoreOf(b);
+    if (Math.abs(delta) > 1e-12) {
+      return delta;
     }
     return a.distance - b.distance;
   });

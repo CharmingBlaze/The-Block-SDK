@@ -28,6 +28,31 @@ const UNSIGNED_SHORT = 5123;
 const UNSIGNED_INT = 5125;
 const TRIANGLES = 4;
 
+function gltfExportDataLoss(doc: ModelDocument, ngonCount: number): string[] {
+  const loss = [...triangulatedInterchangeLoss(ngonCount)];
+  const hasTextures =
+    doc.textures.size > 0 ||
+    [...doc.materials.values()].some(
+      (material) =>
+        Boolean(material.baseColorTexture) ||
+        Boolean(material.normalTexture) ||
+        Boolean(material.metallicRoughnessTexture) ||
+        Boolean(material.emissiveTexture) ||
+        Boolean(material.occlusionTexture) ||
+        Boolean(material.textureBindings && Object.keys(material.textureBindings).length > 0),
+    );
+  if (hasTextures) {
+    loss.push("Material textures, images, samplers, and texture transforms are not exported");
+  }
+  if (doc.animations.size > 0) {
+    loss.push("Animation clips are not exported");
+  }
+  if (doc.skeletons.size > 0) {
+    loss.push("Skeletons, skins, joints, inverse bind matrices, JOINTS_0, and WEIGHTS_0 are not exported");
+  }
+  return loss;
+}
+
 function assembleGltf(
   doc: ModelDocument,
   meshes: ReadonlyMap<string, HalfEdgeMesh>,
@@ -79,6 +104,7 @@ function assembleGltf(
   }
 
   let ngonCount = 0;
+  const warnings: string[] = [];
   for (const meshId of referenced) {
     throwIfAborted(options.signal, "glTF export");
     const mesh = meshes.get(meshId);
@@ -89,6 +115,10 @@ function assembleGltf(
       if (mesh.getFaceVertices(face.id).length > 3) {
         ngonCount += 1;
       }
+    }
+    if (mesh.vertices.size === 0) {
+      warnings.push(`Skipped empty mesh ${meshId}`);
+      continue;
     }
     meshIndex.set(meshId, gltfMeshes.length);
     gltfMeshes.push(
@@ -166,7 +196,7 @@ function assembleGltf(
       ],
     },
     binary: combined,
-    report: createConversionReport("gltf", [], triangulatedInterchangeLoss(ngonCount)),
+    report: createConversionReport("gltf", warnings, gltfExportDataLoss(doc, ngonCount)),
   };
 }
 

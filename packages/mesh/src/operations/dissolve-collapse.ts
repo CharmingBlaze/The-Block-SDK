@@ -3,6 +3,7 @@ import { MeshBuilder } from "../builder";
 import type { HalfEdgeMesh } from "../half-edge-mesh";
 import { deleteFace } from "../internal/delete-face";
 import { findEdge, repairVertexHalfEdges } from "../internal/rebuild";
+import { reverseFaceLoop } from "../internal/reverse-face";
 import { TopologyMappingBuilder } from "../internal/topology-mapping-builder";
 import { cloneMesh } from "../serialize";
 import type { MeshOperationContext, MeshOperationResult } from "./contract";
@@ -302,20 +303,5 @@ export function reverseFaceWinding(
 }
 
 function reverseOneFace(mesh: HalfEdgeMesh, faceId: FaceId): void {
-  const face = mesh.faces.get(faceId);
-  if (!face) {
-    return;
-  }
-  const verts = [...mesh.getFaceVertices(faceId)].reverse();
-  const corners = mesh.getFaceCorners(faceId).map((id) => mesh.corners.get(id));
-  const uvs = corners.every((corner) => corner?.uv)
-    ? [...corners].reverse().map((corner) => [corner!.uv![0], corner!.uv![1]] as [number, number])
-    : undefined;
-  deleteFace(mesh, faceId);
-  MeshBuilder.fromMesh(mesh).addFace(verts, {
-    id: faceId,
-    materialSlot: face.materialSlot,
-    isSmooth: face.isSmooth,
-    ...(uvs ? { uvs } : {}),
-  });
+  reverseFaceLoop(mesh, faceId);
 }

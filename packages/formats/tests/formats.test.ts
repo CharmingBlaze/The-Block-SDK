@@ -190,4 +190,75 @@ describe("@modeling-kit/formats", () => {
     const gltf = exportGltf(doc, new Map());
     expect((gltf["nodes"] as unknown[]).length).toBe(2);
   });
+
+  it("skips empty meshes instead of writing non-finite POSITION bounds", () => {
+    const ids = createSequenceIdFactory("empty-mesh");
+    const doc = createModelDocument({ ids });
+    const empty = new MeshBuilder(ids.mesh()).getMesh();
+    addNode(doc, ids.object(), {
+      name: "Empty",
+      type: "mesh_instance",
+      payloadRef: empty.id,
+    });
+    const exported = exportGltfWithReport(doc, new Map([[empty.id, empty]]));
+    const accessors = exported.gltf["accessors"] as Array<{ min?: number[]; max?: number[] }>;
+    expect(accessors.some((item) => item.min?.some((value) => !Number.isFinite(value)))).toBe(false);
+    expect(exported.report.warnings.some((item) => item.includes("empty mesh"))).toBe(true);
+  });
+
+  it("rejects non-finite STL vertices and warns on extra facet vertices", () => {
+    const ids = createSequenceIdFactory("stl-bad");
+    const text = `solid bad
+  facet normal 0 0 1
+    outer loop
+      vertex NaN 0 0
+      vertex 1 0 0
+      vertex 0 1 0
+    endloop
+  endfacet
+  facet normal 0 0 1
+    outer loop
+      vertex 0 0 0
+      vertex 1 0 0
+      vertex 1 1 0
+      vertex 0 1 0
+    endloop
+  endfacet
+endsolid bad`;
+    const imported = importStlAsciiWithReport(text, ids);
+    expect(imported.report.warnings.some((item) => item.includes("non-finite"))).toBe(true);
+    expect(imported.report.warnings.some((item) => item.includes("more than three"))).toBe(true);
+    expect(imported.mesh.faces.size).toBe(1);
+  });
+
+  it("rejects OBJ vertices with NaN coordinates and invalid face indices", () => {
+    const ids = createSequenceIdFactory("obj-bad");
+    expect(() => importObjWithReport("v 0 0 NaN\n", ids)).toThrow(/non-finite/);
+    expect(() =>
+      importObjWithReport(
+        `v 0 0 0
+v 1 0 0
+v 0 1 0
+f 1 2 99
+`,
+        ids,
+      ),
+    ).toThrow(/missing vertex/);
+  });
+
+  it("rejects corrupt glTF accessors in strict mode", () => {
+    const ids = createSequenceIdFactory("gltf-strict");
+    const gltf = {
+      asset: { version: "2.0" },
+      buffers: [{ byteLength: 4, uri: "data:application/octet-stream;base64,AAAAAA==" }],
+      bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 4 }],
+      accessors: [{ bufferView: 0, componentType: 5126, count: 8, type: "VEC3" }],
+      meshes: [
+        {
+          primitives: [{ attributes: { POSITION: 0 }, indices: 0 }],
+        },
+      ],
+    };
+    expect(() => importGltf(gltf, ids, { strict: true })).toThrow(/past the end|invalid/);
+  });
 });

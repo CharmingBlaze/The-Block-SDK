@@ -69,7 +69,8 @@ export class UvTransformSession {
   constructor(
     private mesh: HalfEdgeMesh,
     private channelId: UVChannelId = DEFAULT_UV_CHANNEL,
-    private readonly onCommit?: UVTransformCommitHandler,
+    private readonly applyCommand?: UVTransformCommitHandler,
+    private readonly onCommitted?: UVTransformCommitHandler,
   ) {}
 
   get state(): OperationLifecycle {
@@ -162,9 +163,12 @@ export class UvTransformSession {
     }
     this.lifecycle.transition("committing");
     try {
-      if (this.onCommit) {
+      if (this.applyCommand) {
         this.restore();
-        this.onCommit({ channelId: this.channelId, before, after });
+        this.applyCommand({ channelId: this.channelId, before, after });
+      }
+      if (this.onCommitted) {
+        this.onCommitted({ channelId: this.channelId, before, after });
       }
       this.lifecycle.transition("completed");
     } catch (error) {

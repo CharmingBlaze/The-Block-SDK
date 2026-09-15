@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { CyclicHierarchyError, HierarchyError, createSequenceIdFactory } from "@modeling-kit/core";
 import {
   addNode,
+  createMaterialData,
   createModelDocument,
+  createTextureData,
+  createTextureSet,
   duplicateHierarchy,
   findUnusedResources,
   getEffectiveVisibility,
@@ -157,6 +160,30 @@ describe("scene graph hierarchy", () => {
     expect(findUnusedResources(document).meshIds).not.toContain(meshId);
     removeNode(document, node.id);
     expect(findUnusedResources(document).meshIds).toContain(meshId);
+  });
+
+  it("does not leave a partial group when a later id is missing", () => {
+    const { document, ids } = setup();
+    const a = addNode(document, ids.object(), { name: "A" });
+    const missing = ids.object();
+    const groupId = ids.object();
+    expect(() => groupNodes(document, [a.id, missing], groupId, "G")).toThrow();
+    expect(document.scene.nodes.has(groupId)).toBe(false);
+    expect(getNode(document, a.id).parentId).not.toBe(groupId);
+  });
+
+  it("does not treat texture-set and binding textures as unused", () => {
+    const { document, ids } = setup();
+    const texture = createTextureData(ids.texture(), "Albedo");
+    document.textures.set(texture);
+    const set = createTextureSet(ids.textureSet(), "Set", { baseColor: texture.id });
+    document.textureSets.set(set);
+    const material = createMaterialData(ids.material(), "M", {
+      textureBindings: { baseColor: { textureId: texture.id } },
+      textureSetId: set.id,
+    });
+    document.materials.set(material);
+    expect(findUnusedResources(document).textureIds).not.toContain(texture.id);
   });
 
   it("round-trips hierarchy order through serialization", () => {

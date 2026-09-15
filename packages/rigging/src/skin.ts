@@ -22,6 +22,7 @@ export function skinPositions(
     let x = 0;
     let y = 0;
     let z = 0;
+    let weightSum = 0;
     for (const influence of influences) {
       const bone = skeleton.bones.get(influence.boneId);
       const world = poseWorld.get(influence.boneId);
@@ -32,8 +33,14 @@ export function skinPositions(
       x += skinned.x * influence.weight;
       y += skinned.y * influence.weight;
       z += skinned.z * influence.weight;
+      weightSum += influence.weight;
     }
-    result.set(vertexId, new Vector3(x, y, z));
+    if (weightSum <= 1e-8) {
+      result.set(vertexId, rest);
+      continue;
+    }
+    const inv = 1 / weightSum;
+    result.set(vertexId, new Vector3(x * inv, y * inv, z * inv));
   }
   return result;
 }

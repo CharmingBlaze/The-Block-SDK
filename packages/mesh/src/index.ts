@@ -1,6 +1,18 @@
-export { MeshBuilder, type AddFaceOptions, type CubeFaceIds } from "./builder";
+export {
+  MeshBuilder,
+  type AddFaceOptions,
+  type CubeFaceIds,
+  type ManifoldPolicy,
+  type MeshBuilderOptions,
+} from "./builder";
 export { HalfEdgeMesh } from "./half-edge-mesh";
-export { triangulateMesh } from "./triangulate";
+export {
+  triangulatePolygon,
+  type PolygonTriangulation,
+  type PolygonTriangulationOptions,
+  type PolygonTriangulationStatus,
+} from "./polygon-triangulation";
+export { triangulateMesh, type TriangulateMeshOptions } from "./triangulate";
 export {
   cloneMesh,
   deserializeMesh,
@@ -26,6 +38,7 @@ export {
   bridgeLoops,
   catmullClarkSubdivide,
   collectQuadEdgeLoop,
+  collectQuadEdgeRing,
   collectOrientedQuadEdgeLoop,
   previewLoopCut,
   loopCutFactors,
@@ -71,6 +84,7 @@ export {
   type AttributePropagationPolicy,
   type BevelEdgesRequest,
   type BevelEdgesResult,
+  type BevelWidthMode,
   type AddEdgeRequest,
   type AddEdgeResult,
   type AddFaceRequest,

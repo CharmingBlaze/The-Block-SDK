@@ -1,5 +1,5 @@
 import type { AnimationId } from "@modeling-kit/core";
-import { sampleTrack } from "./sampler";
+import { sampleTrack, validateKeyframeTrack } from "./sampler";
 import type { AnimationClip, KeyframeTrack } from "./types";
 
 export interface EvaluatedTransform {
@@ -18,6 +18,7 @@ export class AnimationClipBuilder {
   ) {}
 
   addTrack(track: KeyframeTrack): this {
+    validateKeyframeTrack(track);
     this.tracks.push(track);
     const lastTime = track.times[track.times.length - 1] ?? 0;
     if (lastTime > this.duration) {

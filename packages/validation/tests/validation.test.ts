@@ -29,11 +29,12 @@ describe("validateMesh", () => {
   it("flags zero-length edges and consecutive duplicate vertices", () => {
     const builder = new MeshBuilder();
     const v0 = builder.addVertex(0, 0, 0);
-    const v1 = builder.addVertex(0, 0, 0); // Duplicate coordinate! Zero length edge!
+    const v1 = builder.addVertex(1, 0, 0);
     const v2 = builder.addVertex(0, 1, 0);
 
     builder.addFace([v0, v1, v2]);
     const mesh = builder.getMesh();
+    mesh.vertices.get(v1)!.position = [0, 0, 0];
 
     const result = validateMesh(mesh);
     expect(result.valid).toBe(false);
@@ -46,11 +47,17 @@ describe("validateMesh", () => {
     const v1 = builder.addVertex(1, 0, 0);
     const v2 = builder.addVertex(0, 1, 0);
     const v3 = builder.addVertex(0, 0, 1);
-    const v4 = builder.addVertex(1, 1, 0);
     builder.addFace([v0, v1, v2]);
-    builder.addFace([v0, v1, v3]);
-    builder.addFace([v0, v1, v4]);
+    builder.addFace([v1, v0, v3]);
+    const v4 = builder.addVertex(2, 0, 0);
+    const v5 = builder.addVertex(3, 0, 0);
+    const v6 = builder.addVertex(2.5, 1, 0);
+    const extraFace = builder.addFace([v4, v5, v6]);
     const mesh = builder.getMesh();
+    const sharedEdge = mesh.getFaceEdges([...mesh.faces.keys()][0]!)[0]!;
+    const extraHe = mesh.faces.get(extraFace)!.halfEdge;
+    const he = mesh.halfEdges.get(extraHe)!;
+    mesh.halfEdges.set(he.id, { ...he, edgeId: sharedEdge });
     const result = validateMesh(mesh);
     expect(result.errors.some((e) => e.code === "NON_MANIFOLD_EDGE")).toBe(true);
     expect(result.statistics.isManifold).toBe(false);
@@ -95,7 +102,7 @@ describe("validateMesh", () => {
     const d1 = dup.addVertex(1, 0, 0);
     const d2 = dup.addVertex(0, 1, 0);
     dup.addFace([d0, d1, d2]);
-    dup.addFace([d0, d1, d2]);
+    dup.addFace([d0, d2, d1]);
     const dupMesh = dup.getMesh();
     const dupReport = healMesh(dupMesh, createSequenceIdFactory("heal-dup"));
     expect(dupReport.duplicateFacesRemoved).toBeGreaterThanOrEqual(1);
@@ -103,10 +110,11 @@ describe("validateMesh", () => {
 
     const collapse = new MeshBuilder();
     const c0 = collapse.addVertex(0, 0, 0);
-    const c1 = collapse.addVertex(0, 0, 0);
+    const c1 = collapse.addVertex(1, 0, 0);
     const c2 = collapse.addVertex(0, 1, 0);
     collapse.addFace([c0, c1, c2]);
     const collapsed = collapse.getMesh();
+    collapsed.vertices.get(c1)!.position = [0, 0, 0];
     const collapseReport = healMesh(collapsed, createSequenceIdFactory("heal-z"));
     expect(collapseReport.edgesCollapsed).toBeGreaterThanOrEqual(1);
   });

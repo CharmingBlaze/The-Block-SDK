@@ -1,6 +1,6 @@
 import { SchemaError, type FaceId, type VertexId } from "@modeling-kit/core";
 import { MeshBuilder, type HalfEdgeMesh } from "@modeling-kit/mesh";
-import { validateMesh } from "@modeling-kit/validation";
+import { validateMesh, type MeshIssue } from "@modeling-kit/validation";
 import type { PrimitiveFaceGroups, PrimitiveResult, PrimitiveValidationResult } from "./types";
 
 export const QUAD_UV: [number, number][] = [
@@ -104,7 +104,7 @@ export function finalizePrimitive(
   const validity = validateMesh(mesh);
   if (!validity.valid) {
     throw new SchemaError(
-      `${type} primitive failed validation: ${validity.errors.map((issue) => issue.code).join(", ")}`,
+      `${type} primitive failed validation: ${validity.errors.map((issue: MeshIssue) => issue.code).join(", ")}`,
     );
   }
   for (const corner of mesh.corners.values()) {

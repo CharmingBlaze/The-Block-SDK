@@ -1,14 +1,18 @@
 import type { EdgeId, FaceId, VertexId } from "@modeling-kit/core";
 import { MeshBuilder, type AddFaceOptions } from "../builder";
 import type { HalfEdgeMesh } from "../half-edge-mesh";
+import type { FaceRecord } from "../types";
 import { deleteFace } from "./delete-face";
 
 export interface FaceRebuildPlan {
   readonly faceId: FaceId;
   readonly vertices: VertexId[];
   readonly materialSlot: number;
+  readonly materialSlotId?: FaceRecord["materialSlotId"];
   readonly isSmooth: boolean;
   readonly uvs?: [number, number][];
+  readonly uvChannels?: Readonly<Record<string, [number, number]>>[];
+  readonly pinnedUvChannels?: readonly (readonly import("@modeling-kit/core").UVChannelId[])[];
   readonly normals?: [number, number, number][];
   readonly colors?: [number, number, number, number][];
 }
@@ -22,8 +26,11 @@ export function rebuildFaces(mesh: HalfEdgeMesh, plans: readonly FaceRebuildPlan
     const options: AddFaceOptions = {
       id: plan.faceId,
       materialSlot: plan.materialSlot,
+      materialSlotId: plan.materialSlotId,
       isSmooth: plan.isSmooth,
       ...(plan.uvs ? { uvs: plan.uvs } : {}),
+      ...(plan.uvChannels ? { uvChannels: plan.uvChannels } : {}),
+      ...(plan.pinnedUvChannels ? { pinnedUvChannels: plan.pinnedUvChannels } : {}),
       ...(plan.normals ? { normals: plan.normals } : {}),
       ...(plan.colors ? { colors: plan.colors } : {}),
     };

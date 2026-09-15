@@ -1,4 +1,4 @@
-import { CyclicHierarchyError, type BoneId, type SkeletonId } from "@modeling-kit/core";
+import { CyclicHierarchyError, HierarchyError, NodeNotFoundError, type BoneId, type SkeletonId } from "@modeling-kit/core";
 import {
   identityTransform,
   Matrix4,
@@ -28,6 +28,9 @@ export class SkeletonBuilder {
 
   addBone(options: AddBoneOptions): this {
     const parentId = options.parentId ?? null;
+    if (this.records.has(options.id)) {
+      throw new HierarchyError("DUPLICATE_BONE", `Bone '${options.id}' is already defined`);
+    }
     if (parentId && parentId === options.id) {
       throw new CyclicHierarchyError(options.id, parentId);
     }
@@ -78,8 +81,14 @@ export function reparentBone(
   boneId: BoneId,
   newParentId: BoneId | null,
 ): Skeleton {
+  if (!skeleton.bones.has(boneId)) {
+    throw new NodeNotFoundError(boneId);
+  }
   if (newParentId === boneId) {
     throw new CyclicHierarchyError(boneId, newParentId);
+  }
+  if (newParentId && !skeleton.bones.has(newParentId)) {
+    throw new NodeNotFoundError(newParentId);
   }
   if (newParentId) {
     let cursor: BoneId | null = newParentId;
@@ -115,7 +124,10 @@ function buildSkeleton(
   const children = new Map<BoneId, BoneId[]>();
   const rootBoneIds: BoneId[] = [];
   for (const [boneId, record] of records) {
-    if (record.parentId && records.has(record.parentId)) {
+    if (record.parentId) {
+      if (!records.has(record.parentId)) {
+        throw new NodeNotFoundError(record.parentId);
+      }
       const list = children.get(record.parentId) ?? [];
       list.push(boneId);
       children.set(record.parentId, list);
@@ -125,11 +137,19 @@ function buildSkeleton(
   }
 
   const bones = new Map<BoneId, Bone>();
+  const visiting = new Set<BoneId>();
   const writeBone = (boneId: BoneId, parentWorld: Matrix4): void => {
+    if (visiting.has(boneId)) {
+      throw new CyclicHierarchyError(boneId, boneId);
+    }
+    if (bones.has(boneId)) {
+      return;
+    }
     const record = records.get(boneId);
     if (!record) {
       return;
     }
+    visiting.add(boneId);
     const local = transformToMatrix(record.restTransform);
     const world = parentWorld.multiply(local);
     bones.set(boneId, {
@@ -143,9 +163,14 @@ function buildSkeleton(
     for (const childId of children.get(boneId) ?? []) {
       writeBone(childId, world);
     }
+    visiting.delete(boneId);
   };
   for (const rootId of rootBoneIds) {
     writeBone(rootId, Matrix4.identity());
+  }
+  if (bones.size !== records.size) {
+    const missing = [...records.keys()].find((id) => !bones.has(id));
+    throw new CyclicHierarchyError(missing ?? "unknown", missing ?? "unknown");
   }
   return { id, name, bones, rootBoneIds };
 }

@@ -49,4 +49,21 @@ describe("@modeling-kit/workers", () => {
     pool.dispose();
     expect(pool.objectUrls.disposed).toBe(true);
   });
+
+  it("preserves the original request id when disposing pending work", async () => {
+    const mesh = MeshBuilder.createCube(2, 2, 2);
+    const serialized = serializeMesh(mesh);
+    const pool = new AsyncComputePool({ backend: "inline" });
+    const pending = pool.dispatch({
+      id: "keep-me",
+      task: { type: "validate", payload: { serializedMesh: serialized } },
+    });
+    pool.dispose();
+    const response = await pending;
+    expect(response.id).toBe("keep-me");
+    expect(response.success).toBe(false);
+    if (!response.success) {
+      expect(response.error).toBe("cancelled");
+    }
+  });
 });

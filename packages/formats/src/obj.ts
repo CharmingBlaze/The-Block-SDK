@@ -1,4 +1,4 @@
-import type { FaceId, IdFactory, VertexId } from "@modeling-kit/core";
+import { SchemaError, type FaceId, type IdFactory, type VertexId } from "@modeling-kit/core";
 import { MeshBuilder, faceNormal, type HalfEdgeMesh } from "@modeling-kit/mesh";
 import { throwIfAborted } from "./cancel";
 import { createConversionReport, type ConversionReport } from "./conversion";
@@ -110,9 +110,15 @@ export function importObjWithReport(
     const tag = parts[0];
 
     if (tag === "v") {
+      if (parts.length < 4) {
+        throw new SchemaError("OBJ vertex requires three coordinates");
+      }
       const x = parseFloat(parts[1]!);
       const y = parseFloat(parts[2]!);
       const z = parseFloat(parts[3]!);
+      if (![x, y, z].every(Number.isFinite)) {
+        throw new SchemaError(`OBJ vertex has non-finite coordinates: ${parts.slice(1, 4).join(" ")}`);
+      }
       const vId = ids.vertex();
       builder.addVertex(x, y, z, vId);
       vertices.push(vId);
@@ -120,21 +126,27 @@ export function importObjWithReport(
       const faceVertexIds: VertexId[] = [];
       for (let i = 1; i < parts.length; i++) {
         const token = parts[i]!;
-        // Token can be v, v/vt, v/vt/vn, or v//vn
         const vIndexStr = token.split("/")[0]!;
-        let vIdx = parseInt(vIndexStr, 10);
+        const parsed = parseInt(vIndexStr, 10);
+        if (!Number.isInteger(parsed) || parsed === 0) {
+          throw new SchemaError(`OBJ face has an invalid vertex index '${token}'`);
+        }
+        let vIdx = parsed;
         if (vIdx < 0) {
-          // Negative relative index
           vIdx = vertices.length + vIdx;
         } else {
-          vIdx = vIdx - 1; // 1-based to 0-based
+          vIdx = vIdx - 1;
         }
         const vId = vertices[vIdx];
-        if (vId) faceVertexIds.push(vId);
+        if (!vId) {
+          throw new SchemaError(`OBJ face references missing vertex index ${parsed}`);
+        }
+        faceVertexIds.push(vId);
       }
-      if (faceVertexIds.length >= 3) {
-        builder.addFace(faceVertexIds, { id: ids.face() });
+      if (faceVertexIds.length < 3) {
+        throw new SchemaError("OBJ face requires at least 3 valid vertex indices");
       }
+      builder.addFace(faceVertexIds, { id: ids.face() });
     }
   }
 

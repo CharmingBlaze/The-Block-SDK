@@ -51,6 +51,8 @@ describe("@modeling-kit/uv", () => {
       expect(v).toBeGreaterThanOrEqual(0);
       expect(v).toBeLessThanOrEqual(1);
     }
+    expect(() => packUvs(cube, { padding: -0.1 })).toThrow(/padding/);
+    expect(() => packUvs(cube, { rotate: true })).toThrow(/rotation/);
   });
 
   it("translates UVs on selected faces", () => {

@@ -1,13 +1,18 @@
 import type { FaceId, VertexId } from "@modeling-kit/core";
 import { Vector3 } from "@modeling-kit/math";
 import type { HalfEdgeMesh } from "./half-edge-mesh";
+import { triangulatePolygon } from "./polygon-triangulation";
 import type { TriangulatedMesh } from "./types";
 
+export interface TriangulateMeshOptions {
+  readonly signal?: AbortSignal;
+}
+
 /**
- * Decomposes general polygons into render-ready triangles.
- * Preserves source FaceId traceability on every triangle for future raycast picking.
+ * Decomposes general polygons into render-ready triangles via deterministic ear clipping.
+ * Preserves source FaceId traceability on every triangle for raycast picking.
  */
-export function triangulateMesh(mesh: HalfEdgeMesh): TriangulatedMesh {
+export function triangulateMesh(mesh: HalfEdgeMesh, options: TriangulateMeshOptions = {}): TriangulatedMesh {
   const positions: number[] = [];
   const normals: number[] = [];
   const uvs: number[] = [];
@@ -16,12 +21,16 @@ export function triangulateMesh(mesh: HalfEdgeMesh): TriangulatedMesh {
   const vertexIdMap: VertexId[] = [];
 
   let vertexCursor = 0;
+  let faceIndex = 0;
 
   for (const [fId] of mesh.faces) {
+    if (faceIndex % 8 === 0) {
+      throwIfAborted(options.signal);
+    }
+    faceIndex += 1;
     const vIds = mesh.getFaceVertices(fId);
     if (vIds.length < 3) continue;
 
-    // Fetch vertex coordinates
     const facePoints: Vector3[] = [];
     for (const vId of vIds) {
       const v = mesh.vertices.get(vId);
@@ -31,12 +40,17 @@ export function triangulateMesh(mesh: HalfEdgeMesh): TriangulatedMesh {
     }
     if (facePoints.length < 3) continue;
 
+    const tuples = facePoints.map((pt) => [pt.x, pt.y, pt.z] as const);
+    const triangulation = triangulatePolygon(tuples, { rejectSelfIntersecting: true });
+    if (triangulation.status !== "ok" || triangulation.triangles.length === 0) {
+      continue;
+    }
+
     const faceNormal = polygonNormal(facePoints);
     if (!faceNormal) {
       continue;
     }
 
-    // Fetch corner UVs and normals if available
     const cIds = mesh.getFaceCorners(fId);
     const cornerUvs: [number, number][] = [];
     const cornerNormals: [number, number, number][] = [];
@@ -48,11 +62,9 @@ export function triangulateMesh(mesh: HalfEdgeMesh): TriangulatedMesh {
       }
     }
 
-    // Polygon triangulation (fan decomposition for convex / ear-clipping)
     const n = facePoints.length;
     const faceStartIdx = vertexCursor;
 
-    // Push render vertices for this face (split vertices per face for clean flat shading/UVs)
     for (let i = 0; i < n; i++) {
       const pt = facePoints[i]!;
       const uv = cornerUvs[i] ?? [0, 0];
@@ -65,21 +77,9 @@ export function triangulateMesh(mesh: HalfEdgeMesh): TriangulatedMesh {
       vertexCursor++;
     }
 
-    // Triangulate face boundary indices [0, 1, 2, ..., n-1]
-    if (n === 3) {
-      indices.push(faceStartIdx, faceStartIdx + 1, faceStartIdx + 2);
+    for (const tri of triangulation.triangles) {
+      indices.push(faceStartIdx + tri[0], faceStartIdx + tri[1], faceStartIdx + tri[2]);
       triangleFaceIds.push(fId);
-    } else if (n === 4) {
-      // Quad split into 2 triangles
-      indices.push(faceStartIdx, faceStartIdx + 1, faceStartIdx + 2);
-      indices.push(faceStartIdx, faceStartIdx + 2, faceStartIdx + 3);
-      triangleFaceIds.push(fId, fId);
-    } else {
-      // General polygon fan (fallback for n-gons)
-      for (let i = 1; i < n - 1; i++) {
-        indices.push(faceStartIdx, faceStartIdx + i, faceStartIdx + i + 1);
-        triangleFaceIds.push(fId);
-      }
     }
   }
 
@@ -91,6 +91,12 @@ export function triangulateMesh(mesh: HalfEdgeMesh): TriangulatedMesh {
     triangleFaceIds,
     vertexIdMap,
   };
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) {
+    throw new Error("cancelled");
+  }
 }
 
 function polygonNormal(points: readonly Vector3[]): Vector3 | null {

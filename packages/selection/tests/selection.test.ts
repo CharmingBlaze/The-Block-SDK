@@ -55,4 +55,45 @@ describe("SelectionManager", () => {
     off();
     selection.dispose();
   });
+
+  it("mutates objectIds for object-domain add, remove, toggle, and remap", () => {
+    const selection = new SelectionManager();
+    const a = brand<string, "ObjectId">("obj-a");
+    const b = brand<string, "ObjectId">("obj-b");
+    const c = brand<string, "ObjectId">("obj-c");
+    selection.replace({ domain: "object", objectIds: [a], activeId: a });
+    expect(selection.objectIds).toEqual([a]);
+    expect(selection.elementIds).toEqual([]);
+    expect(selection.activeId).toBe(a);
+
+    selection.add([b]);
+    expect(selection.objectIds).toEqual([a, b]);
+    expect(selection.elementIds).toEqual([]);
+    expect(selection.activeId).toBe(b);
+
+    selection.toggle(c);
+    expect(selection.objectIds).toEqual([a, b, c]);
+    selection.toggle(b);
+    expect(selection.objectIds).toEqual([a, c]);
+    expect(selection.activeId).toBe(c);
+
+    selection.remove([a]);
+    expect(selection.objectIds).toEqual([c]);
+    expect(selection.activeId).toBe(c);
+
+    const snap = selection.snapshot();
+    selection.add([a]);
+    selection.restore(snap);
+    expect(selection.objectIds).toEqual([c]);
+    expect(selection.activeId).toBe(c);
+
+    selection.replace({ domain: "object", objectIds: [a, c], activeId: a });
+    selection.applyRemap({
+      map: new Map([[a, "obj-a2"]]),
+      deleted: new Set([c]),
+    });
+    expect(selection.objectIds).toEqual(["obj-a2"]);
+    expect(selection.activeId).toBe("obj-a2");
+    expect(selection.elementIds).toEqual([]);
+  });
 });

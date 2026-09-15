@@ -7,5 +7,5 @@ export {
 } from "./interpolate";
 export { AnimationPlayer, reverseClip, scaleClipTime } from "./player";
 export { AnimationClipBuilder, evaluateClip, type EvaluatedTransform } from "./clip";
-export { findKeyframeIndex, sampleTrack } from "./sampler";
+export { findKeyframeIndex, sampleTrack, validateKeyframeTrack } from "./sampler";
 export type { AnimationClip, AnimationInterpolation, AnimationPath, KeyframeTrack } from "./types";

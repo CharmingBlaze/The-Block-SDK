@@ -92,6 +92,13 @@ export class TransformGesture {
       this.roots.length > 0 ? this.roots : objectIds,
       request.pivot ?? "median",
       request.cursor,
+      {
+        activeId: request.activeId,
+        meshes: context.meshes,
+        ...(this.vertexBaselines.length > 0 && objectIds[0]
+          ? vertexPivotHints(context.document, objectIds[0]!, this.vertexBaselines, request.activeId)
+          : {}),
+      },
     );
   }
 
@@ -264,4 +271,23 @@ export class TransformGesture {
     }
     mesh.bumpPositionsRevision();
   }
+}
+
+function vertexPivotHints(
+  document: ModelDocument,
+  objectId: ObjectId,
+  baselines: readonly VertexBaseline[],
+  activeId?: string | null,
+): { worldPoints: Vector3[]; activeWorldPoint?: Vector3 } {
+  const objectWorld = worldMatrix(document, objectId);
+  const worldPoints = baselines.map((baseline) =>
+    objectWorld.transformPoint(
+      new Vector3(baseline.position[0], baseline.position[1], baseline.position[2]),
+    ),
+  );
+  const activeIndex = activeId ? baselines.findIndex((item) => item.vertexId === activeId) : -1;
+  return {
+    worldPoints,
+    ...(activeIndex >= 0 ? { activeWorldPoint: worldPoints[activeIndex] } : {}),
+  };
 }

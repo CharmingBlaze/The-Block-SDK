@@ -1,12 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true,
-    "paths": {
-      "@modeling-kit/core": ["../core/src/index.ts"],
-      "@modeling-kit/math": ["../math/src/index.ts"]
-    }
+    "noEmit": true
   },
-  "include": ["src", "tests"],
-  "exclude": ["dist", "src/dom.ts"]
+  "include": [
+    "src",
+    "tests"
+  ],
+  "exclude": [
+    "dist",
+    "src/dom.ts"
+  ]
 }

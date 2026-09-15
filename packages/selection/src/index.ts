@@ -18,5 +18,6 @@ export {
   lassoSelectIds,
   coplanarFaceIds,
   similarMaterialFaceIds,
+  type MarqueeContainment,
   type ScreenSelectOptions,
 } from "./topology";

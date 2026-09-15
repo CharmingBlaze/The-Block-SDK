@@ -11,6 +11,7 @@ import {
   paintSurfaceHitOnStroke,
   resolveHitMaterialSlot,
   dilateSeamTexels,
+  applyTextureTilePatches,
 } from "../src/index";
 
 describe("@modeling-kit/paint", () => {
@@ -110,6 +111,21 @@ describe("@modeling-kit/paint", () => {
     expect(buf.getPixel(4, 4)[0]).toBe(255);
     engine.dispose();
     expect(() => engine.begin()).toThrow(/disposed/);
+  });
+
+  it("captures intermediate tiles on a long stroke so undo restores the whole line", () => {
+    const buf = TextureBuffer.create(128, 128);
+    const engine = new PaintEngine(buf);
+    engine.begin();
+    engine.strokeTo(2, 2, 100, 2, { size: 2, color: [255, 0, 0, 255] });
+    expect(buf.getPixel(50, 2)[0]).toBe(255);
+    const { patches } = engine.commit();
+    expect(patches.length).toBeGreaterThan(1);
+    applyTextureTilePatches(buf, patches, false);
+    expect(buf.getPixel(2, 2)[3]).toBe(0);
+    expect(buf.getPixel(50, 2)[3]).toBe(0);
+    expect(buf.getPixel(100, 2)[3]).toBe(0);
+    engine.dispose();
   });
 
   it("maps a 3D face hit into a paint stroke dab", () => {

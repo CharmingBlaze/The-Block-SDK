@@ -20,7 +20,20 @@ export function normalizeWeights(
   influences: readonly BoneWeight[],
   maxInfluences = 4,
 ): BoneWeight[] {
-  const sorted = [...influences].sort((a, b) => b.weight - a.weight).slice(0, maxInfluences);
+  if (!Number.isFinite(maxInfluences) || maxInfluences <= 0) {
+    throw new RangeError("maxInfluences must be a positive finite number");
+  }
+  const combined = new Map<BoneId, number>();
+  for (const item of influences) {
+    if (!Number.isFinite(item.weight) || item.weight < 0) {
+      throw new RangeError("Bone weights must be finite and non-negative");
+    }
+    combined.set(item.boneId, (combined.get(item.boneId) ?? 0) + item.weight);
+  }
+  const sorted = [...combined.entries()]
+    .map(([boneId, weight]) => ({ boneId, weight }))
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, maxInfluences);
   const sum = sorted.reduce((acc, item) => acc + item.weight, 0);
   if (sum <= 1e-8) {
     return sorted.length > 0 ? [{ boneId: sorted[0]!.boneId, weight: 1 }] : [];

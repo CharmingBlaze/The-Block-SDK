@@ -1,14 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true,
-    "paths": {
-      "@modeling-kit/core": ["../core/src/index.ts"],
-      "@modeling-kit/mesh": ["../mesh/src/index.ts"],
-      "@modeling-kit/uv": ["../uv/src/index.ts"],
-      "@modeling-kit/validation": ["../validation/src/index.ts"]
-    }
+    "noEmit": true
   },
-  "include": ["src", "tests"],
-  "exclude": ["dist", "node_modules"]
+  "include": [
+    "src",
+    "tests"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
 }

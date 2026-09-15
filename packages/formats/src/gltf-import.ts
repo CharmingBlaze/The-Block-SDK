@@ -20,10 +20,20 @@ export interface GltfImportResult {
   readonly report: ConversionReport;
 }
 
+export type GltfWeldMode = "none" | "position" | "attributes";
+
 export interface GltfImportOptions {
   readonly name?: string;
   /** Merge render vertices that share a position into one kernel vertex. Default 1e-5. */
   readonly weldEpsilon?: number;
+  /**
+   * `"position"` matches legacy importers.
+   * `"attributes"` also requires matching UVs/normals/colors.
+   * `"none"` keeps every render vertex.
+   */
+  readonly weldMode?: GltfWeldMode;
+  /** Reject corrupt accessors instead of coercing them to zeros. Default true. */
+  readonly strict?: boolean;
   readonly signal?: AbortSignal;
 }
 
@@ -90,6 +100,8 @@ export function importGltf(
     warnings.push("glTF skins are not imported in Release 1.0");
   }
   const weldEpsilon = options.weldEpsilon ?? 1e-5;
+  const weldMode: GltfWeldMode = options.weldMode ?? "position";
+  const strict = options.strict !== false;
 
   const document = createModelDocument({ ids, name: options.name ?? "glTF Import" });
   const meshes = new Map<MeshId, HalfEdgeMesh>();
@@ -130,6 +142,8 @@ export function importGltf(
       buffers,
       ids,
       weldEpsilon,
+      weldMode,
+      strict,
       materialList.map((item) => item.id),
       warnings,
     );
@@ -275,6 +289,8 @@ function buildMesh(
   buffers: Uint8Array[],
   ids: IdFactory,
   weldEpsilon: number,
+  weldMode: GltfWeldMode,
+  strict: boolean,
   materialIds: readonly string[],
   warnings: string[],
 ): HalfEdgeMesh | null {
@@ -284,7 +300,6 @@ function buildMesh(
   }
   const builder = new MeshBuilder(ids.mesh());
   const vertexKey = new Map<string, ReturnType<MeshBuilder["addVertex"]>>();
-  const quantize = 1 / Math.max(weldEpsilon, 1e-8);
   let faces = 0;
 
   for (const primitiveUnknown of primitives) {
@@ -302,14 +317,22 @@ function buildMesh(
       warnings.push("Skipped primitive without POSITION");
       continue;
     }
-    const positions = readAccessor(accessors, bufferViews, buffers, attributes.POSITION, warnings);
+    const positions = readAccessor(accessors, bufferViews, buffers, attributes.POSITION, warnings, strict);
     const uvs =
       typeof attributes.TEXCOORD_0 === "number"
-        ? readAccessor(accessors, bufferViews, buffers, attributes.TEXCOORD_0, warnings)
+        ? readAccessor(accessors, bufferViews, buffers, attributes.TEXCOORD_0, warnings, strict)
+        : [];
+    const normals =
+      typeof attributes.NORMAL === "number"
+        ? readAccessor(accessors, bufferViews, buffers, attributes.NORMAL, warnings, strict)
+        : [];
+    const colors =
+      typeof attributes.COLOR_0 === "number"
+        ? readAccessor(accessors, bufferViews, buffers, attributes.COLOR_0, warnings, strict)
         : [];
     const indices =
       typeof primitive.indices === "number"
-        ? readAccessor(accessors, bufferViews, buffers, primitive.indices, warnings)
+        ? readAccessor(accessors, bufferViews, buffers, primitive.indices, warnings, strict)
         : Array.from({ length: positions.length / 3 }, (_, i) => i);
     const slot =
       typeof primitive.material === "number" && primitive.material >= 0 && primitive.material < materialIds.length
@@ -319,6 +342,7 @@ function buildMesh(
     for (let i = 0; i + 2 < indices.length; i += 3) {
       const cornerIds: ReturnType<MeshBuilder["addVertex"]>[] = [];
       const cornerUvs: [number, number][] = [];
+      const cornerNormals: [number, number, number][] = [];
       let valid = true;
       for (let k = 0; k < 3; k++) {
         const vertexIndex = Math.round(indices[i + k]!);
@@ -326,18 +350,48 @@ function buildMesh(
         const py = positions[vertexIndex * 3 + 1];
         const pz = positions[vertexIndex * 3 + 2];
         if (px === undefined || py === undefined || pz === undefined) {
+          if (strict) {
+            throw new SchemaError(`glTF index ${vertexIndex} is outside the POSITION accessor`);
+          }
           valid = false;
           break;
         }
-        const key = `${Math.round(px * quantize)}:${Math.round(py * quantize)}:${Math.round(pz * quantize)}`;
-        let vertexId = vertexKey.get(key);
+        if (![px, py, pz].every(Number.isFinite)) {
+          if (strict) {
+            throw new SchemaError("glTF POSITION accessor contains non-finite coordinates");
+          }
+          valid = false;
+          break;
+        }
+        const uv: [number, number] | undefined =
+          uvs.length >= (vertexIndex + 1) * 2 ? [uvs[vertexIndex * 2]!, uvs[vertexIndex * 2 + 1]!] : undefined;
+        const normal: [number, number, number] | undefined =
+          normals.length >= (vertexIndex + 1) * 3
+            ? [normals[vertexIndex * 3]!, normals[vertexIndex * 3 + 1]!, normals[vertexIndex * 3 + 2]!]
+            : undefined;
+        const color: [number, number, number, number] | undefined =
+          colors.length >= (vertexIndex + 1) * 4
+            ? [
+                colors[vertexIndex * 4]!,
+                colors[vertexIndex * 4 + 1]!,
+                colors[vertexIndex * 4 + 2]!,
+                colors[vertexIndex * 4 + 3]!,
+              ]
+            : undefined;
+        const key = weldKey(weldMode, weldEpsilon, px, py, pz, uv, normal, color);
+        let vertexId = key ? vertexKey.get(key) : undefined;
         if (!vertexId) {
           vertexId = builder.addVertex(px, py, pz, ids.vertex());
-          vertexKey.set(key, vertexId);
+          if (key) {
+            vertexKey.set(key, vertexId);
+          }
         }
         cornerIds.push(vertexId);
-        if (uvs.length >= (vertexIndex + 1) * 2) {
-          cornerUvs.push([uvs[vertexIndex * 2]!, uvs[vertexIndex * 2 + 1]!]);
+        if (uv) {
+          cornerUvs.push(uv);
+        }
+        if (normal) {
+          cornerNormals.push(normal);
         }
       }
       if (!valid || new Set(cornerIds).size < 3) {
@@ -347,6 +401,7 @@ function buildMesh(
         id: ids.face(),
         materialSlot: slot,
         ...(cornerUvs.length === 3 ? { uvs: cornerUvs } : {}),
+        ...(cornerNormals.length === 3 ? { normals: cornerNormals } : {}),
       });
       faces += 1;
     }
@@ -361,54 +416,111 @@ function readAccessor(
   buffers: Uint8Array[],
   index: number,
   warnings: string[],
+  strict: boolean,
 ): number[] {
   const accessor = asRecord(accessors[index]);
   if (!accessor) {
-    warnings.push(`Missing accessor ${index}`);
-    return [];
+    return failOrWarn(strict, warnings, `Missing accessor ${index}`);
   }
   if (accessor.sparse) {
-    warnings.push(`Sparse accessor ${index} is not supported`);
-    return [];
+    return failOrWarn(strict, warnings, `Sparse accessor ${index} is not supported`);
   }
   const count = typeof accessor.count === "number" ? accessor.count : 0;
-  const type = typeof accessor.type === "string" ? accessor.type : "SCALAR";
-  const componentType = typeof accessor.componentType === "number" ? accessor.componentType : FLOAT;
-  const components = TYPE_COMPONENTS[type] ?? 1;
-  const componentBytes = COMPONENT_BYTES[componentType] ?? 4;
+  if (!Number.isInteger(count) || count < 0) {
+    return failOrWarn(strict, warnings, `Accessor ${index} has an invalid count`);
+  }
+  const type = typeof accessor.type === "string" ? accessor.type : "";
+  const componentType = typeof accessor.componentType === "number" ? accessor.componentType : Number.NaN;
+  const components = TYPE_COMPONENTS[type];
+  const componentBytes = COMPONENT_BYTES[componentType];
+  if (!components || !componentBytes) {
+    return failOrWarn(strict, warnings, `Accessor ${index} has an invalid type or componentType`);
+  }
   const viewIndex = typeof accessor.bufferView === "number" ? accessor.bufferView : undefined;
   const accessorOffset = typeof accessor.byteOffset === "number" ? accessor.byteOffset : 0;
   const normalized = accessor.normalized === true;
+  if (accessorOffset < 0 || accessorOffset % componentBytes !== 0) {
+    return failOrWarn(strict, warnings, `Accessor ${index} has a misaligned byteOffset`);
+  }
   if (viewIndex === undefined) {
-    return new Array(count * components).fill(0);
+    if (strict) {
+      throw new SchemaError(`Accessor ${index} is missing a bufferView`);
+    }
+    warnings.push(`Accessor ${index} is missing a bufferView`);
+    return [];
+  }
+  if (!Number.isInteger(viewIndex) || viewIndex < 0 || viewIndex >= bufferViews.length) {
+    return failOrWarn(strict, warnings, `Accessor ${index} references an invalid bufferView`);
   }
   const view = asRecord(bufferViews[viewIndex]);
   if (!view) {
-    warnings.push(`Missing bufferView ${viewIndex}`);
-    return [];
+    return failOrWarn(strict, warnings, `Missing bufferView ${viewIndex}`);
   }
   const bufferIndex = typeof view.buffer === "number" ? view.buffer : 0;
+  if (!Number.isInteger(bufferIndex) || bufferIndex < 0 || bufferIndex >= buffers.length) {
+    return failOrWarn(strict, warnings, `BufferView ${viewIndex} references an invalid buffer`);
+  }
   const viewOffset = typeof view.byteOffset === "number" ? view.byteOffset : 0;
   const stride = typeof view.byteStride === "number" ? view.byteStride : componentBytes * components;
+  if (stride < componentBytes * components || stride % componentBytes !== 0) {
+    return failOrWarn(strict, warnings, `BufferView ${viewIndex} has an invalid byteStride`);
+  }
   const bytes = buffers[bufferIndex];
   if (!bytes) {
-    return [];
+    return failOrWarn(strict, warnings, `Buffer ${bufferIndex} is empty or missing`);
   }
   const data = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const out: number[] = [];
   for (let i = 0; i < count; i++) {
     const elementOffset = viewOffset + accessorOffset + i * stride;
     for (let c = 0; c < components; c++) {
-      out.push(readComponent(data, elementOffset + c * componentBytes, componentType, normalized));
+      const componentOffset = elementOffset + c * componentBytes;
+      if (componentOffset < 0 || componentOffset + componentBytes > data.byteLength) {
+        return failOrWarn(strict, warnings, `Accessor ${index} reads past the end of its buffer`);
+      }
+      out.push(readComponent(data, componentOffset, componentType, normalized));
     }
   }
   return out;
 }
 
-function readComponent(data: DataView, offset: number, componentType: number, normalized: boolean): number {
-  if (offset < 0 || offset + (COMPONENT_BYTES[componentType] ?? 1) > data.byteLength) {
-    return 0;
+function failOrWarn(strict: boolean, warnings: string[], message: string): number[] {
+  if (strict) {
+    throw new SchemaError(message);
   }
+  warnings.push(message);
+  return [];
+}
+
+function weldKey(
+  mode: GltfWeldMode,
+  epsilon: number,
+  px: number,
+  py: number,
+  pz: number,
+  uv: [number, number] | undefined,
+  normal: [number, number, number] | undefined,
+  color: [number, number, number, number] | undefined,
+): string | undefined {
+  if (mode === "none") {
+    return undefined;
+  }
+  const quantize = 1 / Math.max(epsilon, 1e-8);
+  const position = `${Math.round(px * quantize)}:${Math.round(py * quantize)}:${Math.round(pz * quantize)}`;
+  if (mode === "position") {
+    return position;
+  }
+  const uvKey = uv ? `${Math.round(uv[0] * quantize)}:${Math.round(uv[1] * quantize)}` : "-";
+  const nKey = normal
+    ? `${Math.round(normal[0] * quantize)}:${Math.round(normal[1] * quantize)}:${Math.round(normal[2] * quantize)}`
+    : "-";
+  const cKey = color
+    ? `${Math.round(color[0] * quantize)}:${Math.round(color[1] * quantize)}:${Math.round(color[2] * quantize)}:${Math.round(color[3] * quantize)}`
+    : "-";
+  return `${position}|${uvKey}|${nKey}|${cKey}`;
+}
+
+function readComponent(data: DataView, offset: number, componentType: number, normalized: boolean): number {
   switch (componentType) {
     case BYTE: {
       const value = data.getInt8(offset);

@@ -60,8 +60,8 @@ export {
   type ExtrudeRegionRequest,
   type ExtrudeRegionResult,
 } from "./extrude-region";
-export { collectQuadEdgeLoop, collectOrientedQuadEdgeLoop, previewLoopCut, loopCut, loopCutFactors, factorOnOrientedEdge, type LoopCutRequest, type LoopCutResult, type LoopCutPreview, type OrientedLoopEdge } from "./loop-cut";
-export { bevelEdges, type BevelEdgesRequest, type BevelEdgesResult } from "./bevel-edges";
+export { collectQuadEdgeLoop, collectQuadEdgeRing, collectOrientedQuadEdgeLoop, previewLoopCut, loopCut, loopCutFactors, factorOnOrientedEdge, type LoopCutRequest, type LoopCutResult, type LoopCutPreview, type OrientedLoopEdge } from "./loop-cut";
+export { bevelEdges, type BevelEdgesRequest, type BevelEdgesResult, type BevelWidthMode } from "./bevel-edges";
 export { insetFaces, type InsetFacesOpResult, type InsetFacesRequest, type InsetFacesResult } from "./inset-faces";
 export { subdivideFaces, type SubdivideFacesRequest, type SubdivideOpResult, type SubdivideResult } from "./subdivide";
 export { bridgeLoops, type BridgeEdgesResult, type BridgeLoopsOpResult as BridgeLoopsResult, type BridgeLoopsOpResult, type BridgeLoopsRequest } from "./bridge-loops";

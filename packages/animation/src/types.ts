@@ -1,5 +1,10 @@
 import type { AnimationId, ObjectId } from "@modeling-kit/core";
 
+/**
+ * Legacy glTF-shaped clip used by `sampleTrack` / `evaluateClip`.
+ * Canonical stored animation is `AnimationClipData` on `ModelDocument`
+ * (`channel: "position"`, `interpolation: "constant" | "linear" | "cubic"`).
+ */
 export type AnimationPath = "translation" | "rotation" | "scale";
 
 export type AnimationInterpolation = "STEP" | "LINEAR" | "CUBICSPLINE";

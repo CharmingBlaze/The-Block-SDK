@@ -83,6 +83,7 @@ export function importStlAsciiWithReport(
     throw new RangeError("STL import supports ASCII solids only");
   }
   const builder = new MeshBuilder(ids.mesh());
+  const warnings: string[] = [];
   const vertexRe = /vertex\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)/g;
   const facets = text.split(/facet\s+normal/i).slice(1);
   for (const facet of facets) {
@@ -97,7 +98,17 @@ export function importStlAsciiWithReport(
       if (!m) {
         continue;
       }
-      verts.push([Number(m[1]), Number(m[2]), Number(m[3])]);
+      const x = Number(m[1]);
+      const y = Number(m[2]);
+      const z = Number(m[3]);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+        warnings.push("Skipped vertex with non-finite coordinates");
+        continue;
+      }
+      verts.push([x, y, z]);
+    }
+    if (verts.length > 3) {
+      warnings.push("Facet with more than three vertices; using the first three");
     }
     if (verts.length < 3) {
       continue;
@@ -109,7 +120,7 @@ export function importStlAsciiWithReport(
   }
   return {
     mesh: builder.getMesh(),
-    report: createConversionReport("stl", [], STL_IMPORT_LOSS),
+    report: createConversionReport("stl", warnings, [...STL_IMPORT_LOSS]),
   };
 }
 

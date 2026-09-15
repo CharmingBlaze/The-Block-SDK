@@ -1,21 +1,21 @@
 {
   "name": "@modeling-kit/sdk",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "license": "UNLICENSED",
   "type": "module",
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./ai": {
-      "types": "./src/ai.ts",
-      "import": "./src/ai.ts"
+      "types": "./dist/ai.d.ts",
+      "import": "./dist/ai.js"
     },
     "./three": {
-      "types": "./src/three.ts",
-      "import": "./src/three.ts"
+      "types": "./dist/three.d.ts",
+      "import": "./dist/three.js"
     }
   },
   "scripts": {
@@ -56,5 +56,11 @@
     "three": {
       "optional": true
     }
-  }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ]
 }

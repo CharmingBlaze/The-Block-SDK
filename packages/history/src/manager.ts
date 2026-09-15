@@ -1,14 +1,27 @@
 import type { HistoryState } from "@modeling-kit/core";
 import { CompositeCommand } from "./composite";
+import { HistoryFailureError } from "./errors";
 import type { Command, CommandContext, CommandRecord } from "./types";
 
+interface HistoryEntry {
+  readonly command: Command;
+  /** Identity of the document after this command succeeded. */
+  readonly stateId: number;
+}
+
+/** Sentinel: the saved command was trimmed and cannot be restored. */
+const UNREACHABLE_SAVED_STATE = Number.NaN;
+
 export class CommandManager {
-  private undoItems: Command[] = [];
-  private redoItems: Command[] = [];
-  private saveIndex = 0;
+  private undoItems: HistoryEntry[] = [];
+  private redoItems: HistoryEntry[] = [];
+  private currentStateId = 0;
+  private savedStateId: number = 0;
+  private nextStateId = 1;
   private readonly transactions: Command[][] = [];
   private busy = false;
   private disposed = false;
+  private lastFailureError: HistoryFailureError | undefined;
   maxHistoryDepth = 256;
 
   constructor(private readonly emitHistory?: (state: HistoryState) => void) {}
@@ -22,7 +35,23 @@ export class CommandManager {
   }
 
   get isDirty(): boolean {
-    return this.undoItems.length !== this.saveIndex;
+    return !this.isSavedStateReachable || this.currentStateId !== this.savedStateId;
+  }
+
+  get isSavedStateReachable(): boolean {
+    return !Number.isNaN(this.savedStateId);
+  }
+
+  get lastFailure(): HistoryFailureError | undefined {
+    return this.lastFailureError;
+  }
+
+  get pendingTransactionCommands(): readonly CommandRecord[] {
+    const batch = this.transactions[this.transactions.length - 1];
+    if (!batch) {
+      return [];
+    }
+    return batch.map((command) => ({ id: command.id, label: command.label }));
   }
 
   get transactionDepth(): number {
@@ -34,34 +63,51 @@ export class CommandManager {
   }
 
   get undoStack(): readonly CommandRecord[] {
-    return this.undoItems.map((command) => ({ id: command.id, label: command.label }));
+    return this.undoItems.map((entry) => ({ id: entry.command.id, label: entry.command.label }));
   }
 
   get redoStack(): readonly CommandRecord[] {
-    return this.redoItems.map((command) => ({ id: command.id, label: command.label }));
+    return this.redoItems.map((entry) => ({ id: entry.command.id, label: entry.command.label }));
   }
 
   execute<T>(command: Command<T>, context: CommandContext): T {
     this.assertOpen();
     this.enter();
     try {
-      const result = command.execute(context);
+      let result: T;
+      try {
+        result = command.execute(context);
+      } catch (cause) {
+        if (cause instanceof HistoryFailureError) {
+          this.fail(cause);
+        }
+        throw cause;
+      }
+      this.lastFailureError = undefined;
       const currentTx = this.transactions[this.transactions.length - 1];
       if (currentTx) {
         currentTx.push(command as Command);
         return result;
       }
       const last = this.undoItems[this.undoItems.length - 1];
-      if (last?.mergeWith) {
-        const merged = last.mergeWith(command as Command);
+      const canMerge =
+        last !== undefined &&
+        last.command.mergeWith !== undefined &&
+        last.stateId !== this.savedStateId;
+      if (canMerge && last.command.mergeWith) {
+        const merged = last.command.mergeWith(command as Command);
         if (merged) {
-          this.undoItems[this.undoItems.length - 1] = merged;
+          const stateId = this.allocateStateId();
+          this.undoItems[this.undoItems.length - 1] = { command: merged, stateId };
+          this.currentStateId = stateId;
           this.redoItems = [];
           this.notify();
           return result;
         }
       }
-      this.undoItems.push(command as Command);
+      const stateId = this.allocateStateId();
+      this.undoItems.push({ command: command as Command, stateId });
+      this.currentStateId = stateId;
       this.redoItems = [];
       this.trim();
       this.notify();
@@ -78,12 +124,30 @@ export class CommandManager {
     }
     this.enter();
     try {
-      const command = this.undoItems.pop();
-      if (!command) {
+      const entry = this.undoItems[this.undoItems.length - 1];
+      if (!entry) {
         return;
       }
-      command.undo(context);
-      this.redoItems.push(command);
+      try {
+        entry.command.undo(context);
+      } catch (cause) {
+        this.fail(
+          new HistoryFailureError(
+            `Undo failed for command '${entry.command.label}' (${entry.command.id}): ${causeMessage(cause)}`,
+            {
+              operation: "undo",
+              commandId: entry.command.id,
+              commandLabel: entry.command.label,
+              remainingCommandIds: this.undoItems.map((item) => item.command.id),
+              cause,
+            },
+          ),
+        );
+      }
+      this.lastFailureError = undefined;
+      this.undoItems.pop();
+      this.redoItems.push(entry);
+      this.currentStateId = this.undoItems[this.undoItems.length - 1]?.stateId ?? 0;
       this.notify();
     } finally {
       this.leave();
@@ -97,16 +161,34 @@ export class CommandManager {
     }
     this.enter();
     try {
-      const command = this.redoItems.pop();
-      if (!command) {
+      const entry = this.redoItems[this.redoItems.length - 1];
+      if (!entry) {
         return;
       }
-      if (command.redo) {
-        command.redo(context);
-      } else {
-        command.execute(context);
+      try {
+        if (entry.command.redo) {
+          entry.command.redo(context);
+        } else {
+          entry.command.execute(context);
+        }
+      } catch (cause) {
+        this.fail(
+          new HistoryFailureError(
+            `Redo failed for command '${entry.command.label}' (${entry.command.id}): ${causeMessage(cause)}`,
+            {
+              operation: "redo",
+              commandId: entry.command.id,
+              commandLabel: entry.command.label,
+              remainingCommandIds: this.redoItems.map((item) => item.command.id),
+              cause,
+            },
+          ),
+        );
       }
-      this.undoItems.push(command);
+      this.lastFailureError = undefined;
+      this.redoItems.pop();
+      this.undoItems.push(entry);
+      this.currentStateId = entry.stateId;
       this.notify();
     } finally {
       this.leave();
@@ -124,18 +206,26 @@ export class CommandManager {
 
   commitTransaction(label: string): void {
     this.assertOpen();
-    const batch = this.transactions.pop();
-    if (!batch || batch.length === 0) {
+    const batch = this.transactions[this.transactions.length - 1];
+    if (!batch) {
+      return;
+    }
+    this.lastFailureError = undefined;
+    if (batch.length === 0) {
+      this.transactions.pop();
       this.notify();
       return;
     }
     const composite = new CompositeCommand(label, batch);
+    this.transactions.pop();
     if (this.transactions.length > 0) {
       this.transactions[this.transactions.length - 1]!.push(composite);
       this.notify();
       return;
     }
-    this.undoItems.push(composite);
+    const stateId = this.allocateStateId();
+    this.undoItems.push({ command: composite, stateId });
+    this.currentStateId = stateId;
     this.redoItems = [];
     this.trim();
     this.notify();
@@ -143,26 +233,51 @@ export class CommandManager {
 
   rollbackTransaction(context: CommandContext): void {
     this.assertOpen();
-    const batch = this.transactions.pop();
+    const batch = this.transactions[this.transactions.length - 1];
     if (!batch) {
       return;
     }
-    for (let i = batch.length - 1; i >= 0; i--) {
-      batch[i]!.undo(context);
+    const completed: string[] = [];
+    while (batch.length > 0) {
+      const command = batch[batch.length - 1]!;
+      try {
+        command.undo(context);
+      } catch (cause) {
+        this.fail(
+          new HistoryFailureError(
+            `Transaction rollback failed for command '${command.label}' (${command.id}): ${causeMessage(cause)}`,
+            {
+              operation: "rollback",
+              commandId: command.id,
+              commandLabel: command.label,
+              remainingCommandIds: batch.map((item) => item.id),
+              completedCommandIds: completed,
+              cause,
+            },
+          ),
+        );
+      }
+      batch.pop();
+      completed.push(command.id);
     }
+    this.lastFailureError = undefined;
+    this.transactions.pop();
     this.notify();
   }
 
   markSaved(): void {
-    this.saveIndex = this.undoItems.length;
+    this.savedStateId = this.currentStateId;
     this.notify();
   }
 
   clear(): void {
     this.undoItems = [];
     this.redoItems = [];
-    this.saveIndex = 0;
+    this.currentStateId = 0;
+    this.savedStateId = 0;
+    this.nextStateId = 1;
     this.transactions.length = 0;
+    this.lastFailureError = undefined;
     this.notify();
   }
 
@@ -174,8 +289,17 @@ export class CommandManager {
     this.undoItems = [];
     this.redoItems = [];
     this.transactions.length = 0;
-    this.saveIndex = 0;
+    this.currentStateId = 0;
+    this.savedStateId = 0;
+    this.nextStateId = 1;
+    this.lastFailureError = undefined;
     this.notify();
+  }
+
+  private allocateStateId(): number {
+    const id = this.nextStateId;
+    this.nextStateId += 1;
+    return id;
   }
 
   private assertOpen(): void {
@@ -196,11 +320,20 @@ export class CommandManager {
   }
 
   private trim(): void {
-    if (this.undoItems.length > this.maxHistoryDepth) {
-      const extra = this.undoItems.length - this.maxHistoryDepth;
-      this.undoItems.splice(0, extra);
-      this.saveIndex = Math.max(0, this.saveIndex - extra);
+    if (this.undoItems.length <= this.maxHistoryDepth) {
+      return;
     }
+    const extra = this.undoItems.length - this.maxHistoryDepth;
+    const removed = this.undoItems.splice(0, extra);
+    if (this.isSavedStateReachable && removed.some((entry) => entry.stateId === this.savedStateId)) {
+      this.savedStateId = UNREACHABLE_SAVED_STATE;
+    }
+  }
+
+  private fail(error: HistoryFailureError): never {
+    this.lastFailureError = error;
+    this.notify();
+    throw error;
   }
 
   private notify(): void {
@@ -211,6 +344,12 @@ export class CommandManager {
       undoCount: this.undoItems.length,
       redoCount: this.redoItems.length,
       transactionDepth: this.transactions.length,
+      isSavedStateReachable: this.isSavedStateReachable,
+      hasPartialRollback: this.lastFailureError?.operation === "rollback",
     });
   }
+}
+
+function causeMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause);
 }

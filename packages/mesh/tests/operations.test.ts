@@ -227,7 +227,7 @@ describe("mesh operations", () => {
     const a = builder.addVertex(0, 0, 0);
     const b = builder.addVertex(1, 0, 0);
     const c = builder.addVertex(0, 1, 0);
-    const d = builder.addVertex(0.001, 0, 0);
+    const d = builder.addVertex(0.001, 0.05, 0);
     builder.addFace([a, b, c]);
     builder.addFace([a, d, b]);
     const mesh = builder.getMesh();
@@ -298,10 +298,12 @@ describe("mesh operations", () => {
     const ctx = createMeshOperationContext(ids);
     const cube = MeshBuilder.createCube(2, 2, 2, ids.mesh());
     const faces = [[...cube.faces.keys()][0]!, [...cube.faces.keys()][2]!];
-    const individual = extrudeFaces(cloneMesh(cube), { faceIds: faces, distance: 1 }, ctx);
     const region = extrudeRegion(cube, { faceIds: faces, distance: 1 }, ctx);
-    expect(region.sideFaceIds.length).toBeLessThan(individual.sideFaceIds.length);
+    expect(region.sideFaceIds.length).toBeLessThan(8);
     assertManifold(cube, true);
+    const single = MeshBuilder.createCube(2, 2, 2, ids.mesh());
+    extrudeFaces(single, { faceIds: [[...single.faces.keys()][0]!], distance: 1 }, ctx);
+    assertManifold(single, true);
   });
 
   it("loop-cuts and bevels a closed cube", () => {
@@ -850,5 +852,130 @@ describe("mesh operations", () => {
     triangulateFaces(cube, {}, ctx);
     const quads = trianglesToQuads(cube, {}, ctx);
     expect(quads.quadFaceIds.length).toBeGreaterThan(0);
+  });
+
+  it("triangulates a concave L-face with ear clipping and preserves UV channels", () => {
+    const ids = createSequenceIdFactory("tri-concave");
+    const ctx = createMeshOperationContext(ids);
+    const builder = new MeshBuilder(ids.mesh());
+    const v0 = builder.addVertex(0, 0, 0);
+    const v1 = builder.addVertex(2, 0, 0);
+    const v2 = builder.addVertex(2, 0, 1);
+    const v3 = builder.addVertex(1, 0, 1);
+    const v4 = builder.addVertex(1, 0, 2);
+    const v5 = builder.addVertex(0, 0, 2);
+    const faceId = builder.addFace([v0, v1, v2, v3, v4, v5], {
+      uvs: [
+        [0, 0],
+        [1, 0],
+        [1, 0.5],
+        [0.5, 0.5],
+        [0.5, 1],
+        [0, 1],
+      ],
+      uvChannels: [
+        { uv1: [0, 0] },
+        { uv1: [1, 0] },
+        { uv1: [1, 0.5] },
+        { uv1: [0.5, 0.5] },
+        { uv1: [0.5, 1] },
+        { uv1: [0, 1] },
+      ],
+      colors: [
+        [1, 0, 0, 1],
+        [0, 1, 0, 1],
+        [0, 0, 1, 1],
+        [1, 1, 0, 1],
+        [1, 0, 1, 1],
+        [0, 1, 1, 1],
+      ],
+    });
+    const mesh = builder.getMesh();
+    const result = triangulateFaces(mesh, { faceIds: [faceId] }, ctx);
+    expect(result.triangleFaceIds).toHaveLength(4);
+    expect(mesh.faces.size).toBe(4);
+    for (const id of result.triangleFaceIds) {
+      expect(mesh.getFaceVertices(id)).toHaveLength(3);
+      for (const cornerId of mesh.getFaceCorners(id)) {
+        const corner = mesh.corners.get(cornerId);
+        expect(corner?.uv).toBeDefined();
+        expect(corner?.uvChannels?.uv1).toBeDefined();
+        expect(corner?.color).toBeDefined();
+      }
+    }
+  });
+
+  it("rejects self-intersecting editable triangulation", () => {
+    const ids = createSequenceIdFactory("tri-bowtie");
+    const ctx = createMeshOperationContext(ids);
+    const builder = new MeshBuilder(ids.mesh());
+    const v0 = builder.addVertex(0, 0, 0);
+    const v1 = builder.addVertex(1, 0.25, 1);
+    const v2 = builder.addVertex(1, 0, 0);
+    const v3 = builder.addVertex(0, 0, 1);
+    const faceId = builder.addFace([v0, v1, v2, v3]);
+    const mesh = builder.getMesh();
+    expect(() => triangulateFaces(mesh, { faceIds: [faceId] }, ctx)).toThrow(/self-intersecting/);
+  });
+
+  it("bevels UV-mapped geometry without dropping corner attributes", () => {
+    const ids = createSequenceIdFactory("bevel-uv");
+    const ctx = createMeshOperationContext(ids);
+    const cube = MeshBuilder.createCube(2, 2, 2, ids.mesh());
+    for (const corner of cube.corners.values()) {
+      corner.uv = [0.25, 0.75];
+      corner.uvChannels = { uv1: [0.1, 0.2] };
+      corner.color = [0.2, 0.4, 0.6, 1];
+    }
+    const face = cube.faces.values().next().value;
+    if (face) {
+      face.materialSlotId = ids.materialSlot();
+    }
+    const edgeId = [...cube.edges.keys()][0]!;
+    const result = bevelEdges(cube, { edgeIds: [edgeId], offset: 0.2, segments: 1 }, ctx);
+    expect(result.chamferFaceIds.length).toBe(1);
+    const remaining = cube.faces.get(result.remainingFaceIds[0]!);
+    expect(remaining?.materialSlotId).toBeDefined();
+    const attributed = [...cube.corners.values()].filter((corner) => corner.uv && corner.uvChannels && corner.color);
+    expect(attributed.length).toBeGreaterThan(0);
+  });
+
+  it("treats bevel offset as a world-space distance", () => {
+    const ids = createSequenceIdFactory("bevel-world");
+    const ctx = createMeshOperationContext(ids);
+    const cube = MeshBuilder.createCube(2, 2, 2, ids.mesh());
+    const edgeId = [...cube.edges.keys()][0]!;
+    const ends = cube.getEdgeVertices(edgeId)!;
+    const loop = cube.getFaceVertices(cube.getEdgeFaces(edgeId)[0]!);
+    const iA = loop.indexOf(ends[0]!);
+    const prev = loop[(iA - 1 + loop.length) % loop.length]!;
+    const next = loop[(iA + 1) % loop.length]!;
+    const neighbor = next === ends[1] ? prev : next;
+    const origin = cube.vertices.get(ends[0]!)!.position;
+    const toward = cube.vertices.get(neighbor)!.position;
+    const beforeDist = Math.hypot(toward[0] - origin[0], toward[1] - origin[1], toward[2] - origin[2]);
+    expect(beforeDist).toBeCloseTo(2, 6);
+    const result = bevelEdges(cube, { edgeIds: [edgeId], offset: 0.2, segments: 1 }, ctx);
+    expect(result.warnings.some((item) => item.code === "bevel-clamped")).toBe(false);
+    const created = [...result.mapping.vertices.created];
+    expect(created.length).toBeGreaterThan(0);
+    const moved = cube.vertices.get(created[0]!)!.position;
+    const distFromOrigin = Math.min(
+      ...[ends[0], ends[1]].map((id) => {
+        const p = cube.vertices.get(id)!.position;
+        return Math.hypot(moved[0] - p[0], moved[1] - p[1], moved[2] - p[2]);
+      }),
+    );
+    expect(distFromOrigin).toBeGreaterThan(0.05);
+    expect(distFromOrigin).toBeLessThan(0.45);
+  });
+
+  it("rejects non-positive bevel offsets", () => {
+    const ids = createSequenceIdFactory("bevel-zero");
+    const ctx = createMeshOperationContext(ids);
+    const cube = MeshBuilder.createCube(2, 2, 2, ids.mesh());
+    expect(() =>
+      bevelEdges(cube, { edgeIds: [[...cube.edges.keys()][0]!], offset: 0 }, ctx),
+    ).toThrow(/positive finite distance/);
   });
 });

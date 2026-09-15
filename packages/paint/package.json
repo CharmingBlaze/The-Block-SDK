@@ -1,6 +1,6 @@
 {
   "name": "@modeling-kit/paint",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "license": "UNLICENSED",
   "type": "module",
   "sideEffects": false,
@@ -20,5 +20,11 @@
     "@modeling-kit/math": "workspace:*",
     "@modeling-kit/mesh": "workspace:*",
     "@modeling-kit/uv": "workspace:*"
-  }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ]
 }

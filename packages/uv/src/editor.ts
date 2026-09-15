@@ -51,6 +51,8 @@ export interface CreateUvEditorOptions {
   readonly theme?: UVVisualTheme;
   readonly syncSelection?: boolean;
   readonly onCommit?: (patch: UVCornerPatch) => void;
+  /** Observer after a successful commit. Does not restore UVs. */
+  readonly onCommitted?: (patch: UVCornerPatch) => void;
   readonly onFacesSelected?: (faceIds: readonly FaceId[], activeFaceId: FaceId | null) => void;
 }
 
@@ -105,6 +107,16 @@ export class UVEditor {
       options.onCommit
         ? (payload) => {
             options.onCommit?.({
+              meshId: this.meshId,
+              channelId: payload.channelId,
+              before: payload.before,
+              after: payload.after,
+            });
+          }
+        : undefined,
+      options.onCommitted
+        ? (payload) => {
+            options.onCommitted?.({
               meshId: this.meshId,
               channelId: payload.channelId,
               before: payload.before,

@@ -3,7 +3,7 @@ import {
   createMeshOperationContext,
   deleteFace,
   mergeVertices,
-  MeshBuilder,
+  reverseFaceWinding,
   type HalfEdgeMesh,
 } from "@modeling-kit/mesh";
 import { validateMesh } from "./mesh-validator";
@@ -51,7 +51,7 @@ export function healMesh(mesh: HalfEdgeMesh, ids: IdFactory): MeshCleanupReport 
   }
 
   duplicateFacesRemoved += removeDuplicateFaces(mesh);
-  facesRewound += unifyWinding(mesh);
+  facesRewound += unifyWinding(mesh, ids);
   isolatedVerticesRemoved += removeIsolatedVertices(mesh);
 
   return {
@@ -96,8 +96,9 @@ function removeDuplicateFaces(mesh: HalfEdgeMesh): number {
   return removed;
 }
 
-function unifyWinding(mesh: HalfEdgeMesh): number {
+function unifyWinding(mesh: HalfEdgeMesh, ids: IdFactory): number {
   let rewound = 0;
+  const ctx = createMeshOperationContext(ids);
   for (const [edgeId] of mesh.edges) {
     const [f1, f2] = mesh.getEdgeFaces(edgeId);
     if (!f1 || !f2) {
@@ -109,7 +110,7 @@ function unifyWinding(mesh: HalfEdgeMesh): number {
       continue;
     }
     if (dir1[0] === dir2[0] && dir1[1] === dir2[1]) {
-      reverseFace(mesh, f2);
+      reverseFaceWinding(mesh, { faceIds: [f2] }, ctx);
       rewound += 1;
     }
   }
@@ -128,24 +129,4 @@ function directedEdge(
     return null;
   }
   return [loop[i]!, loop[(i + 1) % loop.length]!];
-}
-
-function reverseFace(mesh: HalfEdgeMesh, faceId: FaceId): void {
-  const face = mesh.faces.get(faceId);
-  if (!face) {
-    return;
-  }
-  const verts = [...mesh.getFaceVertices(faceId)].reverse();
-  const corners = mesh.getFaceCorners(faceId).map((id) => mesh.corners.get(id));
-  const uvs = corners.every((c) => c?.uv)
-    ? [...corners].reverse().map((c) => [c!.uv![0], c!.uv![1]] as [number, number])
-    : undefined;
-  deleteFace(mesh, faceId);
-  const builder = MeshBuilder.fromMesh(mesh);
-  builder.addFace(verts, {
-    id: faceId,
-    materialSlot: face.materialSlot,
-    isSmooth: face.isSmooth,
-    ...(uvs ? { uvs } : {}),
-  });
 }

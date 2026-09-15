@@ -65,6 +65,56 @@ describe("@modeling-kit/snapping", () => {
     expect(hit.targetType).toBe("face");
   });
 
+  it("snaps to the closest point on a face, not only the centroid", () => {
+    const cube = MeshBuilder.createCube(2, 2, 2);
+    const faceId = [...cube.faces.keys()][0]!;
+    const loop = cube.getFaceVertices(faceId);
+    let cx = 0;
+    let cy = 0;
+    let cz = 0;
+    for (const id of loop) {
+      const p = cube.vertices.get(id)!.position;
+      cx += p[0];
+      cy += p[1];
+      cz += p[2];
+    }
+    cx /= loop.length;
+    cy /= loop.length;
+    cz /= loop.length;
+    const a = cube.vertices.get(loop[0]!)!.position;
+    const nearBoundary = {
+      x: a[0] * 0.8 + cx * 0.2,
+      y: a[1] * 0.8 + cy * 0.2,
+      z: a[2] * 0.8 + cz * 0.2,
+    };
+    const hit = querySnap(cube, nearBoundary, {
+      radius: 0.35,
+      snapToVertices: false,
+      snapToEdges: false,
+      snapToMidpoints: false,
+      targets: ["surface"],
+    });
+    expect(hit.matched).toBe(true);
+    expect(hit.targetType).toBe("surface");
+    expect(hit.targetId).toBe(faceId);
+  });
+
+  it("does not let a distant vertex beat a nearby edge inside the same radius", () => {
+    const cube = MeshBuilder.createCube(2, 2, 2);
+    const edgeId = [...cube.edges.keys()][0]!;
+    const ends = cube.getEdgeVertices(edgeId)!;
+    const a = cube.vertices.get(ends[0])!.position;
+    const b = cube.vertices.get(ends[1])!.position;
+    const along = {
+      x: a[0] * 0.52 + b[0] * 0.48,
+      y: a[1] * 0.52 + b[1] * 0.48,
+      z: a[2] * 0.52 + b[2] * 0.48,
+    };
+    const hit = querySnap(cube, along, { radius: 1.2, snapToMidpoints: false, snapToFaces: false });
+    expect(hit.matched).toBe(true);
+    expect(hit.targetType).toBe("edge");
+  });
+
   it("rejects empty meshes and a zero radius", () => {
     const empty = MeshBuilder.createCube(2, 2, 2);
     empty.vertices.clear();

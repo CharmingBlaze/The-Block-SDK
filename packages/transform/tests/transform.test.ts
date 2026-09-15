@@ -3,7 +3,7 @@ import { createModelDocument } from "@modeling-kit/document";
 import { addNode, getNode } from "@modeling-kit/scene";
 import { MeshBuilder } from "@modeling-kit/mesh";
 import { describe, expect, it } from "vitest";
-import { TransformGesture, selectionRoots } from "../src/index";
+import { TransformGesture, computePivot, selectionRoots } from "../src/index";
 
 describe("@modeling-kit/transform", () => {
   it("translates in parent space and supports negative scale", () => {
@@ -209,6 +209,89 @@ describe("@modeling-kit/transform", () => {
     leak.update({ translation: { x: 1, y: 0, z: 0 } });
     leak.dispose();
     expect(getNode(document, objectId).localTransform.position.x).toBeCloseTo(0);
+  });
+
+  it("rotates selected vertices around their median, not the object origin", () => {
+    const ids = createSequenceIdFactory("xf-vert-pivot");
+    const document = createModelDocument({ ids });
+    const mesh = MeshBuilder.createCube(2, 2, 2, ids.mesh());
+    const objectId = ids.object();
+    addNode(document, objectId, {
+      name: "Mesh",
+      type: "mesh_instance",
+      payloadRef: mesh.id,
+    });
+    const vertexId = [...mesh.vertices.keys()].find((id) => {
+      const p = mesh.vertices.get(id)!.position;
+      return p[0] > 0 && p[1] > 0 && p[2] > 0;
+    })!;
+    const position = mesh.vertices.get(vertexId)!.position;
+    const before: [number, number, number] = [position[0], position[1], position[2]];
+    const gesture = new TransformGesture(
+      { document, meshes: new Map([[mesh.id, mesh]]), emit: () => undefined },
+      {
+        mode: "rotate",
+        space: "world",
+        pivot: "median",
+        objectIds: [objectId],
+        meshId: mesh.id,
+        vertexIds: [vertexId],
+      },
+    );
+    gesture.update({ rotation: { axis: { x: 0, y: 1, z: 0 }, angle: Math.PI } });
+    const after = mesh.vertices.get(vertexId)!.position;
+    expect(after[0]).toBeCloseTo(before[0], 4);
+    expect(after[1]).toBeCloseTo(before[1], 4);
+    expect(after[2]).toBeCloseTo(before[2], 4);
+  });
+
+  it("uses mesh world bounds, not the object origin, for the bounds pivot", () => {
+    const ids = createSequenceIdFactory("xf-bounds");
+    const document = createModelDocument({ ids });
+    const mesh = MeshBuilder.createCube(2, 2, 2, ids.mesh());
+    for (const vertex of mesh.vertices.values()) {
+      vertex.position = [vertex.position[0] + 4, vertex.position[1], vertex.position[2]];
+    }
+    const objectId = ids.object();
+    addNode(document, objectId, {
+      name: "Offset",
+      type: "mesh_instance",
+      payloadRef: mesh.id,
+    });
+    const pivot = computePivot(document, [objectId], "bounds", undefined, {
+      meshes: new Map([[mesh.id, mesh]]),
+    });
+    expect(pivot.x).toBeCloseTo(4, 4);
+    expect(pivot.y).toBeCloseTo(0, 4);
+  });
+
+  it("scales a rotated object differently in local space than in world space", () => {
+    const ids = createSequenceIdFactory("xf-scale-space");
+    const document = createModelDocument({ ids });
+    const objectId = ids.object();
+    addNode(document, objectId, {
+      name: "Box",
+      type: "empty",
+      localTransform: {
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0.70710678118, w: 0.70710678118 },
+        scale: { x: 1, y: 1, z: 1 },
+      },
+    });
+    const local = new TransformGesture(
+      { document, meshes: new Map(), emit: () => undefined },
+      { mode: "scale", space: "local", objectIds: [objectId] },
+    );
+    local.update({ scale: { x: 2, y: 1, z: 1 } });
+    const localScale = { ...getNode(document, objectId).localTransform.scale };
+    local.restoreBaseline();
+    const world = new TransformGesture(
+      { document, meshes: new Map(), emit: () => undefined },
+      { mode: "scale", space: "world", objectIds: [objectId] },
+    );
+    world.update({ scale: { x: 2, y: 1, z: 1 } });
+    const worldScale = getNode(document, objectId).localTransform.scale;
+    expect(localScale.x).not.toBeCloseTo(worldScale.x, 3);
   });
 });
 
