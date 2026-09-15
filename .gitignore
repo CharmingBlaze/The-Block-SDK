@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+.turbo
+*.log
+.DS_Store
+.eslintcache
+generated/context-*
+repomix-output.*
+.serena/cache
+.serena/*.db
+.serena/*.db-journal
+.knip-cache

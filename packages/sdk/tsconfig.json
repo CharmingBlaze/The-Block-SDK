@@ -1,0 +1,33 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "paths": {
+      "@modeling-kit/commands": ["../commands/src/index.ts"],
+      "@modeling-kit/three-adapter": ["../three-adapter/src/index.ts"],
+      "@modeling-kit/tools": ["../tools/src/index.ts"],
+      "@modeling-kit/materials": ["../materials/src/index.ts"],
+      "@modeling-kit/uv": ["../uv/src/index.ts"],
+      "@modeling-kit/rigging": ["../rigging/src/index.ts"],
+      "@modeling-kit/animation": ["../animation/src/index.ts"],
+      "@modeling-kit/paint": ["../paint/src/index.ts"],
+      "@modeling-kit/formats": ["../formats/src/index.ts"],
+      "@modeling-kit/workers": ["../workers/src/index.ts"],
+      "@modeling-kit/core": ["../core/src/index.ts"],
+      "@modeling-kit/mesh": ["../mesh/src/index.ts"],
+      "@modeling-kit/document": ["../document/src/index.ts"],
+      "@modeling-kit/history": ["../history/src/index.ts"],
+      "@modeling-kit/math": ["../math/src/index.ts"],
+      "@modeling-kit/selection": ["../selection/src/index.ts"],
+      "@modeling-kit/scene": ["../scene/src/index.ts"],
+      "@modeling-kit/validation": ["../validation/src/index.ts"],
+      "@modeling-kit/transform": ["../transform/src/index.ts"],
+      "@modeling-kit/snapping": ["../snapping/src/index.ts"],
+      "@modeling-kit/primitives": ["../primitives/src/index.ts"],
+      "@modeling-kit/input": ["../input/src/index.ts"]
+    }
+  },
+  "include": ["src", "tests"],
+  "exclude": ["dist", "src/three.ts"]
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://repomix.com/schemas/latest/schema.json",
+  "output": {
+    "filePath": "generated/context-last.xml",
+    "style": "markdown",
+    "compress": false,
+    "removeComments": false,
+    "removeEmptyLines": true,
+    "topFilesLength": 12,
+    "instructionFilePath": "docs/coordination/CURRENT-MILESTONE.md",
+    "headerText": "Task-specific modeling-kit context. Do not treat this file as a complete repository dump."
+  },
+  "include": [],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/coverage/**",
+      "**/*.map",
+      "**/*.png",
+      "**/*.jpg",
+      "**/*.jpeg",
+      "**/*.webp",
+      "**/*.mp4",
+      "**/*.webm",
+      "**/generated/context-**",
+      "pnpm-lock.yaml",
+      "**/*.log",
+      ".serena/cache/**",
+      "apps/**",
+      "Plan.md"
+    ]
+  },
+  "security": {
+    "enableSecurityCheck": true
+  },
+  "tokenCount": {
+    "encoding": "o200k_base"
+  }
+}

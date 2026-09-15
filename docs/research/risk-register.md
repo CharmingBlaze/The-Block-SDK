@@ -1,0 +1,14 @@
+# Risk register
+
+| ID  | Risk                                                        | Impact                                                                            | Mitigation                                                                              |
+| --- | ----------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| R1  | Accidental GPL derivation from Blockbench source            | Entire SDK may become GPL or legally blocked                                      | Clean-room rules; no source checkout in the implementation workspace; provenance log    |
+| R2  | Implementing `.bbmodel` or game formats “for compatibility” | Minecraft coupling; possible format copyright/trademark issues; product confusion | Explicit exclusion; native JSON + open standards only                                   |
+| R3  | Using Three.js `BufferGeometry` as editable truth           | Broken undo, unstable IDs, viewport-owned state                                   | Mesh kernel is canonical; adapter is derived                                            |
+| R4  | Array indices used as vertex/face IDs                       | Selection and undo break after topology edits                                     | Branded UUID-style IDs; remapping tables on operations                                  |
+| R5  | UI framework leaks into core                                | Vue/React apps cannot share the library cleanly                                   | Headless packages; examples only in `apps/`                                             |
+| R6  | Empty stubs marked complete                                 | False progress; unusable milestone                                                | Vertical slices with tests; roadmap status is honest                                    |
+| R7  | Undo by floating-point inverse                              | Topology ops fail to reverse exactly                                              | Store inverse patches / deleted element snapshots                                       |
+| R8  | Worker and main-thread API drift                            | Packing, booleans, import hang the UI                                             | Message-shaped command/query contracts from Phase 1                                     |
+| R9  | Licence of this SDK unset                                   | Cannot publish; contributor confusion                                             | Owner decision before any publish; CI can wait                                          |
+| R10 | Half-edge complexity delaying first milestone               | No testable cube → extrude path                                                   | Start with explicit V/E/F + corners; keep adjacency API stable if kernel upgrades later |

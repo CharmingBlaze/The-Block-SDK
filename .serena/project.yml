@@ -1,0 +1,20 @@
+project_name: "modeling-kit"
+language_servers:
+  - typescript
+encoding: "utf-8"
+ignore_all_files_in_gitignore: true
+ls_workspace_folders:
+  - "."
+ignored_paths:
+  - "apps/**"
+  - "generated/context-*"
+  - "**/dist/**"
+  - "**/coverage/**"
+  - "**/*.map"
+read_only: true
+excluded_tools: []
+initial_prompt: >
+  modeling-kit is a TypeScript polygonal modeling SDK. Canonical sources are
+  ModelDocument and @modeling-kit/mesh. Do not copy Blockbench. Prefer symbol
+  lookup over reading whole packages. Architecture lives in
+  docs/architecture/modeling-operator-specification.md. Agent tasks live in tasks/.

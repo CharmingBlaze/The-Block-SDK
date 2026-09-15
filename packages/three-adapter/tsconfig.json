@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "noEmit": true,
+    "paths": {
+      "@modeling-kit/commands": ["../commands/src/index.ts"],
+      "@modeling-kit/core": ["../core/src/index.ts"],
+      "@modeling-kit/document": ["../document/src/index.ts"],
+      "@modeling-kit/mesh": ["../mesh/src/index.ts"],
+      "@modeling-kit/scene": ["../scene/src/index.ts"],
+      "@modeling-kit/tools": ["../tools/src/index.ts"],
+      "@modeling-kit/rigging": ["../rigging/src/index.ts"],
+      "@modeling-kit/paint": ["../paint/src/index.ts"]
+    }
+  },
+  "include": ["src", "tests"],
+  "exclude": ["dist"]
+}

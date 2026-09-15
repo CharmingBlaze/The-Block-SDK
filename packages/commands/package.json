@@ -1,0 +1,36 @@
+{
+  "name": "@modeling-kit/commands",
+  "version": "0.0.0",
+  "license": "UNLICENSED",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@modeling-kit/core": "workspace:*",
+    "@modeling-kit/math": "workspace:*",
+    "@modeling-kit/document": "workspace:*",
+    "@modeling-kit/history": "workspace:*",
+    "@modeling-kit/mesh": "workspace:*",
+    "@modeling-kit/scene": "workspace:*",
+    "@modeling-kit/selection": "workspace:*",
+    "@modeling-kit/tools": "workspace:*",
+    "@modeling-kit/materials": "workspace:*",
+    "@modeling-kit/uv": "workspace:*",
+    "@modeling-kit/rigging": "workspace:*",
+    "@modeling-kit/animation": "workspace:*",
+    "@modeling-kit/transform": "workspace:*",
+    "@modeling-kit/snapping": "workspace:*",
+    "@modeling-kit/paint": "workspace:*",
+    "@modeling-kit/primitives": "workspace:*",
+    "@modeling-kit/validation": "workspace:*"
+  }
+}

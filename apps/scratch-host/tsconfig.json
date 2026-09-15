@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "noEmit": true,
+    "types": [],
+    "paths": {
+      "@modeling-kit/sdk": ["../../packages/sdk/src/index.ts"],
+      "@modeling-kit/three-adapter": ["../../packages/three-adapter/src/index.ts"],
+      "@modeling-kit/input": ["../../packages/input/src/index.ts"],
+      "@modeling-kit/input/dom": ["../../packages/input/src/dom.ts"]
+    }
+  },
+  "include": ["src"]
+}

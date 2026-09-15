@@ -1,0 +1,43 @@
+{
+  "name": "modeling-kit",
+  "private": true,
+  "version": "0.0.0",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@11.7.0",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/*\" build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:properties": "vitest run packages/mesh/tests/split-edge.property.test.ts",
+    "typecheck": "pnpm -r --filter \"./packages/*\" typecheck",
+    "examples:typecheck": "pnpm -r --filter \"./apps/*\" typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "repo:map": "tsx scripts/generate-repo-map.ts && tsx scripts/generate-package-graph.ts",
+    "repo:api": "tsx scripts/generate-public-api-index.ts",
+    "repo:tests": "tsx scripts/generate-test-index.ts",
+    "repo:indexes": "pnpm repo:map && pnpm repo:api && pnpm repo:tests",
+    "repo:context": "tsx scripts/generate-agent-context.ts",
+    "arch:check": "depcruise packages --config .dependency-cruiser.cjs",
+    "deadcode": "knip --no-exit-code",
+    "check:changed": "tsx scripts/check-changed-packages.ts",
+    "check:agent": "tsx scripts/check-agent-task.ts",
+    "check:release": "pnpm typecheck && pnpm lint && pnpm test && pnpm build && pnpm arch:check"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "@types/node": "^24.5.2",
+    "dependency-cruiser": "18.3.0",
+    "eslint": "^9.35.0",
+    "fast-check": "4.10.0",
+    "knip": "6.35.1",
+    "prettier": "^3.6.2",
+    "repomix": "1.18.0",
+    "tsup": "^8.5.0",
+    "tsx": "4.23.13",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.44.0",
+    "vitest": "^3.2.4"
+  }
+}

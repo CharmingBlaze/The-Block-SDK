@@ -1,0 +1,26 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreWorkspaces": ["apps/*"],
+  "ignore": ["generated/**", "docs/**", "tasks/**", "Plan.md"],
+  "ignoreIssues": {
+    "packages/**/tests/**": ["unlisted"]
+  },
+  "workspaces": {
+    ".": {
+      "entry": ["scripts/**/*.ts", "vitest.config.ts", "eslint.config.js"],
+      "project": ["scripts/**/*.ts", "vitest.config.ts", "eslint.config.js"]
+    },
+    "packages/*": {
+      "entry": ["src/index.ts!"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/input": {
+      "entry": ["src/index.ts!", "src/dom.ts!"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/sdk": {
+      "entry": ["src/index.ts!", "src/ai.ts!"],
+      "project": ["src/**/*.ts"]
+    }
+  }
+}

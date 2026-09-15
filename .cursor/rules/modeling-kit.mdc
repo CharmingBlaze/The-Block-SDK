@@ -1,0 +1,37 @@
+---
+description: Critical rules and architectural constraints for modeling-kit (3D Modeling SDK)
+globs: ["**/*.ts", "**/*.tsx", "**/*.json", "**/*.md"]
+alwaysApply: true
+---
+
+# Critical Rules for Cursor Agent: modeling-kit
+
+## 1. Zero Minecraft / Game-Specific Formats
+- Strictly prohibited: Minecraft Java/Bedrock formats, `.bbmodel`, OptiFine, GeckoLib, MoLang, skin templates, display slots.
+- Cuboids are general polygonal meshes (6 quad faces), not game blocks or voxels.
+- Only native versioned JSON and open standards (glTF/GLB, OBJ, STL, PLY) are supported.
+
+## 2. Clean-Room Implementation
+- Blockbench is GPL-3.0. Never copy, rewrite, or inspect Blockbench implementation code.
+- Implement from first principles, standard CG literature, and open format specifications.
+- Adhere strictly to `docs/research/clean-room-rules.md`.
+
+## 3. Architecture Non-Negotiables
+- **THREE.JS BOUNDARY:** `three` is a peer of `@modeling-kit/three-adapter` and host apps. Headless packages have ZERO `three` or DOM imports.
+- **Canonical Model:** `ModelDocument` + `@modeling-kit/mesh` kernel. `THREE.BufferGeometry` is derived only.
+- **Dependencies:** See `docs/architecture/dependency-policy.md`.
+- **Branded IDs:** Always use `Brand<string, "Type">`. Never use array indices as persistent topological IDs.
+- **Exact Undo:** Topology operations record exact snapshots/patches.
+- **Input:** Keymaps live in `@modeling-kit/input`. Optional left-click pick on `createThreeViewport` is convenience; use `picking: false` when the host binds `select.pick`.
+
+## 4. Fluent editor, viewport, and AI tools
+- `createEditor()`: `spawn.cylinder(...).select("bottom").extrude(0.1).inset(0.15)`.
+- `editor.inspect().summary` after operations. If `isClosedManifold` is false, undo or fix.
+- `spawn.sphere` is `uvSphere`. Inset uses `distance`. Torus uses `tube`. Box `left`/`right` are `-X`/`+X`.
+- Viewport: hemisphere + 3-point studio lights, `ResizeObserver`, damped orbit (right-drag), left-click `adapter.pick`.
+- Agent: `getEditorToolDefinitions` / `executeEditorTool` from `@modeling-kit/sdk/ai`.
+
+## 5. Phase Discipline
+- Consult `docs/roadmap.md` and `docs/architecture/` before writing code.
+- Implement smallest complete vertical slices with Vitest tests.
+- Follow `.cursor/rules/agent-workflow.mdc` for retrieval, task packets, and Cursor vs Antigravity ownership.

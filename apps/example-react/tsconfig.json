@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "paths": {
+      "@modeling-kit/sdk": [
+        "../../packages/sdk/src/index.ts"
+      ],
+      "@modeling-kit/three-adapter": [
+        "../../packages/three-adapter/src/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "src"
+  ]
+}

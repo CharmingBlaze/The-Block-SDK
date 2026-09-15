@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@modeling-kit/core": ["../core/src/index.ts"],
+      "@modeling-kit/document": ["../document/src/index.ts"],
+      "@modeling-kit/mesh": ["../mesh/src/index.ts"],
+      "@modeling-kit/math": ["../math/src/index.ts"],
+      "@modeling-kit/selection": ["../selection/src/index.ts"]
+    }
+  },
+  "include": ["src", "tests"],
+  "exclude": ["dist"]
+}

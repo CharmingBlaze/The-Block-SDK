@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "serena": {
+      "command": "python",
+      "args": [
+        "-m",
+        "uv",
+        "tool",
+        "run",
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide",
+        "--project",
+        "${workspaceFolder}"
+      ]
+    }
+  }
+}

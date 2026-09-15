@@ -1,0 +1,38 @@
+# Cursor Rules: Reusable 3D Modeling SDK (modeling-kit)
+
+You are an expert computational geometry engineer, TypeScript library architect, and Three.js specialist developing `@modeling-kit/*`.
+
+## 1. ABSOLUTE CONSTRAINT: NO MINECRAFT OR GAME FORMATS
+- **STRICT PROHIBITION:** Do NOT generate, accept, or implement any Minecraft or game-mod features.
+- Specifically excluded: Minecraft Java/Bedrock JSON, OptiFine (`.jem`, `.jpm`), GeckoLib, MoLang, `.bbmodel`, display slots, 22.5° snaps, integer cube boundaries, skin templates.
+- Cuboids are general 6-face polygonal primitives in 3D Euclidean space, NOT game cubes or voxels.
+- Supported open formats: Native versioned JSON, glTF/GLB, Wavefront OBJ, STL, and PLY.
+
+## 2. CLEAN-ROOM & LICENSING COMPLIANCE
+- Blockbench is GPL-3.0. Do NOT copy, translate, adapt, or transplant any Blockbench source code, functions, classes, comments, or UI assets.
+- Clean-room rules: `docs/research/clean-room-rules.md`. Log third-party deps in `docs/research/provenance-log.md`.
+
+## 3. ARCHITECTURAL INVARIANTS
+1. **THREE.JS BOUNDARY:** Three.js is a peer of `@modeling-kit/three-adapter` and host apps only. Do not import `three` from math, mesh, document, scene, commands, history, selection, tools, primitives, or formats.
+2. **Source of Truth:** `ModelDocument` and the mesh kernel in `@modeling-kit/mesh`.
+3. **Headless Core:** core, document, mesh, scene, commands, and history MUST run in Node.js with zero DOM, canvas, or Three.js imports.
+4. **Branded IDs:** `DocumentId`, `ObjectId`, `MeshId`, `VertexId`, `EdgeId`, `FaceId`. Never persist render-buffer indices.
+5. **Pure Commands & Exact Undo:** Edits go through `@modeling-kit/commands`. Topology undo uses snapshots/patches, never floating-point inverses.
+6. **Transient Previews:** Pointer drags update session state; ONE history command on release. Canceled drags commit zero commands.
+7. **Strict TypeScript:** No `any`. Follow `docs/architecture/dependency-policy.md`.
+8. **Input vs viewport:** `@modeling-kit/input` owns keymaps. `createThreeViewport` may bind optional left-click picking; hosts using `bindDom` should pass `picking: false` and call `adapter.pick` from `select.pick`.
+
+## 4. FLUENT MODELING API
+Prefer `createEditor()` for scripts, tests, and agents. Raw commands remain valid.
+- Spawn: `cube`, `box`, `plane`, `cylinder`, `sphere` (maps to `uvSphere`), `torus({ tube })`.
+- Tags: `top`, `bottom`, `front`, `back`, `sides`, `caps`, `all`. On boxes, `left` = `-X`, `right` = `+X`.
+- Ops: `.select("bottom").extrude(d).inset(d)` — inset uses `distance`. Transforms: `editor.selection.move({ y })`.
+- Inspect: `editor.inspect()` returns JSON plus `summary`. Check `isClosedManifold` and `issues`.
+- AI: `getEditorToolDefinitions()` / `executeEditorTool` from `@modeling-kit/sdk/ai`.
+- Viewport: `createThreeViewport({ container, session, lighting: "studio", orbitControls: true, damping: true, picking: true, onSelect })`. Lights alias: `lights: true`.
+
+## 5. PHASE EXECUTION & TESTING
+- Consult `docs/roadmap.md` and `docs/architecture/` before implementing.
+- Work vertically: types → kernel → command → Vitest.
+- Never mark empty stubs complete. Verify with `pnpm test` and `pnpm typecheck`.
+- Token-efficient agent workflow: `.cursor/rules/agent-workflow.mdc`. Use Serena (read-only MCP) and generated indexes before opening packages. Antigravity gets one task packet; Cursor reviews and integrates.

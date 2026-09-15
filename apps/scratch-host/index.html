@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>scratch-host (delete later)</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: #101018; color: #ececf4; }
+      #viewport { width: 100%; height: 100%; }
+      #ui {
+        position: absolute; top: 12px; left: 12px; z-index: 10;
+        width: 340px; max-height: calc(100% - 24px); overflow: auto;
+        background: rgba(18, 18, 28, 0.92); border: 1px solid #333348;
+        border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+      }
+      h1 { margin: 0; font-size: 14px; color: #fbbf24; }
+      .warn { font-size: 11px; color: #a1a1aa; line-height: 1.4; }
+      label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #8888a0; letter-spacing: 0.4px; }
+      select, input[type="number"] {
+        width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid #3d3d54;
+        background: #1c1c2a; color: #eee; font-size: 13px;
+      }
+      .row { display: flex; gap: 6px; flex-wrap: wrap; }
+      button {
+        flex: 1; min-width: 0; padding: 7px 8px; background: #252536; border: 1px solid #3d3d54;
+        border-radius: 6px; color: #ddd; font-size: 12px; cursor: pointer;
+      }
+      button:hover:not(:disabled) { border-color: #fbbf24; color: #fff; }
+      button:disabled { opacity: 0.4; cursor: not-allowed; }
+      .stats { font-size: 11px; color: #9999b0; background: #191924; border: 1px solid #29293a; border-radius: 6px; padding: 8px; }
+      .stats div { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
+      .stats strong { color: #fff; font-weight: 600; word-break: break-all; text-align: right; }
+      .hint { font-size: 11px; color: #71717a; line-height: 1.4; }
+    </style>
+  </head>
+  <body>
+    <div id="ui">
+      <h1>scratch-host</h1>
+      <div class="warn">Disposable Vite app under <code>apps/scratch-host</code>. Delete the folder when finished. Right-drag orbits; left-click picks; Shift+left-drag translates the selected object.</div>
+
+      <label for="primitive">Create primitive</label>
+      <select id="primitive"></select>
+      <div class="row">
+        <button id="btn-create" type="button">Create</button>
+        <button id="btn-reset" type="button">New session</button>
+      </div>
+
+      <label>Select / edit</label>
+      <div class="row">
+        <button id="btn-pick-object" type="button">Pick object</button>
+        <button id="btn-pick-face" type="button">Pick face</button>
+      </div>
+      <div class="row">
+        <button id="btn-select-top" type="button">Select groups.top</button>
+        <button id="btn-extrude" type="button">Extrude 0.4</button>
+      </div>
+
+      <label>History / export</label>
+      <div class="row">
+        <button id="btn-undo" type="button">Undo</button>
+        <button id="btn-redo" type="button">Redo</button>
+      </div>
+      <div class="row">
+        <button id="btn-gltf" type="button">Export glTF</button>
+        <button id="btn-glb" type="button">Export GLB</button>
+      </div>
+
+      <div class="stats">
+        <div><span>Session</span><strong id="stat-session">ready</strong></div>
+        <div><span>Object</span><strong id="stat-object">none</strong></div>
+        <div><span>Selection</span><strong id="stat-sel">none</strong></div>
+        <div><span>Verts / faces</span><strong id="stat-mesh">—</strong></div>
+        <div><span>Undo / redo</span><strong id="stat-hist">0 / 0</strong></div>
+        <div><span>Gesture</span><strong id="stat-gesture">idle</strong></div>
+      </div>
+      <div class="hint">Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z redo, Escape cancel. Left-click picks. Shift+left-drag translates the selected object (one history command on release). Right-drag orbits.</div>
+    </div>
+    <div id="viewport"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

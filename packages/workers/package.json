@@ -1,0 +1,23 @@
+{
+  "name": "@modeling-kit/workers",
+  "version": "0.1.0",
+  "description": "Asynchronous compute worker boundaries for heavy mesh operations",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@modeling-kit/core": "workspace:*",
+    "@modeling-kit/mesh": "workspace:*",
+    "@modeling-kit/uv": "workspace:*",
+    "@modeling-kit/validation": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,44 @@
+---
+description: Token-efficient Cursor/Antigravity workflow for modeling-kit
+alwaysApply: true
+---
+
+# Agent coordination and token budget
+
+Canonical spec: `docs/architecture/modeling-operator-specification.md`.
+Active work: `docs/coordination/CURRENT-MILESTONE.md`, `docs/coordination/TASK-BOARD.md`, `tasks/`.
+Generated indexes: `generated/repo-map.md`, `generated/public-api-index.md`, `generated/package-graph.md`, `generated/test-index.md`.
+
+Cursor owns architecture, planning, review, and integration. Antigravity owns one bounded task packet at a time. Do not install CrewAI, AutoGPT, or Aider.
+
+## Retrieval
+
+1. Read the active task packet before exploring code.
+2. Open only the specification sections cited by that task.
+3. Use Serena symbol lookup (when the MCP server is connected) before opening whole files.
+4. Use `rg` for exact text and filenames.
+5. Read generated repository/API indexes before scanning packages.
+6. Never read `dist`, coverage, source maps, large fixtures, or generated bundles.
+7. Never read all workspace packages for a single-package task.
+8. Generate a targeted Repomix bundle only when symbol lookup is insufficient: `pnpm repo:context -- --preset <name> --budget <n>`. Presets include `mesh`, `snapping`, `transform`, `commands-history`, `input-tools`.
+9. Stay inside the preset token budget (default 15k–25k). Prefer paths, symbol names, requirement IDs, diffs, and commits over pasted source.
+10. Store decisions in ADRs or existing architecture docs. Do not re-argue resolved items.
+
+## Execution
+
+11. Run targeted package tests during implementation.
+12. Run the full suite only at integration (`pnpm check:release` or `pnpm test` + `pnpm typecheck`).
+13. Do not send Antigravity a broad goal such as “complete the UV system.”
+14. Limit Antigravity to one vertical slice and the task’s allowed-file list.
+15. Cursor reviews every Antigravity change before integration.
+16. Antigravity cannot add dependencies or change frozen contracts (`docs/coordination/API-FREEZE.md`).
+17. No completion claim without recorded test evidence.
+18. Cursor and Antigravity must not edit the same files concurrently. Branches: `integration/release-1` vs `agent/<TASK-ID>`.
+19. Validate packets with `pnpm check:agent -- --task tasks/<ID>.md --changed-files …`.
+20. Refresh Serena’s index after large edits; do not treat the index as newer than the working tree.
+
+## Branches
+
+- Cursor integrates on `integration/release-1` once that branch exists.
+- Antigravity works only on `agent/<TASK-ID>`.
+- Communication protocol is task files + handoff reports in `tasks/TEMPLATE.md`, not chat memory.

@@ -1,0 +1,116 @@
+import { SchemaError, type FaceId, type VertexId } from "@modeling-kit/core";
+import { MeshBuilder, type HalfEdgeMesh } from "@modeling-kit/mesh";
+import { validateMesh } from "@modeling-kit/validation";
+import type { PrimitiveFaceGroups, PrimitiveResult, PrimitiveValidationResult } from "./types";
+
+export const QUAD_UV: [number, number][] = [
+  [0, 0],
+  [1, 0],
+  [1, 1],
+  [0, 1],
+];
+
+export function emptyGroups(): PrimitiveFaceGroups {
+  return {
+    top: [],
+    bottom: [],
+    front: [],
+    back: [],
+    sides: [],
+    caps: [],
+  };
+}
+
+export function positive(name: string, value: number, errors: string[]): void {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    errors.push(`${name} must be a finite number greater than 0`);
+  }
+}
+
+export function integerAtLeast(name: string, value: number, min: number, errors: string[]): void {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < min) {
+    errors.push(`${name} must be an integer >= ${min}`);
+  }
+}
+
+export function requireValid(check: PrimitiveValidationResult, label: string): void {
+  if (!check.ok) {
+    throw new SchemaError(`${label}: ${check.errors.join("; ")}`);
+  }
+}
+
+export function addFace(
+  builder: MeshBuilder,
+  vertices: readonly VertexId[],
+  uvs: [number, number][],
+): FaceId {
+  return builder.addFace(vertices, { uvs });
+}
+
+export function ringPoint(radius: number, index: number, count: number, y: number): [number, number, number] {
+  const theta = (2 * Math.PI * index) / count;
+  return [Math.sin(theta) * radius, y, Math.cos(theta) * radius];
+}
+
+export function polarUv(index: number, count: number): [number, number] {
+  const theta = (2 * Math.PI * index) / count;
+  return [Math.sin(theta) * 0.5 + 0.5, Math.cos(theta) * 0.5 + 0.5];
+}
+
+export function sphericalUv(x: number, y: number, z: number): [number, number] {
+  const r = Math.hypot(x, y, z) || 1;
+  const u = Math.atan2(x, z) / (2 * Math.PI) + 0.5;
+  const v = Math.acos(Math.min(1, Math.max(-1, y / r))) / Math.PI;
+  return [u, v];
+}
+
+export function unwrapSeamUvs(uvs: [number, number][]): [number, number][] {
+  if (uvs.length === 0) {
+    return uvs;
+  }
+  const us = uvs.map((uv) => uv[0]);
+  const min = Math.min(...us);
+  const max = Math.max(...us);
+  if (max - min <= 0.5) {
+    return uvs;
+  }
+  return uvs.map((uv) => (uv[0] < 0.5 ? ([uv[0] + 1, uv[1]] as [number, number]) : uv));
+}
+
+export function markEdgeSeam(mesh: HalfEdgeMesh, a: VertexId, b: VertexId): void {
+  for (const edgeId of mesh.getVertexEdges(a)) {
+    const ends = mesh.getEdgeVertices(edgeId);
+    if (!ends) {
+      continue;
+    }
+    if (ends[0] === b || ends[1] === b) {
+      const edge = mesh.edges.get(edgeId);
+      if (edge) {
+        edge.isSeam = true;
+      }
+    }
+  }
+}
+
+export function finalizePrimitive(
+  type: string,
+  builder: MeshBuilder,
+  groups: PrimitiveFaceGroups,
+): PrimitiveResult {
+  const mesh = builder.getMesh();
+  if (mesh.faces.size === 0) {
+    throw new SchemaError(`${type} primitive produced no faces`);
+  }
+  const validity = validateMesh(mesh);
+  if (!validity.valid) {
+    throw new SchemaError(
+      `${type} primitive failed validation: ${validity.errors.map((issue) => issue.code).join(", ")}`,
+    );
+  }
+  for (const corner of mesh.corners.values()) {
+    if (!corner.uv || !Number.isFinite(corner.uv[0]) || !Number.isFinite(corner.uv[1])) {
+      throw new SchemaError(`${type} primitive is missing per-corner UVs`);
+    }
+  }
+  return { type, mesh, groups };
+}

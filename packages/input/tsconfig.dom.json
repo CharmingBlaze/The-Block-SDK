@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": []
+  },
+  "include": ["src/dom.ts", "src/engine.ts", "src/keymap.ts", "src/pointer-machine.ts", "src/types.ts"],
+  "exclude": ["dist"]
+}
