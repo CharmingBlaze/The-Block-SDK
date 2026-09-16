@@ -342,9 +342,6 @@ importers:
       '@modeling-kit/core':
         specifier: workspace:*
         version: link:../core
-      '@modeling-kit/mesh':
-        specifier: workspace:*
-        version: link:../mesh
       meshoptimizer:
         specifier: 1.2.0
         version: 1.2.0

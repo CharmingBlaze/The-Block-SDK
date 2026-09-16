@@ -94,6 +94,8 @@ Bundlers that honor the `browser` export condition resolve `@modeling-kit/worker
 
 The headless `@modeling-kit/sdk` re-exports the runtime-neutral pool so browser example apps do not pull Node types. Paint, format IO, and GPU picking stay on the main thread until they have their own task types.
 
+`@modeling-kit/meshopt` is an optional derived-triangle adapter (vertex-cache reorder and LOD). It is not a required SDK dependency and must not mutate `HalfEdgeMesh`.
+
 Input is documented in `docs/architecture/input.md`. Hosts bind DOM separately (`@modeling-kit/input/dom`); the adapter does not own keymaps.
 
 Ownership of document, session, tools, and derived Three.js objects is in `docs/architecture/ownership.md`. Primitive face composition is in `docs/architecture/primitive-topology.md`. The verification matrix is `docs/verification/PRIMITIVE-TOPOLOGY-MATRIX.md`.

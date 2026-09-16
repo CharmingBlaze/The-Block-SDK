@@ -122,6 +122,18 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 - Requirement ID prefixes: MESH, MESH-OP
 - Tests: packages/mesh/tests
 
+## @modeling-kit/meshopt
+
+- Purpose: Optional meshoptimizer adapter on derived triangles only
+- Layer: io
+- Version: 0.1.0
+- Public entry keys: .
+- Internal directories: (flat src)
+- Workspace dependencies: @modeling-kit/core
+- Forbidden: three; canonical mesh mutation
+- Requirement ID prefixes: JOB
+- Tests: packages/meshopt/tests
+
 ## @modeling-kit/paint
 
 - Purpose: Image/paint revision helpers

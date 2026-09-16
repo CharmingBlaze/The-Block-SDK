@@ -19,6 +19,8 @@ math
                   → sdk
 ```
 
+`@modeling-kit/meshopt` is optional and sits beside this stack: it depends only on `core` plus `meshoptimizer`, and is not required by `sdk`.
+
 `@modeling-kit/scene` depends on `document` (re-export + helpers). `@modeling-kit/history` depends on `document`, `mesh`, `selection`.
 
 ## Observed package.json dependencies
@@ -44,6 +46,7 @@ math
 | commands | core, math, document, history, mesh, scene, selection, tools, materials, uv, rigging, animation, transform, snapping, paint, primitives, validation | Wide; depends on **tools** |
 | formats | core, math, mesh, document, scene | OK |
 | workers | mesh, uv, validation | OK; runtime-neutral entry has no `node:` / `process`; `/browser` and `/node` are explicit |
+| meshopt | core; `meshoptimizer` | Optional derived triangles only; not required by sdk |
 | rigging / animation | document/mesh | Preview; deferred 1.0 gate |
 | three-adapter | commands, core, document, mesh, scene, rigging; **peer three** | OK isolation |
 | sdk | headless facade; optional peer three-adapter for `./three` | ARCH-003 |

@@ -192,6 +192,7 @@ The adapter never owns the editable mesh. Dispose the viewport, then the editor/
 | Native JSON | `@modeling-kit/document` | Canonical persistence (`session.saveNativeJson()` / `ModelingSession.loadNativeJson`) |
 | Open formats | `@modeling-kit/formats` | glTF/GLB (triangulated geometry, hierarchy, PBR factors); OBJ; ASCII STL; PPM images |
 | Workers | `@modeling-kit/workers` | Host-owned pools: inline, `/browser` (`Worker`), `/node` (`worker_threads`) |
+| Derived meshopt | `@modeling-kit/meshopt` | Optional vertex-cache reorder and LOD on triangulated render/export buffers |
 
 ### Facades
 

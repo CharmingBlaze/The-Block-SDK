@@ -13,6 +13,7 @@ Generated from workspace manifests (dependencies + peerDependencies with `worksp
 @modeling-kit/materials → @modeling-kit/core, @modeling-kit/document, @modeling-kit/mesh
 @modeling-kit/math → (none)
 @modeling-kit/mesh → @modeling-kit/core, @modeling-kit/math
+@modeling-kit/meshopt → @modeling-kit/core
 @modeling-kit/paint → @modeling-kit/core, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/uv
 @modeling-kit/primitives → @modeling-kit/core, @modeling-kit/mesh, @modeling-kit/validation
 @modeling-kit/rigging → @modeling-kit/core, @modeling-kit/document, @modeling-kit/math, @modeling-kit/mesh

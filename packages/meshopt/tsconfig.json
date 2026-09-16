@@ -4,5 +4,5 @@
     "noEmit": true
   },
   "include": ["src", "tests"],
-  "exclude": ["dist", "src/reorder.ts", "src/simplify.ts", "src/remap.ts"]
+  "exclude": ["dist"]
 }

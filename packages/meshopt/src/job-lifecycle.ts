@@ -1,10 +1,4 @@
-export type MeshoptJobState =
-  | "queued"
-  | "running"
-  | "cancelling"
-  | "completed"
-  | "failed"
-  | "disposed";
+import type { MeshoptJobState } from "./types";
 
 const ALLOWED: Record<MeshoptJobState, readonly MeshoptJobState[]> = {
   queued: ["running", "cancelling", "disposed"],

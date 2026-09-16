@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@modeling-kit/core": "workspace:*",
-    "@modeling-kit/mesh": "workspace:*",
     "meshoptimizer": "1.2.0"
   },
   "main": "./dist/index.js",

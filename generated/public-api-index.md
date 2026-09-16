@@ -712,6 +712,31 @@ Entry: `packages/mesh/src/index.ts`
 | `ValidationMode` | export | no |
 | `Vec3Tuple` | export | no |
 
+## @modeling-kit/meshopt
+
+Entry: `packages/meshopt/src/index.ts`
+
+| Name | Kind | Deprecated |
+| ---- | ---- | ---------- |
+| `MeshoptOptimizer` | export | no |
+| `optimizeDerivedTriangles` | export | no |
+| `derivedFromTriangulated` | export | no |
+| `MeshoptJob` | export | no |
+| `DEFAULT_MESHOPT_LIMITS` | export | no |
+| `resolveLimits` | export | no |
+| `DerivedTriangleBuffers` | type | no |
+| `MappingStatus` | type | no |
+| `MeshoptFailure` | type | no |
+| `MeshoptJobResult` | type | no |
+| `MeshoptJobState` | type | no |
+| `MeshoptLimits` | type | no |
+| `MeshoptLodLevel` | type | no |
+| `MeshoptMode` | type | no |
+| `MeshoptRequest` | type | no |
+| `MeshoptSuccess` | type | no |
+| `OptimizedTriangles` | type | no |
+| `TriangleMapping` | type | no |
+
 ## @modeling-kit/paint
 
 Entry: `packages/paint/dist/index.js`

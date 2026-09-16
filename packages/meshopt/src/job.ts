@@ -19,6 +19,10 @@ export class MeshoptJob {
     return this.lifecycle.state;
   }
 
+  start(): boolean {
+    return this.lifecycle.transition("running");
+  }
+
   cancel(): void {
     if (this.lifecycle.terminal) {
       return;
@@ -34,20 +38,25 @@ export class MeshoptJob {
     if (this.lifecycle.terminal) {
       return;
     }
-    this.outcome = result;
-    this.lifecycle.transition(result.ok ? "completed" : "failed");
-    this.settle?.(result);
+    const outcome: MeshoptJobResult =
+      this.state === "cancelling" && result.ok
+        ? { ok: false, error: "cancelled", code: "cancelled" }
+        : result;
+    this.outcome = outcome;
+    this.lifecycle.transition(outcome.ok ? "completed" : "failed");
+    this.settle?.(outcome);
     this.settle = undefined;
   }
 
   dispose(): void {
-    if (this.state !== "disposed") {
-      if (!this.lifecycle.terminal) {
-        this.lifecycle.transition("cancelling");
-        this.complete({ ok: false, error: "disposed", code: "disposed" });
-      }
-      this.lifecycle.transition("disposed");
+    if (this.state === "disposed") {
+      return;
     }
+    if (!this.lifecycle.terminal) {
+      this.lifecycle.transition("cancelling");
+      this.complete({ ok: false, error: "disposed", code: "disposed" });
+    }
+    this.lifecycle.transition("disposed");
     this.outcome = undefined;
   }
 }

@@ -209,7 +209,7 @@ Added as a runtime dependency of `@modeling-kit/meshopt` only. Conversion bounda
 7. Browser/Node: WASM; Node >= 22. Headless, no DOM.  
 8. Canonical model: unchanged. HalfEdgeMesh is not an input.  
 9. Abstraction: callers import `optimizeDerivedTriangles`. Commands, mesh kernel, and sdk do not import `meshoptimizer`.  
-10. Tests: `packages/meshopt/tests/meshopt.test.ts`.
+10. Tests: `packages/meshopt/tests/meshopt.test.ts`, `packages/meshopt/tests/mapping.test.ts`.
 
 ## Incident log
 
