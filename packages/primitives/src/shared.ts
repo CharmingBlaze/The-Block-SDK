@@ -52,48 +52,6 @@ export function addFace(
   });
 }
 
-/** Reverse a face loop when Newell's normal points toward the origin. */
-export function orientLoopOutward(
-  builder: MeshBuilder,
-  vertices: readonly VertexId[],
-  uvs: [number, number][],
-): { vertices: VertexId[]; uvs: [number, number][] } {
-  const mesh = builder.getMesh();
-  const pts = vertices.map((id) => {
-    const vertex = mesh.vertices.get(id);
-    if (!vertex) {
-      throw new SchemaError("orientLoopOutward: missing vertex");
-    }
-    return vertex.position;
-  });
-  let nx = 0;
-  let ny = 0;
-  let nz = 0;
-  const n = pts.length;
-  for (let i = 0; i < n; i++) {
-    const a = pts[i]!;
-    const b = pts[(i + 1) % n]!;
-    nx += (a[1] - b[1]) * (a[2] + b[2]);
-    ny += (a[2] - b[2]) * (a[0] + b[0]);
-    nz += (a[0] - b[0]) * (a[1] + b[1]);
-  }
-  let cx = 0;
-  let cy = 0;
-  let cz = 0;
-  for (const p of pts) {
-    cx += p[0];
-    cy += p[1];
-    cz += p[2];
-  }
-  cx /= n;
-  cy /= n;
-  cz /= n;
-  if (nx * cx + ny * cy + nz * cz >= 0) {
-    return { vertices: [...vertices], uvs };
-  }
-  return { vertices: [...vertices].reverse(), uvs: [...uvs].reverse() };
-}
-
 export function ringPoint(radius: number, index: number, count: number, y: number): [number, number, number] {
   const theta = (2 * Math.PI * index) / count;
   return [Math.sin(theta) * radius, y, Math.cos(theta) * radius];

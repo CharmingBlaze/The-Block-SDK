@@ -3,6 +3,7 @@ import { MeshBuilder } from "@modeling-kit/mesh";
 import {
   assertQuadVertices,
   bucketCubeFace,
+  cubeAtlasUv,
   cubeGridPosition,
   iterateCubeGridQuads,
   uniqueCubeGridVertex,
