@@ -94,6 +94,15 @@ export {
 export { generatePrimitive, primitiveDisplayNames, type PrimitiveCreateParams } from "./catalog";
 export { canonicalizePrimitiveType, resolvePrimitiveType, PRIMITIVE_TYPE_ALIASES } from "./aliases";
 export {
+  getPrimitiveCatalogEntry,
+  isCanonicalEditablePrimitive,
+  PRIMITIVE_CATALOG,
+  type PrimitiveCatalogEntry,
+  type PrimitiveGeneratorKind,
+  type PrimitivePurpose,
+  type PrimitiveTopologyKind,
+} from "./registry";
+export {
   convertSimplicialComplex,
   generateLibraryPrimitive,
   validateLibraryParameters,

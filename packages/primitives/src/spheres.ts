@@ -65,7 +65,7 @@ export function generateUvSphere(
   for (let i = 0; i < slices; i++) {
     const i1 = (i + 1) % slices;
     sides.push(
-      addFace(builder, [north, first[i1]!, first[i]!], sphereFaceUv(builder, [north, first[i1]!, first[i]!])),
+      addFace(builder, [north, first[i]!, first[i1]!], sphereFaceUv(builder, [north, first[i]!, first[i1]!])),
     );
   }
   for (let s = 0; s < rings.length - 1; s++) {
@@ -73,7 +73,7 @@ export function generateUvSphere(
     const b = rings[s + 1]!;
     for (let i = 0; i < slices; i++) {
       const i1 = (i + 1) % slices;
-      const verts = [a[i]!, a[i1]!, b[i1]!, b[i]!];
+      const verts = [a[i]!, b[i]!, b[i1]!, a[i1]!];
       sides.push(addFace(builder, verts, sphereFaceUv(builder, verts)));
     }
   }
@@ -81,7 +81,7 @@ export function generateUvSphere(
   for (let i = 0; i < slices; i++) {
     const i1 = (i + 1) % slices;
     sides.push(
-      addFace(builder, [last[i]!, last[i1]!, south], sphereFaceUv(builder, [last[i]!, last[i1]!, south])),
+      addFace(builder, [last[i1]!, last[i]!, south], sphereFaceUv(builder, [last[i1]!, last[i]!, south])),
     );
   }
   const result = finalizePrimitive("uvSphere", builder, { ...emptyGroups(), sides });

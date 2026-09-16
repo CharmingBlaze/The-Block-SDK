@@ -1,3 +1,5 @@
+// Path-alias consumers compile this file without mesh's tsconfig include list.
+// eslint-disable-next-line @typescript-eslint/triple-slash-reference -- ambient `earcut` module for those projects
 /// <reference path="../earcut.d.ts" />
 import earcut, { deviation } from "earcut";
 import type { Vec2 } from "./types";

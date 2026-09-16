@@ -1,4 +1,4 @@
-import { box, cube, cylinder, sphere, torus } from "primitive-geometry";
+import { box, cube, sphere, torus } from "primitive-geometry";
 import { deserializeMesh, faceNormal, serializeMesh, triangulateMesh } from "@modeling-kit/mesh";
 import { validateMesh } from "@modeling-kit/validation";
 import { describe, expect, it } from "vitest";

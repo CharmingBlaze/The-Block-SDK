@@ -319,23 +319,23 @@ export function generateCapsule(
     const u0 = i / n;
     const u1 = (i + 1) / n;
     sides.push(
-      addFace(builder, [north, firstRing[i1]!, firstRing[i]!], [
+      addFace(builder, [north, firstRing[i]!, firstRing[i1]!], [
         [0.5, 1],
-        [u1, 1 - 1 / vSpan],
         [u0, 1 - 1 / vSpan],
+        [u1, 1 - 1 / vSpan],
       ]),
     );
   }
-  sides.push(...addTubeSides(builder, rings, true));
+  sides.push(...addTubeSides(builder, rings, true, true));
   const last = rings[rings.length - 1]!;
   for (let i = 0; i < n; i++) {
     const i1 = (i + 1) % n;
     const u0 = i / n;
     const u1 = (i + 1) / n;
     sides.push(
-      addFace(builder, [last[i]!, last[i1]!, south], [
-        [u0, 1 / vSpan],
+      addFace(builder, [last[i1]!, last[i]!, south], [
         [u1, 1 / vSpan],
+        [u0, 1 / vSpan],
         [0.5, 0],
       ]),
     );

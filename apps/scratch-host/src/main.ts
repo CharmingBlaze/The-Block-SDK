@@ -72,6 +72,7 @@ function defaultParams(type: PrimitiveType): CreatePrimitiveParams {
       return { radius: 0.35, height: 2.4, segments: 16 };
     default:
       return {};
+  }
 }
 
 const viewport = document.getElementById("viewport");
