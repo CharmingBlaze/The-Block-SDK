@@ -95,7 +95,7 @@ Completed left-clicks use GPU ID-buffer picking (`adapter.pickPoint`) with a CPU
 
 ## Workers
 
-Heavy triangulation, UV packing, UV unwrap, and mesh validation can run on `@modeling-kit/workers`. Construct a pool and dispose it with the editor:
+Heavy triangulation, UV packing, UV unwrap, and mesh validation can run on `@modeling-kit/workers`. Construct a pool and dispose it with the editor. Do not run `triangulateMesh` on pointer-move; 10k–100k vertex rebuilds are batch-scale in 0.1 (see [Triangulation](triangulation.md)).
 
 - `@modeling-kit/sdk` / `@modeling-kit/workers` — inline (scripts and headless TypeScript)
 - `@modeling-kit/workers/browser` — `createBrowserComputePool()`

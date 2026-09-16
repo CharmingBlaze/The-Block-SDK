@@ -1,8 +1,8 @@
 import { assert, double, property } from "fast-check";
 import { describe, expect, it } from "vitest";
 import { createMeshOperationContext, insetFaces } from "../../src/index";
-import { closedCube } from "./generators";
-import { assertClosedManifold, assertUnchangedOnThrow } from "./invariants";
+import { closedCube, concaveLNgon } from "./generators";
+import { assertClosedManifold, assertManifoldAllowBoundary, assertUnchangedOnThrow } from "./invariants";
 
 describe("property: insetFaces", () => {
   it("rejects non-positive distances without mutating the mesh", () => {
@@ -31,6 +31,21 @@ describe("property: insetFaces", () => {
         assertUnchangedOnThrow(mesh, () =>
           insetFaces(mesh, { faceIds: [faceId], distance }, ctx),
         );
+      }),
+      { numRuns: 16 },
+    );
+  });
+
+  it("insets a concave L n-gon by a small distance without inverting", () => {
+    assert(
+      property(double({ min: Math.fround(0.04), max: Math.fround(0.08), noNaN: true }), (distance) => {
+        const { mesh, ids } = concaveLNgon("prop-inset-l");
+        const faceId = [...mesh.faces.keys()][0]!;
+        const ctx = createMeshOperationContext(ids);
+        const result = insetFaces(mesh, { faceIds: [faceId], distance, mode: "individual" }, ctx);
+        expect(result.innerFaceIds).toHaveLength(1);
+        expect(result.ringFaceIds.length).toBeGreaterThanOrEqual(6);
+        assertManifoldAllowBoundary(mesh);
       }),
       { numRuns: 16 },
     );

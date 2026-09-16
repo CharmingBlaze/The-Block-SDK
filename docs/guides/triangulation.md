@@ -48,3 +48,19 @@ Suspicious Earcut output is `status: "failed"` with zero triangles. A simple no-
 Earcut is one typed-array pass. No WASM, workers, or result cache. Degenerate input fails closed; it does not mutate the kernel.
 
 Earcut is not a file importer. glTF/OBJ/STL enter through `@modeling-kit/formats`. `triangulateMesh` may then dump n-gons to triangles for render or export.
+
+### Interactive limits (0.1)
+
+`triangulateMesh` rebuilds derived triangles for the whole mesh. That is a batch / commit cost, not a pointer-move budget. Do not call it on every hover, snap, or gizmo tick. Hosts should keep it behind revision-gated viewport sync or `@modeling-kit/workers` (`triangulateAsync`).
+
+Observed samples from the 2026-09-16 re-audit (shared-load machine, not CI):
+
+| Work | Size | Wall clock |
+| --- | --- | --- |
+| `triangulateMesh` grid | ~10k vertices (`segments` 100×100) | 2.67 s |
+| `triangulateMesh` grid | ~100k vertices (`segments` 316×316) | 18.9 s |
+| Native serialize | 1,000 scene nodes | 347 ms |
+
+Optional `BENCHMARK_ASSERT=1` budgets in `triangulation.bench.test.ts` are looser (10k < 4 s, 100k < 30 s) so CI does not flake. Those budgets are not interactive targets.
+
+0.1 does not claim 100k-vertex edit/render rebuilds at modeling-tool rates. Speeding grid construction vs triangulation, plus warmed medians and memory, is 1.1 work. Object AABB `BvhSpatialQuery` is the 1.0 spatial layer; triangle/edge/vertex acceleration is also 1.1.

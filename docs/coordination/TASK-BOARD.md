@@ -46,7 +46,7 @@ Tooling setup (Serena, Repomix, dependency-cruiser, Knip, fast-check) is Cursor-
 
 ## Release
 
-Tag-triggered npm publish is in `.github/workflows/release.yml`. First public version is still `0.1.0` until `NPM_TOKEN` exists and `v0.1.0` is pushed. Guide: `docs/guides/publishing.md`.
+Tag-triggered npm publish is in `.github/workflows/release.yml`. First public version is still `0.1.0` until `NPM_TOKEN` exists and `v0.1.0` is pushed. Exact-commit CI is green on `5a3d941` ([run 35063242733](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35063242733)). Guide: `docs/guides/publishing.md`.
 
 ## Backlog
 
@@ -59,7 +59,7 @@ The non-deferred 1.0 matrix is closed (`docs/verification/RELEASE-1.0-EVIDENCE.m
 - PLY codec
 - Optional triangle `three-mesh-bvh` spatial backend (object AABB BVH is in 1.0 as `BvhSpatialQuery`)
 
-Release remaining: add GitHub secret `NPM_TOKEN`, then `git tag v0.1.0 && git push origin v0.1.0`. Guide: `docs/guides/publishing.md`.
+Release remaining: add GitHub secret `NPM_TOKEN`, then `git tag v0.1.0 && git push origin v0.1.0`. Exact-commit CI is green on `5a3d941` ([run 35063242733](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35063242733)). Guide: `docs/guides/publishing.md`.
 
 Do not start a new Antigravity packet without a task file.
 

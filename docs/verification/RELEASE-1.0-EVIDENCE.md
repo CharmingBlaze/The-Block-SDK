@@ -1,10 +1,10 @@
 # Release 1.0 evidence matrix
 
 **Audit date:** 2026-09-16  
-**Working tree:** uncommitted re-audit 0.1 follow-ups on `main` after `a88debc` (AI issue lists, load/query/transaction tools, property generators, Knip unused-file gate)  
+**Working tree:** `main` at `5a3d941` (re-audit 0.1 follow-ups: AI issue lists, load/query/transaction tools, property generators, Knip unused-file gate)  
 **Specification:** `docs/architecture/modeling-operator-specification.md`  
-**Baseline command:** `pnpm test` — **115 files / 705 tests**. `pnpm typecheck` — 24 packages. `pnpm lint` — exit 0. `pnpm deadcode:gate` — unused deps/duplicates plus unused-files allowlist. CI on `e8233db`: [run 35060344278](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35060344278) **success** (`verify` / `clean-typecheck` / `webgl-smoke`). Packed export-path checks landed in `a88debc`. Unified `pnpm check:release` last recorded **exit 0** on `e8233db`.  
-**Repo:** working tree on `main` at `https://github.com/CharmingBlaze/The-Block-SDK.git`.  
+**Baseline command:** `pnpm test` — **115 files / 705 tests**. `pnpm typecheck` — 24 packages. `pnpm lint` — exit 0. `pnpm deadcode:gate` — unused deps/duplicates plus unused-files allowlist. CI on `5a3d941`: [run 35063242733](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35063242733) **success** (`verify` / `clean-typecheck` / `webgl-smoke`). That `verify` job ran `pnpm check:release` (includes `pack:verify`). Prior: `e8233db` [run 35060344278](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35060344278); packed export-path checks `a88debc` [run 35061120304](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35061120304).  
+**Repo:** `main` at `https://github.com/CharmingBlaze/The-Block-SDK.git`.  
 **Release gate status:** Worker boundaries, packed-tarball verification, CI `check:release`, MIT metadata, and tag-triggered npm publish (`.github/workflows/release.yml`) are in this branch. First public version stays `0.1.0` until `v0.1.0` is pushed with `NPM_TOKEN` set. Rigging/animation stay preview (`RIG-001` / `ANIM-001`).  
 **Rule:** `VERIFIED` requires named tests plus a recorded passing command. Row-level `VERIFIED` marks below are historical requirement coverage; the **Baseline command** counts above are the ones recorded on this working tree. Out of 1.0 scope: RIG-001, ANIM-001, BOOL-001, LSCM/ABF. GPU-PICK-001 **click** is in 1.0; GPU hover/transparency/InstancedMesh/GPU skinning are 1.1.
 
@@ -162,14 +162,14 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 | -------------- | ------ | -------------- | ----- | -------- | ----- | ------- | ------- |
 | LIFE-001 dispose/remount | VERIFIED | adapter, session, input, selection, paint, tools dispose idempotent | lifecycle.test.ts (16); commands session dispose; input dispose | Remount resource baseline; later execute throws | Cursor | | |
 | LIFE-002 workers/URLs | VERIFIED | `ObjectUrlRegistry` in core/adapter; `AsyncComputePool` cancels queued/in-flight work, unsubscribes, and terminates workers | lifecycle.test.ts; workers.test.ts; workers.browser.test.ts | Dispose is idempotent; abort/dispose do not hang; browser fake-worker crash replacement | Cursor | | |
-| PERF-001 benchmarks | VERIFIED | Structural triangulation/serialize/history caps in `packages/sdk/tests/perf-regression.test.ts`; large 10k/100k samples in `packages/sdk/tests/triangulation.bench.test.ts` via `pnpm test:bench` | Isolated `pnpm test` 115/705; wall-clock asserts are not in the default gate | Cursor | | |
+| PERF-001 benchmarks | VERIFIED | Structural triangulation/serialize/history caps in `packages/sdk/tests/perf-regression.test.ts`; large 10k/100k samples in `packages/sdk/tests/triangulation.bench.test.ts` via `pnpm test:bench` | Isolated `pnpm test` 115/705; wall-clock asserts are not in the default gate. Interactive limits: `docs/guides/triangulation.md` | Cursor | | |
 | EXT-001 registries | VERIFIED | per-document `SceneNodeExtensionRegistry` | `packages/document/tests/document.test.ts` | Global Map removed | Cursor | R1-T008 | |
 | EXT-002 capabilities | VERIFIED | `session.capabilities.canExecute` + standalone `canExecute` | `packages/commands/tests/capabilities.test.ts` | 292 tests; typecheck | Cursor | R1-T009 | |
 | AI-001 tool schemas | VERIFIED | `getEditorToolDefinitions` / `executeEditorTool` including load/list/inspect/query/import/export/transaction tools; runtime JSON Schema subset | ai-tools.test.ts (11) | Failures return `code`/`retryable`/`issues[]`; invalid JSON is `invalid_json`; `clientRequestId` is idempotent; multi-tag union; merge coords; dispose-safe | Cursor | | |
 | DX-001 docs/examples | VERIFIED | architecture docs; `docs/guides/getting-started.md`; `pnpm examples:typecheck` in CI | `.github/workflows/ci.yml` | CI runs examples typecheck | Cursor | | |
 | RIG-001 / ANIM-001 | DEFERRED | packages exist with small tests | rigging.test.ts (3), animation.test.ts (3) | Preview only; not 1.0 gate | Cursor | | |
 | BOOL-001 | DEFERRED | not in 1.0 | — | Manifold boolean backend is 1.1 | Cursor | | |
-| GPU-PICK-001 | VERIFIED (click path only) | identity/surface results, PickSession, canonical FaceId, CPU refinement, host options | pick-result/session/refinement; gpu-picking-*.test.ts; `pnpm test:webgl` | Node software rasterizer is unit-only. Real WebGL: local `pnpm test:webgl` 1 passed (2026-09-16) and CI job `webgl-smoke`. Unified `pnpm check:release` exit 0 on this tree. GPU hover is 1.1. | Cursor | | |
+| GPU-PICK-001 | VERIFIED (click path only) | identity/surface results, PickSession, canonical FaceId, CPU refinement, host options | pick-result/session/refinement; gpu-picking-*.test.ts; `pnpm test:webgl` | Node software rasterizer is unit-only. Real WebGL: CI `webgl-smoke` success on `5a3d941` ([run 35063242733](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35063242733)). Unified `pnpm check:release` exit 0 on that SHA. GPU hover is 1.1. | Cursor | | |
 
 ---
 

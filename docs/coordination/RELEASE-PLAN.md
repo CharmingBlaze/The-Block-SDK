@@ -1,6 +1,6 @@
 # Release 1.0 milestone plan (priority order)
 
-**Status (2026-09-16):** Non-deferred 1.0 requirement rows are `VERIFIED` in `docs/verification/RELEASE-1.0-EVIDENCE.md`. This table is the historical work order, not a second tracker. Remaining before npm: `NPM_TOKEN` + `v0.1.0` tag. Host docs: `docs/README.md`.
+**Status (2026-09-16):** Non-deferred 1.0 requirement rows are `VERIFIED` in `docs/verification/RELEASE-1.0-EVIDENCE.md`. Exact-commit CI for the 0.1 follow-ups is `5a3d941` ([run 35063242733](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35063242733)). This table is the historical work order, not a second tracker. Remaining before npm: `NPM_TOKEN` + `v0.1.0` tag. Host docs: `docs/README.md`.
 
 | Milestone | Work-order steps | Exit criteria | First tasks |
 | --------- | ---------------- | ------------- | ----------- |

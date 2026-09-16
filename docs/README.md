@@ -47,7 +47,7 @@ The root [README](../README.md) lists every package and the systems they impleme
 | --- | --- |
 | [Geometry predicates](guides/geometry-predicates.md) | Robust `orient2d`/`orient3d` vs `GeometryTolerance` |
 | [Primitive-geometry](guides/primitive-geometry.md) | Library recipes → `HalfEdgeMesh` |
-| [Triangulation](guides/triangulation.md) | Ear clip vs Earcut |
+| [Triangulation](guides/triangulation.md) | Ear clip vs Earcut; 0.1 interactive limits |
 | [Profile extrude](guides/profile-extrude.md) | 2D profile / path walls |
 | [Meshopt](guides/meshopt.md) | Derived-triangle reorder and LOD |
 
