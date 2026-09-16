@@ -8,9 +8,12 @@ export {
 export { HalfEdgeMesh } from "./half-edge-mesh";
 export {
   triangulatePolygon,
+  triangulatePolygonLoops,
   type PolygonTriangulation,
   type PolygonTriangulationOptions,
   type PolygonTriangulationStatus,
+  type TriangulationBackendId,
+  type TriangulationBackendUsed,
 } from "./polygon-triangulation";
 export { triangulateMesh, type TriangulateMeshOptions } from "./triangulate";
 export {

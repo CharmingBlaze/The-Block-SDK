@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "@modeling-kit/core": "workspace:*",
-    "@modeling-kit/math": "workspace:*"
+    "@modeling-kit/math": "workspace:*",
+    "earcut": "3.0.2"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",

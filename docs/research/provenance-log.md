@@ -166,6 +166,21 @@ Added as a runtime dependency of `@modeling-kit/primitives` only. Conversion bou
 Excluded library entries: `circle` (polyline, no faces) and catalog `box`/`cube` (SDK keeps the 6-quad modeling bar). The converter still accepts the library `box` (no UVs/normals) and `cube` in tests.
 
 
+## earcut 3.0.2 (ISC) — 2026-09-16
+
+Added as a runtime dependency of `@modeling-kit/mesh` only. Conversion boundary: `packages/mesh/src/triangulation/`.
+
+1. Problem: derived triangulation must handle concave n-gons, holes, and multiple loops without corrupting winding or FaceId mapping.  
+2. Why current stack cannot: the deterministic ear-clipper has no hole representation and can stall on concave ears.  
+3. Bundle-size: tiny ESM (Mapbox Earcut); isolated to `@modeling-kit/mesh`.  
+4. Runtime cost: one 3D-to-2D projection plus Earcut; convex no-hole faces stay on ear-clip. No WASM, workers, or caches.  
+5. Licence: ISC.  
+6. Maintenance: Vladimir Agafonkin / Mapbox; widely used.  
+7. Browser/Node: ESM, Node >= 22, no DOM.  
+8. Canonical model: unchanged. Kernel faces remain n-gons.  
+9. Abstraction: callers import `triangulatePolygon` / `triangulatePolygonLoops`. Suspicious results are explicit failures.  
+10. Tests: `packages/mesh/tests/earcut-corpus.test.ts` plus existing mesh/predicates/operations triangulation tests.
+
 ## Incident log
 
 No GPL code has been copied. No implementation phase has started.

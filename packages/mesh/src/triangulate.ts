@@ -1,4 +1,4 @@
-import type { FaceId, VertexId } from "@modeling-kit/core";
+import type { CornerId, FaceId, VertexId } from "@modeling-kit/core";
 import { Vector3 } from "@modeling-kit/math";
 import type { HalfEdgeMesh } from "./half-edge-mesh";
 import { triangulatePolygon } from "./polygon-triangulation";
@@ -9,8 +9,9 @@ export interface TriangulateMeshOptions {
 }
 
 /**
- * Decomposes general polygons into render-ready triangles via deterministic ear clipping.
- * Preserves source FaceId traceability on every triangle for raycast picking.
+ * Decomposes general polygons into render-ready triangles.
+ * Convex faces use deterministic ear clipping; concave n-gons use Earcut.
+ * Preserves source FaceId, VertexId, and CornerId on every generated triangle.
  */
 export function triangulateMesh(mesh: HalfEdgeMesh, options: TriangulateMeshOptions = {}): TriangulatedMesh {
   const positions: number[] = [];
@@ -19,6 +20,7 @@ export function triangulateMesh(mesh: HalfEdgeMesh, options: TriangulateMeshOpti
   const indices: number[] = [];
   const triangleFaceIds: FaceId[] = [];
   const vertexIdMap: VertexId[] = [];
+  const cornerIdMap: CornerId[] = [];
 
   let vertexCursor = 0;
   let faceIndex = 0;
@@ -74,10 +76,17 @@ export function triangulateMesh(mesh: HalfEdgeMesh, options: TriangulateMeshOpti
       normals.push(norm[0], norm[1], norm[2]);
       uvs.push(uv[0], uv[1]);
       vertexIdMap.push(vIds[i]!);
+      const cornerId = cIds[i];
+      if (cornerId) {
+        cornerIdMap.push(cornerId);
+      }
       vertexCursor++;
     }
 
     for (const tri of triangulation.triangles) {
+      if (tri[0]! >= n || tri[1]! >= n || tri[2]! >= n) {
+        continue;
+      }
       indices.push(faceStartIdx + tri[0], faceStartIdx + tri[1], faceStartIdx + tri[2]);
       triangleFaceIds.push(fId);
     }
@@ -90,6 +99,7 @@ export function triangulateMesh(mesh: HalfEdgeMesh, options: TriangulateMeshOpti
     indices: new Uint32Array(indices),
     triangleFaceIds,
     vertexIdMap,
+    cornerIdMap,
   };
 }
 

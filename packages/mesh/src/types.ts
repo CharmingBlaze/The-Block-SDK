@@ -84,4 +84,6 @@ export interface TriangulatedMesh {
   readonly triangleFaceIds: readonly FaceId[];
   /** Maps each render vertex index back to the canonical source VertexId */
   readonly vertexIdMap: readonly VertexId[];
+  /** Maps each render vertex index back to the source corner that supplied UV/normal */
+  readonly cornerIdMap: readonly CornerId[];
 }

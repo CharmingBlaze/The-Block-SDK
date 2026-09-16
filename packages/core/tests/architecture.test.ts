@@ -19,13 +19,18 @@ const FORBIDDEN_CODECS = [
 const FORBIDDEN_DEPENDENCIES = [
   "three-mesh-bvh",
   "manifold-3d",
-  "earcut",
   "opencascade.js",
   "gl-matrix",
   "@gltf-transform/core",
   "comlink",
   "meshoptimizer",
 ];
+
+const ALLOWED_OPTIONAL_DEPENDENCIES: Readonly<Record<string, readonly string[]>> = {
+  mesh: ["earcut"],
+  math: ["robust-predicates"],
+  primitives: ["primitive-geometry"],
+};
 
 function walkTsFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -90,6 +95,22 @@ describe("architecture gates", () => {
       for (const name of FORBIDDEN_DEPENDENCIES) {
         if (manifest.dependencies?.[name] || manifest.peerDependencies?.[name]) {
           found.push(`${pkg.name}:${name}`);
+        }
+      }
+      for (const name of Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies })) {
+        const allowed = ALLOWED_OPTIONAL_DEPENDENCIES[pkg.name] ?? [];
+        if (
+          (name === "earcut" || name === "robust-predicates" || name === "primitive-geometry") &&
+          !allowed.includes(name)
+        ) {
+          found.push(`${pkg.name}:${name}`);
+        }
+      }
+      for (const [allowedPkg, names] of Object.entries(ALLOWED_OPTIONAL_DEPENDENCIES)) {
+        for (const name of names) {
+          if ((manifest.dependencies?.[name] || manifest.peerDependencies?.[name]) && pkg.name !== allowedPkg) {
+            found.push(`${pkg.name}:${name}`);
+          }
         }
       }
     }

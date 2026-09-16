@@ -40,6 +40,7 @@ Tooling setup (Serena, Repomix, dependency-cruiser, Knip, fast-check) is Cursor-
 | ------- | ----- | ----- | ---------------- | ------ |
 | R1-T013 | Robust geometric predicates | VERIFIED | `@modeling-kit/math` (+ mesh/selection call sites) | `tasks/R1-T013.md` |
 | R1-T014 | Primitive-geometry adapter | VERIFIED | `@modeling-kit/primitives` (+ commands/three-adapter tests) | `tasks/R1-T014.md` |
+| R1-T015 | Earcut triangulation backend | VERIFIED | `@modeling-kit/mesh` | `tasks/R1-T015.md` |
 
 ## Backlog
 
@@ -58,3 +59,4 @@ None in M3–M7. Next Cursor-owned work is M8–M12 (box/lasso, formats, UV/pain
 - R1-T012 — 2026-09-15. Two connected cube edges bevel.
 - R1-T013 — 2026-09-16. `robust-predicates` behind `GeometryPredicates`. Focused tests 78 passed; math/mesh/selection/sdk typecheck passed.
 - R1-T014 — 2026-09-16. `primitive-geometry` behind `convertSimplicialComplex`. Library recipes convert to HalfEdgeMesh; catalog cube/uvSphere unchanged.
+- R1-T015 — 2026-09-16. `earcut` behind `triangulatePolygonLoops`. Convex faces stay ear-clipped; holes/concave use Earcut with validation.

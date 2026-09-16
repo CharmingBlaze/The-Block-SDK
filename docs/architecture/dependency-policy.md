@@ -24,7 +24,7 @@ Do **not** make Three.js primitive geometries (`BoxGeometry`, etc.) canonical. D
 | ------- | ---- | ----------------- | ---- |
 | `vitest` | Unit tests | repo root (already) | Now |
 | `three` | Viewport, cameras, materials, derived BufferGeometry | **peer** of `three-adapter` and host apps only | Already |
-| `earcut` | N-gon → derived triangles (render, pick, glTF, area) | `@modeling-kit/mesh` behind `TriangulationBackend` | When fan triangulation is insufficient (concave n-gons / knife) |
+| `earcut` | N-gon → derived triangles (render, pick, glTF, area) | `@modeling-kit/mesh` behind `triangulatePolygon` / `triangulatePolygonLoops` | **Added 2026-09-16.** Convex no-hole faces stay on ear-clip. See `docs/guides/triangulation.md`. |
 | `robust-predicates` | `orient2d` / `orient3d` | `@modeling-kit/math` behind `GeometryPredicates` | **Added 2026-09-16.** Sign/orientation only; distances stay on `GeometryTolerance`. See `docs/guides/geometry-predicates.md`. |
 | `zod` | Native JSON, tool params, clipboard, worker messages | `@modeling-kit/document` (and formats IO) | After a schema is frozen; do not Zod every vector op |
 | `fast-check` | Property tests (undo fingerprints, validity) | devDependency | After one generator is stable |
