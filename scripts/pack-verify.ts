@@ -8,11 +8,13 @@
  * 4. `@modeling-kit/sdk` dist does not import `three`
  * 5. Optional Three.js entry is `@modeling-kit/sdk/three` only
  * 6. Nested workspace versions resolve through local tarball overrides
+ * 7. Every export path and its paired .d.ts exists on disk and in the tarball (ESM-only, no require)
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { collectExportFiles, requiredPackedFiles, tarballContains } from "./lib/export-files.ts";
 import { listPackageDirs, readManifest, repoRoot } from "./lib/workspace.ts";
 import { NODE_ENGINE, PACKAGE_LICENSE } from "./lib/publication.ts";
 
@@ -125,12 +127,26 @@ function assertPackageLayout(dir: string): void {
   if (files.includes("src")) {
     fail(`${name}: packed files must not include src`);
   }
+  if (pkg.type !== "module") {
+    fail(`${name}: packages must be ESM (type: module)`);
+  }
   const exportsField = pkg.exports;
   if (!exportsField || typeof exportsField !== "object") {
     fail(`${name}: missing exports map`);
   }
   for (const [subpath, spec] of Object.entries(exportsField as Record<string, unknown>)) {
     assertExportSpec(name, subpath, spec);
+  }
+  let exportFiles: string[];
+  try {
+    exportFiles = requiredPackedFiles(collectExportFiles(exportsField));
+  } catch (error) {
+    fail(`${name}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  for (const file of exportFiles) {
+    if (!fs.existsSync(path.join(dir, file))) {
+      fail(`${name}: export file missing on disk: ${file}`);
+    }
   }
   assertPublicationMetadata(pkg);
 }
@@ -202,7 +218,14 @@ function verifyPackedConsumer(
       const found = fs.readdirSync(tarballDir).filter((file) => file.endsWith(".tgz"));
       fail(`${item.manifest.name}: expected ${path.basename(packed)}, found ${found.join(", ")}`);
     }
-    assertTarballContents(item.manifest.name, listTarball(packed));
+    const entries = listTarball(packed);
+    assertTarballContents(item.manifest.name, entries);
+    const exportFiles = requiredPackedFiles(collectExportFiles(item.manifest.exports));
+    for (const file of exportFiles) {
+      if (!tarballContains(entries, file)) {
+        fail(`${item.manifest.name}: tarball missing export file ${file}`);
+      }
+    }
   }
 
   const fixture = path.join(work, "fixture");

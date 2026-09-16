@@ -1,9 +1,9 @@
 # Release 1.0 evidence matrix
 
 **Audit date:** 2026-09-16  
-**Working tree:** audit-repair pass after `31f7257` (formats path, AI contract, session lifecycle, benchmarks split from `pnpm test`)  
+**Working tree:** `e8233db` on `main` (audit-repair: formats path, AI contract, session lifecycle, benchmarks split from `pnpm test`)  
 **Specification:** `docs/architecture/modeling-operator-specification.md`  
-**Baseline command:** Unified `pnpm check:release` **exit 0** (2026-09-16, ~113s). Inner `pnpm test` — **114 files / 690 tests** (wall-clock triangulation benches live in `pnpm test:bench`). `pnpm arch:check` — 742 modules, 2816 dependencies, 0 violations. `pnpm pack:verify` — 24 packages, 14 fixture imports. `pnpm release:check` — 24 packages at 0.1.0. Also recorded: `pnpm test:webgl` 1 passed. Clean typecheck maps `@modeling-kit/formats` in `tsconfig.base.json`; CI `clean-typecheck` still wipes `dist` first.  
+**Baseline command:** Unified `pnpm check:release` **exit 0**. Inner `pnpm test` — **114 files / 690 tests**. `pnpm arch:check` — 742 modules, 2816 dependencies, 0 violations. `pnpm pack:verify` — 24 packages, 14 fixture imports. CI on `e8233db`: [run 35060344278](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35060344278) **success** (`verify` / `clean-typecheck` / `webgl-smoke`). Also recorded locally: `pnpm test:webgl` 1 passed. Clean typecheck maps `@modeling-kit/formats` in `tsconfig.base.json`.  
 **Repo:** working tree on `main` at `https://github.com/CharmingBlaze/The-Block-SDK.git`.  
 **Release gate status:** Worker boundaries, packed-tarball verification, CI `check:release`, MIT metadata, and tag-triggered npm publish (`.github/workflows/release.yml`) are in this branch. First public version stays `0.1.0` until `v0.1.0` is pushed with `NPM_TOKEN` set. Rigging/animation stay preview (`RIG-001` / `ANIM-001`).  
 **Rule:** `VERIFIED` requires named tests plus a recorded passing command. Row-level `VERIFIED` marks below are historical requirement coverage; the **Baseline command** counts above are the ones recorded on this working tree. Out of 1.0 scope: RIG-001, ANIM-001, BOOL-001, LSCM/ABF. GPU-PICK-001 **click** is in 1.0; GPU hover/transparency/InstancedMesh/GPU skinning are 1.1.

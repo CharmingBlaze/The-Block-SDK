@@ -8,13 +8,13 @@
 
 ## Just finished
 
-Library integrations (predicates, primitive-geometry, earcut, geometry-extrude, meshopt). Public ingest stays split: catalog generators, `convertSimplicialComplex` for recipe libraries, `@modeling-kit/formats` for glTF/OBJ/STL. Packed-cell IR is not on `@modeling-kit/sdk`. Worker package split and MIT publication metadata remain.
+Audit-repair `e8233db` on `main`. GitHub Actions [run 35060344278](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35060344278) succeeded: `verify` (`pnpm check:release`), `clean-typecheck`, `webgl-smoke`.
 
 ## Next
 
-Tagged release workflow is in repo (`.github/workflows/release.yml`). Remaining before npm exists: add GitHub secret `NPM_TOKEN`, then `git tag v0.1.0 && git push origin v0.1.0`. See `docs/guides/publishing.md`. Host documentation index: `docs/README.md`.
+Remaining before npm exists: add GitHub secret `NPM_TOKEN`, then `git tag v0.1.0 && git push origin v0.1.0`. See `docs/guides/publishing.md`. Do not tag until the secret exists — the same version cannot be republished.
 
-Out of 1.0: BOOL-001, LSCM/ABF, and preview-only rigging/animation **authoring** (IK, weight painting, NLA). Canonical skeleton/skin/clip data, evaluation, and glTF skins/animations/textures are stable interchange targets (see `docs/architecture/GLTF-PIPELINE.md`). GPU hover and advanced transparency/instancing stay 1.1.
+Out of 1.0: BOOL-001, LSCM/ABF, and preview-only rigging/animation **authoring** (IK, weight painting, NLA). Canonical skeleton/skin/clip data, evaluation, and glTF skins/animations/textures are stable interchange targets (see `docs/architecture/GLTF-PIPELINE.md`). GPU hover and advanced transparency/instancing stay 1.1. Engines stay Node 22 until a Node 20 CI job proves otherwise. Triangle `three-mesh-bvh` stays 1.1; object AABB BVH is in 1.0.
 
 ## Last gate
 
@@ -31,4 +31,5 @@ pnpm pack:verify        # 24 packages, 14 fixture imports
 pnpm release:check      # 24 packages at 0.1.0 (no tag required locally)
 pnpm deadcode:gate      # unused deps + duplicate exports; sdk/three is a knip entry
 pnpm test:webgl         # 1 passed (real WebGL GPU picking smoke)
+# CI e8233db https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35060344278 success
 ```
