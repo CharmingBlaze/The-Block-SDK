@@ -22,7 +22,9 @@ export function weldSourceVertices(
 ): VertexId[] {
   const renderVertexCount = positions.length / 3;
   const welded = new IndexUnion(renderVertexCount);
-  unionZeroLengthCellEdges(welded, positions, cells, cellSize, remap);
+  if (policy.kind !== "none") {
+    unionZeroLengthCellEdges(welded, positions, cells, cellSize, remap);
+  }
 
   if (policy.kind === "uv-grid") {
     unionUvGrid(welded, policy);

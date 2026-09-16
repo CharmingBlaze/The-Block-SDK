@@ -1,5 +1,6 @@
-import type { MeshId, VertexId } from "@modeling-kit/core";
+import type { FaceId, MeshId, VertexId } from "@modeling-kit/core";
 import type { PrimitiveResult } from "../types";
+import type { GeometryBuildWarning } from "../source/types";
 import type { WeldPolicy } from "./weld-policy";
 
 export interface SimplicialComplexInput {
@@ -19,10 +20,18 @@ export interface ConvertSimplicialOptions {
   readonly smooth?: boolean;
   readonly orientation?: CellOrientation;
   readonly weld?: WeldPolicy;
+  /**
+   * When true, skip source-degenerate and post-weld-degenerate faces with a warning.
+   * Default true for library conversion: recipes such as annulus/poles contain collapsed cells.
+   * A buffer whose every face is degenerate still throws.
+   */
+  readonly skipDegenerateFaces?: boolean;
 }
 
 export interface ConvertedPrimitive extends PrimitiveResult {
   readonly sourceIndexToVertex: readonly VertexId[];
+  readonly sourceFaceToCanonicalFaceIds: readonly (readonly FaceId[])[];
+  readonly warnings: readonly GeometryBuildWarning[];
   readonly library: NonNullable<PrimitiveResult["library"]>;
 }
 

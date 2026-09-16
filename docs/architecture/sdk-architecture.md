@@ -96,7 +96,7 @@ The headless `@modeling-kit/sdk` re-exports the runtime-neutral pool so browser 
 
 Input is documented in `docs/architecture/input.md`. Hosts bind DOM separately (`@modeling-kit/input/dom`); the adapter does not own keymaps.
 
-Ownership of document, session, tools, and derived Three.js objects is in `docs/architecture/ownership.md`. Primitive face composition is in `docs/architecture/primitive-topology.md`.
+Ownership of document, session, tools, and derived Three.js objects is in `docs/architecture/ownership.md`. Primitive face composition is in `docs/architecture/primitive-topology.md`. The verification matrix is `docs/verification/PRIMITIVE-TOPOLOGY-MATRIX.md`.
 
 ## Session vs document
 

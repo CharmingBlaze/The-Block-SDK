@@ -65,4 +65,4 @@ math
 
 ## Optional engines
 
-`robust-predicates` is installed in `@modeling-kit/math` only (R1-T013), behind `GeometryPredicates`. `primitive-geometry` is installed in `@modeling-kit/primitives` only (R1-T014), behind `convertSimplicialComplex`. `earcut` is installed in `@modeling-kit/mesh` only (R1-T015), behind `triangulatePolygonLoops`. geometry-extrude, meshoptimizer, three-mesh-bvh, and manifold-3d remain uninstalled until their adapter tasks.
+`robust-predicates` is installed in `@modeling-kit/math` only (R1-T013), behind `GeometryPredicates`. `primitive-geometry` is installed in `@modeling-kit/primitives` only (R1-T014), behind `convertSimplicialComplex`. `earcut` is installed in `@modeling-kit/mesh` only (R1-T015), behind `triangulatePolygonLoops`. `geometry-extrude` is installed in `@modeling-kit/primitives` only (R1-T016), behind `generateProfileExtrude`. meshoptimizer, three-mesh-bvh, and manifold-3d remain uninstalled until their adapter tasks.

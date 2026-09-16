@@ -1,37 +1,106 @@
 # Primitive topology
 
-modeling-kit is **quad-first**, not all-quads. Canonical editable primitives are generated through `MeshBuilder` with intentional face composition. `primitive-geometry` remains available as a triangulated import/reference path. It is not the source of canonical quad topology.
+modeling-kit is **quad-first**, not all-quads. Editable topology is intentional. Face size is never inferred from an index-buffer length.
 
-## Two pipelines
+## Pipeline
 
-1. **Canonical generators** (`generateBox`, `generateUvSphere`, `generateQuadSphere`, …) build modeling topology: shared vertices, per-corner UVs and normals, UV seams that do not split editable vertices.
-2. **Library adapter** (`convertSimplicialComplex`) imports `primitive-geometry` `cells` as **triangles** unless the caller supplies explicit `cellSize` metadata. Index-buffer length is never used to guess quads vs triangles.
+```text
+Geometry sources
+    ↓
+Explicit face recipe (SourceFace loops)
+    ↓
+Canonical mesh construction (MeshBuilder)
+    ↓
+Half-edge editable mesh
+    ↓
+Render triangulation (triangulateMesh)
+    ↓
+Three.js buffers + picking map
+```
 
-Rendering (`triangulateMesh` → Three.js `BufferGeometry`) triangulates canonical faces and maps each render triangle back to a canonical `FaceId`. Render vertices split when position, UV, or normal differs.
+There is **one** mesh constructor: `MeshBuilder`. Canonical generators call it with construction keys. Library import expands packed `cells` into explicit `SourceFace` loops, then uses the same builder, corner attributes, UV-seam marking, and `validateMesh` finalization.
 
-## Canonical face composition
+Do not add a second kernel.
 
-| Primitive | Topology |
+## Layer 1 — sources
+
+| Source | Topology metadata |
 | --- | --- |
-| Cube / box (default) | 6 quads |
-| Subdivided cube | only quads |
-| Plane / grid / quad / rectangle | only quads |
-| Quad sphere | cube grid projected onto a sphere; only non-degenerate quads; no poles |
-| Torus | only quads |
-| Cylinder | quad side walls; n-gon caps |
-| Capsule | quad bands; triangle pole caps |
-| UV sphere | quad bands; triangle pole caps |
-| Cone | quad bands where possible; triangles at the apex |
-| Rounded cube | quad face, edge, and corner patches |
-| Icosphere / tetrahedron / icosahedron | triangles by design |
+| Canonical SDK generators | Intentional quads / mixed / triangles from `PRIMITIVE_CATALOG` |
+| `primitive-geometry` | Packed `cells` + **required** `cellSize` |
+| OBJ / glTF / STL (formats package) | Format-native faces or triangles (`TRIANGLES` mode), not guessed from length |
+| Documents / scripts | Already half-edge |
 
-Do not fabricate quads by repeating a pole vertex or by pairing arbitrary render triangles.
+Source-specific recipes must not leak into `MeshBuilder`.
 
-## Spheres
+## Layer 2 — explicit face recipe
 
-- `uvSphere` (also `spawn.sphere`) keeps conventional latitude/longitude UVs and mixed topology.
-- `quadSphere` is the all-quad modeling sphere: six welded cube grids projected onto the requested radius, cube-atlas UVs, smooth radial corner normals, UV seams on cube-face boundaries.
+`packages/primitives/src/source/` holds the intermediate contract:
 
-## Library usage
+- `SourceFace.indices` is the polygon loop.
+- Packed buffers become faces only through `facesFromFlatCells(cells, cellSize)` or `facesFromOffsets`.
+- `cellSize` is required for flat cells. `cells.length % 12 === 0` is **not** a topology signal.
 
-Keep primitive-geometry for unsupported or render-oriented shapes, visual comparison, previews, UV/normal regression, and `generateLibraryPrimitive`. Canonical catalog entries for cube, plane, cylinder, torus, capsule, UV sphere, quad sphere, and rounded cube use the SDK builders.
+A 36-index buffer might be 12 triangles, 9 quads, or mixed polygons. Without explicit boundaries it cannot be recovered.
+
+## Layer 3 — canonical construction
+
+Shared work (not duplicated per generator):
+
+- Finite positions and index range — `MeshBuilder` / library convert
+- Repeated-index rejection — `facesFromFlatCells` + `buildCell`
+- Welding — `WeldPolicy`: `none` (source-index identity), `connected-coincident`, `solid`, `uv-grid`
+- Winding — preserve, outward-from-origin, or a reported reversal when a directed edge is occupied
+- Corner UVs and normals — `addFace` options
+- Seams — `markUvSeams`
+- Manifold — `validateMesh` in `finalizePrimitive`
+
+Canonical generators keep **construction keys** (cube IJK, ring index). They do not emit triangle soup and reconstruct quads.
+
+Library default weld is `none` unless the recipe or type policy sets otherwise. Solid cube import still welds coincident corners because the cube recipe asks for `solid`.
+
+Library conversion defaults to `skipDegenerateFaces: true`. Source faces with repeated indices, post-weld pole collapse, and zero-area cells are reported in `warnings` and omitted. A buffer whose every face is degenerate still throws. Canonical generators never emit those cells.
+
+`skipDegenerateFaces: false` turns the first skipped face into an error — used by tests that require strict rejection.
+
+## Layer 4 — render
+
+`triangulateMesh` triangulates canonical faces. Render vertices are per-corner (position + UV + normal). Mappings:
+
+- `triangleFaceIds` → canonical `FaceId`
+- `vertexIdMap` → canonical `VertexId`
+- `cornerIdMap` → canonical `CornerId`
+
+The Three.js adapter copies those into `RenderMapping`. Flat shading is a material flag.
+
+## Catalog
+
+`PRIMITIVE_CATALOG` records topology, purpose, and generator kind. `generatePrimitive` still selects implementations; the registry exists so commands/UI do not guess from index counts.
+
+| Public name | Generator | Editable topology |
+| --- | --- | --- |
+| `cube` / `box` | canonical | 6 quads; subdivided = quad grids |
+| `plane` / `grid` / `quad` | canonical | quads |
+| `quadSphere` | canonical | cube-projected quads, IJK weld, 3×2 atlas |
+| `torus` | canonical | wrapped quad grid |
+| `cylinder` | canonical | quad walls, n-gon caps |
+| `sphere` / `uvSphere` / `spawn.sphere` | canonical UV sphere | quad bands, triangle poles |
+| `capsule` | canonical | quad bands, triangle poles |
+| `cone` | canonical | apex triangles, lower quad bands, n-gon cap |
+| `roundedCube` | canonical | cube-grid projected rounded box, quads |
+| `icosphere` | canonical | triangles |
+| `tetrahedron` / `icosahedron` / Reuleaux / … | library reference | imported triangles |
+
+Do not silently change `spawn.sphere` to `quadSphere`.
+
+## UV and normals
+
+UVs and normals live on **corners**. A UV discontinuity is a seam; the editable vertex stays shared. Render conversion may split. Serialization stores corner attributes.
+
+Quad-sphere UVs use a 3×2 cube atlas in `[0,1]²`. Atlas corners may share numeric UV values; tests check islands and seams, not “24 unique UV pairs”.
+
+## Prohibited
+
+Inferring face size from index count; pairing triangles into quads on import; repeating poles to fake quads; global position welding for every source; treating render indices as editable IDs; claiming every primitive is all-quads.
+
+Verification matrix: `docs/verification/PRIMITIVE-TOPOLOGY-MATRIX.md`.

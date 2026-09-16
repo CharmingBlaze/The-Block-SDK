@@ -18,6 +18,7 @@
     "@modeling-kit/core": "workspace:*",
     "@modeling-kit/mesh": "workspace:*",
     "@modeling-kit/validation": "workspace:*",
+    "geometry-extrude": "0.2.1",
     "primitive-geometry": "2.11.0"
   },
   "main": "./dist/index.js",

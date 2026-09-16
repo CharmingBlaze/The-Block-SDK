@@ -29,6 +29,7 @@ Do **not** make Three.js primitive geometries (`BoxGeometry`, etc.) canonical. D
 | `zod` | Native JSON, tool params, clipboard, worker messages | `@modeling-kit/document` (and formats IO) | After a schema is frozen; do not Zod every vector op |
 | `fast-check` | Property tests (undo fingerprints, validity) | devDependency | After one generator is stable |
 | `primitive-geometry` | Typed-array geometry recipes (positions/normals/UVs/cells) | `@modeling-kit/primitives` behind `convertSimplicialComplex` | 2026-09-16. Canonical primitives use `MeshBuilder`. Library `cells` are triangles unless `cellSize` is explicit. See `docs/architecture/primitive-topology.md`. |
+| `geometry-extrude` | 2D profile / path → triangle soup | `@modeling-kit/primitives` behind `generateProfileExtrude` | **Added 2026-09-16.** Does not replace `extrudeFaces` or catalog `wall`. XY+Z remaps to SDK XZ ground / +Y height. See `docs/guides/profile-extrude.md`. |
 
 ## Approved later, optional adapter packages only
 

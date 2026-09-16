@@ -1,6 +1,7 @@
 import type { UvGridWeld } from "./weld-grid";
 
 export type WeldPolicy =
+  | { readonly kind: "none" }
   | { readonly kind: "connected-coincident" }
   | { readonly kind: "solid" }
   | UvGridWeld;
@@ -29,7 +30,7 @@ export function resolveWeldPolicy(
     case "torus":
       return inferUvGrid(geometry, type) ?? { kind: "solid" };
     default:
-      return { kind: "connected-coincident" };
+      return { kind: "none" };
   }
 }
 

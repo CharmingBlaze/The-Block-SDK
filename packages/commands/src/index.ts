@@ -1,5 +1,6 @@
 export { CreatePrimitiveCommand } from "./create-primitive";
 export { CreateLibraryPrimitiveCommand } from "./create-library-primitive";
+export { ExtrudeProfileCommand } from "./extrude-profile";
 export type {
   CreatePrimitiveParams,
   CreatePrimitiveResult,

@@ -97,6 +97,7 @@ export {
   convertSimplicialComplex,
   generateLibraryPrimitive,
   validateLibraryParameters,
+  resolveCellSize,
   LIBRARY_CLOSED,
   LIBRARY_DISPLAY_NAMES,
   LIBRARY_GEOMETRY_IDS,
@@ -106,6 +107,18 @@ export {
   type SimplicialComplexInput,
   type LibraryGeometryId,
 } from "./library";
+export {
+  generateProfileExtrude,
+  generateFloor,
+  generateWallPath,
+  ProfileExtrudePreview,
+  validateExtrudeParameters,
+  validateProfile,
+  type ProfileDefinition,
+  type ProfileExtrudeParameters,
+  type ProfileKind,
+  type ProfilePoint,
+} from "./profile-extrude";
 export type {
   ArchParameters,
   BoxParameters,

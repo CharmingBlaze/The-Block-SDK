@@ -12,9 +12,15 @@ import type { MaterialData } from "@modeling-kit/document";
 import type { MaterialSlotTarget } from "@modeling-kit/materials";
 import { cloneTransform } from "@modeling-kit/transform";
 import type { HalfEdgeMesh } from "@modeling-kit/mesh";
-import type { LibraryGeometryId, PrimitiveFaceGroups, PrimitiveType } from "@modeling-kit/primitives";
+import type {
+  LibraryGeometryId,
+  PrimitiveFaceGroups,
+  PrimitiveType,
+  ProfileExtrudeParameters,
+} from "@modeling-kit/primitives";
 import { CreateLibraryPrimitiveCommand } from "./create-library-primitive";
 import { CreatePrimitiveCommand, type CreatePrimitiveParams } from "./create-primitive";
+import { ExtrudeProfileCommand } from "./extrude-profile";
 import { ExtrudeFacesCommand, type ExtrudeFacesParams } from "./extrude-faces";
 import { InsetFacesCommand, type InsetFacesParams } from "./inset-faces";
 import { BevelEdgesCommand, type BevelEdgesParams } from "./bevel-edges";
@@ -614,6 +620,46 @@ export class FluentEditor {
     },
     icosahedron: (params: { radius?: number; name?: string } = {}): FluentMeshObject => {
       return this.spawn.primitive("icosahedron", params);
+    },
+    profile: (params: ProfileExtrudeParameters): FluentMeshObject => {
+      const res = this.session.execute(new ExtrudeProfileCommand(params));
+      const object = new FluentMeshObject(this, res.objectId, res.meshId, res.groups);
+      this.lastObject = object;
+      object.selectObject();
+      return object;
+    },
+    floor: (
+      params: {
+        outer: ProfileExtrudeParameters["profile"]["outer"];
+        holes?: ProfileExtrudeParameters["profile"]["holes"];
+        thickness?: number;
+        name?: string;
+      },
+    ): FluentMeshObject => {
+      return this.spawn.profile({
+        profile: {
+          kind: "polygon",
+          outer: params.outer,
+          ...(params.holes ? { holes: params.holes } : {}),
+        },
+        depth: params.thickness ?? 0.1,
+        ...(params.name !== undefined ? { name: params.name } : {}),
+      });
+    },
+    wallPath: (
+      params: {
+        outer: ProfileExtrudeParameters["profile"]["outer"];
+        height?: number;
+        thickness?: number;
+        name?: string;
+      },
+    ): FluentMeshObject => {
+      return this.spawn.profile({
+        profile: { kind: "path", outer: params.outer },
+        depth: params.height ?? 2,
+        lineWidth: params.thickness ?? 0.2,
+        ...(params.name !== undefined ? { name: params.name } : {}),
+      });
     },
   };
 

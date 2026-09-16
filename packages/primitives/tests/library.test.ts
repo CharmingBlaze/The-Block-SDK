@@ -80,7 +80,7 @@ describe("primitive-geometry conversion", () => {
 
   it("welds coincident render vertices and keeps per-corner UVs on a cube", () => {
     const raw = cube({ sx: 1, sy: 1, sz: 1, nx: 1, ny: 1, nz: 1 });
-    const converted = convertSimplicialComplex(raw, { type: "cube", orientation: "outward-from-origin" });
+    const converted = convertSimplicialComplex(raw, { type: "cube", cellSize: 3, orientation: "outward-from-origin" });
     expect(converted.library.hadUvs).toBe(true);
     expect(converted.library.hadNormals).toBe(true);
     expect(converted.mesh.vertices.size).toBe(8);
@@ -170,7 +170,7 @@ describe("primitive-geometry conversion", () => {
     expect(validateMesh(uv.mesh).statistics.isClosed).toBe(true);
     expect([...uv.mesh.edges.values()].some((edge) => edge.isSeam)).toBe(true);
     const ring = torus({ radius: 0.4, minorRadius: 0.1, segments: 12, minorSegments: 8 });
-    const converted = convertSimplicialComplex(ring, { type: "torus", smooth: true });
+    const converted = convertSimplicialComplex(ring, { type: "torus", cellSize: 3, smooth: true });
     expect(validateMesh(converted.mesh).statistics.isClosed).toBe(true);
     expect(converted.mesh.faces.size).toBeGreaterThan(0);
   });
@@ -218,10 +218,13 @@ describe("primitive-geometry conversion", () => {
     expect(() => generateLibraryPrimitive("annulus", { radius: 0.5, innerRadius: 0.9 })).toThrow(/innerRadius/);
     expect(() => generateLibraryPrimitive("quad", { scale: 0 })).toThrow(/scale/);
     expect(() =>
-      convertSimplicialComplex({
-        positions: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
-        cells: new Uint16Array([0, 1, 9]),
-      }),
+      convertSimplicialComplex(
+        {
+          positions: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]),
+          cells: new Uint16Array([0, 1, 9]),
+        },
+        { cellSize: 3 },
+      ),
     ).toThrow(/out of range/);
     expect(() =>
       convertSimplicialComplex({
@@ -243,7 +246,7 @@ describe("primitive-geometry conversion", () => {
 
   it("does not overwrite supplied UVs", () => {
     const raw = cube({ sx: 1, ny: 1 });
-    const converted = convertSimplicialComplex(raw, { type: "cube" });
+    const converted = convertSimplicialComplex(raw, { type: "cube", cellSize: 3 });
     const firstUv = [raw.uvs[0]!, raw.uvs[1]!] as const;
     const vertexId = converted.sourceIndexToVertex[0]!;
     const match = [...converted.mesh.corners.values()].find(
@@ -254,10 +257,22 @@ describe("primitive-geometry conversion", () => {
 
   it("keeps a source-index map aligned with render vertices", () => {
     const raw = cube({ sx: 1 });
-    const converted = convertSimplicialComplex(raw, { type: "cube" });
+    const converted = convertSimplicialComplex(raw, { type: "cube", cellSize: 3 });
     expect(converted.sourceIndexToVertex).toHaveLength(raw.positions.length / 3);
     for (const id of converted.sourceIndexToVertex) {
       expect(converted.mesh.vertices.has(id)).toBe(true);
     }
+  });
+
+  it("does not merge disconnected coincident triangles when weld is none", () => {
+    const converted = convertSimplicialComplex(
+      {
+        positions: new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0]),
+        cells: new Uint16Array([0, 1, 2, 3, 4, 5]),
+      },
+      { cellSize: 3, weld: { kind: "none" } },
+    );
+    expect(converted.mesh.vertices.size).toBe(6);
+    expect(converted.mesh.faces.size).toBe(2);
   });
 });

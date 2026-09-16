@@ -17,6 +17,12 @@ export { splitEdge, cutFace, type SplitEdgeResult, type CutFaceResult, type Knif
 export { KnifeTool, type KnifeHitOptions } from "./knife-tool";
 export { LoopCutTool, ExtrudeTool, BevelTool, MergeTool } from "./modal-tools";
 export type { LoopCutPhase } from "./modal-tools";
+export {
+  ProfileDrawTool,
+  type ProfileDrawKind,
+  type ProfileDrawParameters,
+  type ProfileDrawPoint,
+} from "./profile-draw-tool";
 export { ModalToolSession } from "./modal-session";
 export { ToolManager } from "./tool-manager";
 export { InteractionCoordinator } from "./interaction-coordinator";

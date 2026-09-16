@@ -1,3 +1,4 @@
+/// <reference path="../earcut.d.ts" />
 import earcut, { deviation } from "earcut";
 import type { Vec2 } from "./types";
 import { flattenXY } from "./vec";

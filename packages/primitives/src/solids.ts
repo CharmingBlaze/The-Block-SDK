@@ -157,7 +157,7 @@ export function generateCone(
     );
   }
   if (rings.length > 1) {
-    sides.push(...addTubeSides(builder, rings, true));
+    sides.push(...addTubeSides(builder, rings, true, true));
   }
   const caps: ReturnType<MeshBuilder["addFace"]>[] = [];
   const bottom: ReturnType<MeshBuilder["addFace"]>[] = [];
@@ -367,6 +367,7 @@ function addTubeSides(
   builder: MeshBuilder,
   rings: readonly VertexId[][],
   seamUv: boolean,
+  downward = false,
 ): ReturnType<MeshBuilder["addFace"]>[] {
   const faces: ReturnType<MeshBuilder["addFace"]>[] = [];
   const n = rings[0]?.length ?? 0;
@@ -379,14 +380,23 @@ function addTubeSides(
       const i1 = (i + 1) % n;
       const u0 = i / n;
       const u1 = seamUv ? (i + 1) / n : i1 / n;
-      faces.push(
-        addFace(builder, [lower[i]!, lower[i1]!, upper[i1]!, upper[i]!], [
-          [u0, v0],
-          [u1, v0],
-          [u1, v1],
-          [u0, v1],
-        ]),
-      );
+      const verts = downward
+        ? [upper[i]!, upper[i1]!, lower[i1]!, lower[i]!]
+        : [lower[i]!, lower[i1]!, upper[i1]!, upper[i]!];
+      const uvs: [number, number][] = downward
+        ? [
+            [u0, v1],
+            [u1, v1],
+            [u1, v0],
+            [u0, v0],
+          ]
+        : [
+            [u0, v0],
+            [u1, v0],
+            [u1, v1],
+            [u0, v1],
+          ];
+      faces.push(addFace(builder, verts, uvs));
     }
   }
   return faces;

@@ -12,6 +12,7 @@ import { loopCut } from "../src/loop-cut";
 import { ToolManager } from "../src/tool-manager";
 import { KnifeTool } from "../src/knife-tool";
 import { MergeTool, LoopCutTool, ExtrudeTool, BevelTool } from "../src/modal-tools";
+import { ProfileDrawTool } from "../src/profile-draw-tool";
 import { keyPacket } from "@modeling-kit/input";
 
 describe("@modeling-kit/tools", () => {
@@ -287,5 +288,22 @@ describe("@modeling-kit/tools", () => {
     expect(bevel.offset).toBeGreaterThan(0.1);
     expect(cube.faces.size).toBe(faces);
     expect(bevel.takeParams()?.offset).toBeGreaterThan(0.1);
+  });
+
+  it("draws a profile on ModalToolSession and drops points on cancel", () => {
+    const tool = new ProfileDrawTool();
+    tool.activate();
+    expect(tool.session.state).toBe("beginning");
+    tool.addPoint(0, 0);
+    tool.addPoint(1, 0);
+    tool.addPoint(1, 1);
+    expect(tool.session.state).toBe("active");
+    expect(tool.previewParameters()?.profile.outer).toHaveLength(3);
+    const revision = tool.previewRevision;
+    tool.action({ action: "tool.cancel", packet: keyPacket({ kind: "keydown", code: "Escape" }) });
+    expect(tool.points).toHaveLength(0);
+    expect(tool.previewRevision).toBeGreaterThan(revision);
+    expect(tool.previewParameters()).toBeNull();
+    tool.dispose();
   });
 });

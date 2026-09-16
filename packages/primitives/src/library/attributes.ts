@@ -14,7 +14,7 @@ export function hasAttribute(
   }
   for (let i = 0; i < values.length; i++) {
     if (!Number.isFinite(values[i])) {
-      throw new SchemaError(`${label} must be finite`);
+      return false;
     }
   }
   return true;

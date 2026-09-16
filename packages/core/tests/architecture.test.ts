@@ -29,7 +29,7 @@ const FORBIDDEN_DEPENDENCIES = [
 const ALLOWED_OPTIONAL_DEPENDENCIES: Readonly<Record<string, readonly string[]>> = {
   mesh: ["earcut"],
   math: ["robust-predicates"],
-  primitives: ["primitive-geometry"],
+  primitives: ["primitive-geometry", "geometry-extrude"],
 };
 
 function walkTsFiles(dir: string, out: string[] = []): string[] {
@@ -100,7 +100,10 @@ describe("architecture gates", () => {
       for (const name of Object.keys({ ...manifest.dependencies, ...manifest.peerDependencies })) {
         const allowed = ALLOWED_OPTIONAL_DEPENDENCIES[pkg.name] ?? [];
         if (
-          (name === "earcut" || name === "robust-predicates" || name === "primitive-geometry") &&
+          (name === "earcut" ||
+            name === "robust-predicates" ||
+            name === "primitive-geometry" ||
+            name === "geometry-extrude") &&
           !allowed.includes(name)
         ) {
           found.push(`${pkg.name}:${name}`);

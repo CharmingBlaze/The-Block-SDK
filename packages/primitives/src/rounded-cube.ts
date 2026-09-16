@@ -8,6 +8,7 @@ import {
   uniqueCubeGridVertex,
 } from "./cube-surface";
 import { projectOntoRoundedBox, roundedBoxNormal } from "./rounded-cube-project";
+import { markUvSeams } from "./library/seams";
 import { addFace, emptyGroups, finalizePrimitive, integerAtLeast, positive, requireValid } from "./shared";
 import type {
   PrimitiveGenerationContext,
@@ -80,7 +81,7 @@ export function generateRoundedCube(
     bucketCubeFace(quad.face, id, top, bottom, front, back, sides);
   }
 
-  return finalizePrimitive("roundedCube", builder, {
+  const result = finalizePrimitive("roundedCube", builder, {
     ...emptyGroups(),
     top,
     bottom,
@@ -89,6 +90,8 @@ export function generateRoundedCube(
     sides: [...sides, ...front, ...back],
     caps: [...top, ...bottom],
   });
+  markUvSeams(result.mesh);
+  return result;
 }
 
 export const roundedCubePrimitive: PrimitiveGenerator<RoundedCubeParameters> = {

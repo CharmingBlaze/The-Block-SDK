@@ -7,17 +7,16 @@ export function resolveCellSize(
   explicit: 3 | 4 | undefined,
   type: string,
 ): 3 | 4 {
+  if (explicit !== 3 && explicit !== 4) {
+    throw new SchemaError(
+      `${type}: flat cells require explicit cellSize; face size is never inferred from index count`,
+    );
+  }
   const length = cells.length;
-  if (explicit) {
-    if (length % explicit !== 0) {
-      throw new SchemaError(`${type}: cells length must be a multiple of ${explicit}`);
-    }
-    return explicit;
+  if (length % explicit !== 0) {
+    throw new SchemaError(`${type}: cells length must be a multiple of the explicit cellSize ${explicit}`);
   }
-  if (length % 3 !== 0) {
-    throw new SchemaError(`${type}: cells are triangles unless cellSize is supplied; length must be a multiple of 3`);
-  }
-  return 3;
+  return explicit;
 }
 
 export function buildCell(

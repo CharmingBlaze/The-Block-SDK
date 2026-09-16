@@ -17,4 +17,5 @@ export {
   type SolidGeometryId,
 } from "./ids";
 export { validateLibraryParameters } from "./validate";
+export { resolveCellSize } from "./cells";
 export type { WeldPolicy } from "./weld-policy";

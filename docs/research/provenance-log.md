@@ -181,6 +181,21 @@ Added as a runtime dependency of `@modeling-kit/mesh` only. Conversion boundary:
 9. Abstraction: callers import `triangulatePolygon` / `triangulatePolygonLoops`. Suspicious results are explicit failures.  
 10. Tests: `packages/mesh/tests/earcut-corpus.test.ts` plus existing mesh/predicates/operations triangulation tests.
 
+## geometry-extrude 0.2.1 (MIT) — 2026-09-16
+
+Added as a runtime dependency of `@modeling-kit/primitives` only. Conversion boundary: `packages/primitives/src/profile-extrude/`.
+
+1. Problem: floors, walls, thick paths, holed slabs, and bevelled profile extrusions need a dedicated 2D→3D recipe without inventing a second editable mesh.  
+2. Why current stack cannot: catalog `generateWall` is a box; face extrude operates on existing mesh faces, not drawn 2D profiles.  
+3. Bundle-size: small CJS library with Earcut inlined in its dist; isolated to primitives.  
+4. Runtime cost: one-shot typed-array extrude then `convertSimplicialComplex`. No WASM, workers, or caches.  
+5. Licence: MIT (pissang / Yi Shen).  
+6. Maintenance: 0.2.x, used in map/building visualization.  
+7. Browser/Node: UMD/CJS, no DOM. Headless primitives consume it behind a typed adapter.  
+8. Canonical model: unchanged. Library arrays are discarded after conversion.  
+9. Abstraction: `generateProfileExtrude` is the only import site. Commands and tools never import `geometry-extrude`.  
+10. Tests: `packages/primitives/tests/profile-extrude.test.ts`, `packages/commands/tests/profile-extrude.test.ts`, `packages/tools/tests/tools.test.ts`.
+
 ## Incident log
 
 No GPL code has been copied. No implementation phase has started.
