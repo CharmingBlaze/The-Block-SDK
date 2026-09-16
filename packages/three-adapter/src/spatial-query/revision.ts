@@ -11,8 +11,7 @@ export function spatialPrimitivesFingerprint(primitives: readonly SpatialAabb[])
     return "0";
   }
   const parts = primitives.map((item) => {
-    const revision = item.revision ?? 0;
-    return `${item.objectId}:${revision}:${quantizeSpatialCoord(item.min.x)},${quantizeSpatialCoord(item.min.y)},${quantizeSpatialCoord(item.min.z)},${quantizeSpatialCoord(item.max.x)},${quantizeSpatialCoord(item.max.y)},${quantizeSpatialCoord(item.max.z)}`;
+    return `${item.objectId}:t${item.topologyRevision ?? 0}:p${item.positionsRevision ?? 0}:r${item.revision ?? 0}:${quantizeSpatialCoord(item.min.x)},${quantizeSpatialCoord(item.min.y)},${quantizeSpatialCoord(item.min.z)},${quantizeSpatialCoord(item.max.x)},${quantizeSpatialCoord(item.max.y)},${quantizeSpatialCoord(item.max.z)}`;
   });
   parts.sort();
   return `${primitives.length}|${parts.join(";")}`;

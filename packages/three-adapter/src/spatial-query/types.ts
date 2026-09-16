@@ -15,6 +15,10 @@ export interface SpatialAabb {
   readonly max: { x: number; y: number; z: number };
   /** Mesh or object revision. Unchanged fingerprints skip BVH rebuild. */
   readonly revision?: number;
+  /** Topology-only clock. Materials and selection colors must not change this. */
+  readonly topologyRevision?: number;
+  /** Position-only clock. Used with topologyRevision for rebuild vs refit. */
+  readonly positionsRevision?: number;
 }
 
 export type SpatialQueryPrimitive = SpatialAabb;

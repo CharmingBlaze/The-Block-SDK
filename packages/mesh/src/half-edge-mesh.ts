@@ -243,19 +243,49 @@ export class HalfEdgeMesh {
       return [];
     }
     const out: T[] = [];
-    const visited = new Set<HalfEdgeId>();
-    let curr = face.halfEdge;
+    const start = face.halfEdge;
+    let curr = start;
     const budget = this.walkBudget();
-    while (curr && !visited.has(curr) && out.length < budget) {
-      visited.add(curr);
+    while (curr && out.length < budget) {
       const he = this.halfEdges.get(curr);
       if (!he) {
         break;
       }
       out.push(pick(he));
       curr = he.next;
+      if (curr === start) {
+        break;
+      }
     }
     return out;
+  }
+
+  /** Vertices and corners of a face in one half-edge walk. */
+  collectFaceLoop(fId: FaceId): { vertexIds: VertexId[]; cornerIds: CornerId[] } {
+    const vertexIds: VertexId[] = [];
+    const cornerIds: CornerId[] = [];
+    const face = this.faces.get(fId);
+    if (!face) {
+      return { vertexIds, cornerIds };
+    }
+    const start = face.halfEdge;
+    let curr = start;
+    const budget = this.walkBudget();
+    while (curr && vertexIds.length < budget) {
+      const he = this.halfEdges.get(curr);
+      if (!he) {
+        break;
+      }
+      vertexIds.push(he.origin);
+      if (he.corner) {
+        cornerIds.push(he.corner);
+      }
+      curr = he.next;
+      if (curr === start) {
+        break;
+      }
+    }
+    return { vertexIds, cornerIds };
   }
 
   getCornerLoop(cId: CornerId): { next: CornerId | null; prev: CornerId | null } {

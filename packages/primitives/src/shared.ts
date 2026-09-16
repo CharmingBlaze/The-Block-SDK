@@ -1,4 +1,4 @@
-import { SchemaError, type FaceId, type VertexId } from "@modeling-kit/core";
+import { SchemaError, type FaceId, type MeshId, type VertexId } from "@modeling-kit/core";
 import { MeshBuilder, type HalfEdgeMesh } from "@modeling-kit/mesh";
 import { validateMesh, type MeshIssue } from "@modeling-kit/validation";
 import type { PrimitiveFaceGroups, PrimitiveResult, PrimitiveValidationResult } from "./types";
@@ -39,16 +39,25 @@ export function requireValid(check: PrimitiveValidationResult, label: string): v
   }
 }
 
+export function createPrimitiveBuilder(meshId?: MeshId): MeshBuilder {
+  return new MeshBuilder({ meshId, revisionMode: "deferred" });
+}
+
 export function addFace(
   builder: MeshBuilder,
   vertices: readonly VertexId[],
   uvs: [number, number][],
-  extra?: { readonly normals?: readonly (readonly [number, number, number])[]; readonly isSmooth?: boolean },
+  extra?: {
+    readonly normals?: readonly (readonly [number, number, number])[];
+    readonly isSmooth?: boolean;
+    readonly skipAreaCheck?: boolean;
+  },
 ): FaceId {
   return builder.addFace(vertices, {
     uvs,
     ...(extra?.normals ? { normals: extra.normals.map((n) => [n[0], n[1], n[2]] as [number, number, number]) } : {}),
     ...(extra?.isSmooth !== undefined ? { isSmooth: extra.isSmooth } : {}),
+    ...(extra?.skipAreaCheck ? { skipAreaCheck: true } : {}),
   });
 }
 

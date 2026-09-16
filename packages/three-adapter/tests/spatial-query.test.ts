@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createSequenceIdFactory } from "@modeling-kit/core";
-import { CreatePrimitiveCommand, SetTransformsCommand, createModelingSession } from "@modeling-kit/commands";
+import { AssignMaterialSlotCommand, CreatePrimitiveCommand, SetTransformsCommand, createModelingSession } from "@modeling-kit/commands";
 import { PerspectiveCamera, Scene } from "three";
 import { ThreeViewportAdapter } from "../src/adapter";
 import {
@@ -138,6 +138,30 @@ describe("adapter spatial BVH", () => {
       }),
     );
     expect(backend.rebuildCount).toBeGreaterThan(afterMount);
+    adapter.dispose();
+  });
+
+  it("does not rebuild on selection or material-slot changes", () => {
+    const session = createModelingSession(createSequenceIdFactory("bvh-color"));
+    const cube = session.execute(new CreatePrimitiveCommand("cube", { width: 1, height: 1, depth: 1 }));
+    const backend = new BvhSpatialQuery();
+    const adapter = new ThreeViewportAdapter({
+      session,
+      scene: new Scene(),
+      camera: new PerspectiveCamera(50, 1, 0.1, 100),
+      renderer: stubRenderer(),
+      spatialQuery: backend,
+      ownsSpatialQuery: true,
+    });
+    adapter.mount();
+    const afterMount = backend.rebuildCount;
+    session.selection.replace({
+      domain: "face",
+      objectId: cube.objectId,
+      elementIds: [cube.faceIds.posY],
+    });
+    session.execute(new AssignMaterialSlotCommand({ meshId: cube.meshId, slotIndex: 1 }));
+    expect(backend.rebuildCount).toBe(afterMount);
     adapter.dispose();
   });
 });

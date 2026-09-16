@@ -1,4 +1,5 @@
 import type { ModelingSession } from "@modeling-kit/commands";
+import type { MeshLocalBvh } from "@modeling-kit/mesh";
 import type { BufferGeometry, Camera, Material, Object3D, Scene } from "three";
 import type { DeepPartial, SubElementDisplayOptions, SubElementVisualTheme } from "./sub-element";
 import type { SpatialQueryBackend } from "./spatial-query/types";
@@ -44,6 +45,8 @@ export interface TrackedObject {
   material?: Material | Material[];
   mapping?: RenderMapping;
   meshRevision?: number;
+  topologyRevision?: number;
+  positionsRevision?: number;
   materialKey?: string;
   poseKey?: string;
 }
@@ -53,6 +56,9 @@ export interface SharedGeometry {
   mapping: RenderMapping;
   revision: number;
   topologyRevision: number;
+  positionsRevision: number;
+  normalsRevision: number;
   uvRevision: number;
+  localBvh: MeshLocalBvh;
   refs: number;
 }

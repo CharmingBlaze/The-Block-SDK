@@ -17,6 +17,11 @@ export {
 } from "./polygon-triangulation";
 export { triangulateMesh, type TriangulateMeshOptions } from "./triangulate";
 export {
+  MeshLocalBvh,
+  createMeshLocalBvh,
+  type MeshLocalHit,
+} from "./bvh/mesh-local-bvh";
+export {
   cloneMesh,
   deserializeMesh,
   meshFingerprint,

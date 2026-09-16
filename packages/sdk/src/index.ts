@@ -406,6 +406,8 @@ export {
   orientation3d,
   buildAabbBvh,
   raycastAabbBvh,
+  rayIntersectTriangle,
+  refitAabbBvh,
   type Vec3,
   type Quat,
   type TransformData,
@@ -447,6 +449,8 @@ export {
   cloneMesh,
   meshFingerprint,
   faceNormal,
+  MeshLocalBvh,
+  createMeshLocalBvh,
   planKnifeCuts,
   executeKnifeCutPlan,
   executeKnifePlan,
@@ -455,6 +459,7 @@ export {
   setEdgeCreaseWeights,
   type SerializedMesh,
   type TriangulatedMesh,
+  type MeshLocalHit,
 } from "@modeling-kit/mesh";
 export {
   createModelDocument,

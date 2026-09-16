@@ -58,7 +58,7 @@ Canonical policy (VP-003 / GPU-PICK-001):
 - **Click object/face:** GPU ID-buffer (`adapter.pickPoint` / `viewport.resolvePointPick`). Face IDs are allocated per canonical face, not per render triangle. Pointer-down and pointer-up share a `PickSession` so backends cannot mix mid-gesture.
 - **Surface XYZ:** GPU identity plus constrained CPU intersection of that face (`requireSurfacePoint`). Identity results never invent `{0, 0, 0}`.
 - **Hover, vertices, edges, x-ray, select-through, no WebGL:** CPU `THREE.Raycaster` (`adapter.pick`). GPU hover is 1.1.
-- **Object preference:** default `BvhSpatialQuery` (revision-aware AABB). Disable with `spatialAcceleration: false`.
+- **Object preference:** default `BvhSpatialQuery` (revision-aware AABB). Disable with `spatialAcceleration: false`. Mesh-local triangle queries use `MeshLocalBvh` (rebuild on topology, refit on positions).
 
 Do not persist GPU indices. Maps from `triangulateMesh` (`triangleFaceIds`, `vertexIdMap`, `cornerIdMap`) are the only legal bridge.
 

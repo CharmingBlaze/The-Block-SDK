@@ -57,7 +57,7 @@ Closed in the post-audit fix pass unless noted.
 | animation | CUBICSPLINE reject; legacy track validation | Single schema; document-clip validation; Hermite spline |
 | formats | Empty mesh skip; STL finite; data-loss strings | Texture/skin/anim export; attribute-aware weld; OBJ UVs |
 | workers | Inline + `/browser` + `/node`; host-owned factories; queue; result transfers; crash replace | Dedicated paint/IO jobs. Removed unsafe `defaultComputePool` singleton. |
-| three-adapter | GPU ID-buffer object/face picking; revision-aware AABB BVH | Demand render; GPU hover; InstancedMesh; triangle `three-mesh-bvh` |
+| three-adapter | GPU ID-buffer object/face picking; revision-aware AABB BVH; mesh-local `MeshLocalBvh` | Demand render; GPU hover; InstancedMesh; optional host `three-mesh-bvh` |
 | sdk | dist exports; pack:verify in CI | small 1.0 surface |
 
 ## Next work (original overlay leftovers)

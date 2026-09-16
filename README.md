@@ -191,7 +191,7 @@ These are the subsystems a host or agent uses to build a modeling application. T
 | System | Package | What it does |
 | --- | --- | --- |
 | Three.js adapter | `@modeling-kit/three-adapter` | Derived GPU view; incremental sync; GPU ID-buffer object/face click picking; CPU `Raycaster` for hover/vertices/edges and fallback; selection/hover/knife overlays; `createThreeViewport()` |
-| Spatial query | `@modeling-kit/three-adapter` | Optional revision-aware AABB BVH (`BvhSpatialQuery`); brute-force fallback. Triangle `three-mesh-bvh` is not required |
+| Spatial query | `@modeling-kit/three-adapter` | Optional revision-aware AABB BVH (`BvhSpatialQuery`); mesh-local `MeshLocalBvh`; brute-force fallback. Triangle `three-mesh-bvh` is not required |
 
 The adapter never owns the editable mesh. Dispose the viewport, then the editor/session.
 

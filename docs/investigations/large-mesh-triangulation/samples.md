@@ -19,6 +19,19 @@ The 0.1 guide numbers (2.67 s / 18.9 s) were **single wall-clock samples on a sh
 
 10× vertices → grid **15×** slower (superlinear Maps), triangulate **11×** (near-linear).
 
+## After 1.1 fast path (same machine, later 2026-09-16)
+
+`BENCH_LARGE=1 pnpm bench:triangulation` isolated (not under a parallel typecheck).
+
+| Work | Size | Before | After |
+| --- | ---: | ---: | ---: |
+| `generateGrid` | 100×100 | 246 ms | 232 ms |
+| `triangulateMesh` | 100×100 | 67 ms | 21 ms |
+| `generateGrid` | 316×316 | 3.68 s | 3.15 s |
+| `triangulateMesh` | 316×316 | 731 ms | 309 ms |
+
+Tessellation is no longer the 10k interactive bottleneck; a vertex translate reuses topology and does not re-run `triangulatePolygon`. Grid construction is still the spawn cost.
+
 ## 10k stage breakdown (same mesh)
 
 | Stage | Warmed median |

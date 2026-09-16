@@ -18,6 +18,8 @@ export type ManifoldPolicy = "strict-manifold" | "allow-non-manifold";
 export interface MeshBuilderOptions {
   readonly meshId?: MeshId | undefined;
   readonly manifoldPolicy?: ManifoldPolicy | undefined;
+  /** `"deferred"` bumps topology once on `getMesh()` instead of once per face. */
+  readonly revisionMode?: "immediate" | "deferred" | undefined;
 }
 
 export interface AddFaceOptions {
@@ -30,6 +32,11 @@ export interface AddFaceOptions {
   pinnedUvChannels?: readonly (readonly UVChannelId[])[];
   normals?: [nx: number, ny: number, nz: number][];
   colors?: [r: number, g: number, b: number, a: number][];
+  /**
+   * Skip Newell zero-area check. Generators that already emit known-planar
+   * faces may set this. Public modeling still validates area.
+   */
+  skipAreaCheck?: boolean;
 }
 
 export interface CubeFaceIds {
@@ -49,28 +56,50 @@ export class MeshBuilder {
   private fCount = 0;
   private cCount = 0;
   readonly manifoldPolicy: ManifoldPolicy;
+  private readonly revisionMode: "immediate" | "deferred";
+  private pendingTopologyBump = false;
+  private scanExistingIds = false;
 
-  // Map from "vA_vB" (directed) to HalfEdgeId for twin lookup
-  private directedHalfEdges = new Map<string, HalfEdgeId>();
-  // Map from sorted "vA_vB" to EdgeId
-  private undirectedEdges = new Map<string, EdgeId>();
+  // Nested maps avoid interpolating `vFrom_vTo` strings on every edge.
+  private directedHalfEdges = new Map<VertexId, Map<VertexId, HalfEdgeId>>();
+  private undirectedEdges = new Map<VertexId, Map<VertexId, EdgeId>>();
   private edgeFaceCount = new Map<EdgeId, number>();
 
   constructor(meshIdOrOptions?: MeshId | MeshBuilderOptions) {
     let meshId: MeshId | undefined;
     let manifoldPolicy: ManifoldPolicy | undefined;
+    let revisionMode: "immediate" | "deferred" | undefined;
     if (typeof meshIdOrOptions === "object" && meshIdOrOptions !== null && !isMeshId(meshIdOrOptions)) {
       meshId = meshIdOrOptions.meshId;
       manifoldPolicy = meshIdOrOptions.manifoldPolicy;
+      revisionMode = meshIdOrOptions.revisionMode;
     } else if (isMeshId(meshIdOrOptions)) {
       meshId = meshIdOrOptions;
     }
     this.mesh = new HalfEdgeMesh(meshId);
     this.manifoldPolicy = manifoldPolicy ?? "strict-manifold";
+    this.revisionMode = revisionMode ?? "immediate";
   }
 
   getMesh(): HalfEdgeMesh {
+    this.flushRevision();
     return this.mesh;
+  }
+
+  private flushRevision(): void {
+    if (!this.pendingTopologyBump) {
+      return;
+    }
+    this.mesh.bumpRevision();
+    this.pendingTopologyBump = false;
+  }
+
+  private noteTopologyChange(): void {
+    if (this.revisionMode === "deferred") {
+      this.pendingTopologyBump = true;
+      return;
+    }
+    this.mesh.bumpRevision();
   }
 
   private allocateId(
@@ -78,12 +107,45 @@ export class MeshBuilder {
     prefix: string,
     counter: "vCount" | "eCount" | "heCount" | "fCount" | "cCount",
   ): string {
-    let id: string;
-    do {
-      this[counter] += 1;
-      id = `${prefix}_${this[counter]}`;
-    } while (existing.has(id));
+    this[counter] += 1;
+    let id = `${prefix}_${this[counter]}`;
+    if (this.scanExistingIds) {
+      while (existing.has(id)) {
+        this[counter] += 1;
+        id = `${prefix}_${this[counter]}`;
+      }
+    }
     return id;
+  }
+
+  private getDirected(from: VertexId, to: VertexId): HalfEdgeId | undefined {
+    return this.directedHalfEdges.get(from)?.get(to);
+  }
+
+  private setDirected(from: VertexId, to: VertexId, id: HalfEdgeId): void {
+    let inner = this.directedHalfEdges.get(from);
+    if (!inner) {
+      inner = new Map();
+      this.directedHalfEdges.set(from, inner);
+    }
+    inner.set(to, id);
+  }
+
+  private getUndirected(a: VertexId, b: VertexId): EdgeId | undefined {
+    const lo = a < b ? a : b;
+    const hi = a < b ? b : a;
+    return this.undirectedEdges.get(lo)?.get(hi);
+  }
+
+  private setUndirected(a: VertexId, b: VertexId, id: EdgeId): void {
+    const lo = a < b ? a : b;
+    const hi = a < b ? b : a;
+    let inner = this.undirectedEdges.get(lo);
+    if (!inner) {
+      inner = new Map();
+      this.undirectedEdges.set(lo, inner);
+    }
+    inner.set(hi, id);
   }
 
   addVertex(x: number, y: number, z: number, id?: VertexId): VertexId {
@@ -130,7 +192,7 @@ export class MeshBuilder {
           isSeam: false,
         };
         this.mesh.edges.set(plan.edgeId, edgeRecord);
-        this.undirectedEdges.set(plan.edgeKey, plan.edgeId);
+        this.setUndirected(vFrom, vTo, plan.edgeId);
         this.edgeFaceCount.set(plan.edgeId, 0);
       }
 
@@ -159,7 +221,7 @@ export class MeshBuilder {
       if (this.mesh.halfEdges.has(plan.halfEdgeId)) {
         throw new RangeError(`Duplicate half-edge id: ${plan.halfEdgeId}`);
       }
-      const twinId = this.directedHalfEdges.get(`${vTo}_${vFrom}`) ?? null;
+      const twinId = this.getDirected(vTo, vFrom) ?? null;
       const heRecord: HalfEdgeRecord = {
         id: plan.halfEdgeId,
         edgeId: plan.edgeId,
@@ -171,7 +233,7 @@ export class MeshBuilder {
         corner: cId,
       };
       this.mesh.halfEdges.set(plan.halfEdgeId, heRecord);
-      this.directedHalfEdges.set(`${vFrom}_${vTo}`, plan.halfEdgeId);
+      this.setDirected(vFrom, vTo, plan.halfEdgeId);
       halfEdgeIds.push(plan.halfEdgeId);
 
       if (twinId) {
@@ -206,7 +268,7 @@ export class MeshBuilder {
       isSmooth: options?.isSmooth ?? false,
     };
     this.mesh.faces.set(fId, faceRecord);
-    this.mesh.bumpRevision();
+    this.noteTopologyChange();
     return fId;
   }
 
@@ -238,9 +300,11 @@ export class MeshBuilder {
       throw new RangeError("Face first and last vertex must not be duplicated");
     }
 
-    const points = vertexIds.map((id) => this.mesh.vertices.get(id)!.position);
-    if (polygonArea(points) <= 1e-12) {
-      throw new RangeError("Face polygon has zero area");
+    if (!options?.skipAreaCheck) {
+      const points = vertexIds.map((id) => this.mesh.vertices.get(id)!.position);
+      if (polygonArea(points) <= 1e-12) {
+        throw new RangeError("Face polygon has zero area");
+      }
     }
 
     if (options?.uvs && options.uvs.length !== n) {
@@ -262,20 +326,17 @@ export class MeshBuilder {
 
   private planFaceHalfEdges(vertexIds: readonly VertexId[]): Array<{
     edgeId: EdgeId;
-    edgeKey: string;
     halfEdgeId: HalfEdgeId;
   }> {
     const n = vertexIds.length;
-    const planned: Array<{ edgeId: EdgeId; edgeKey: string; halfEdgeId: HalfEdgeId }> = [];
+    const planned: Array<{ edgeId: EdgeId; halfEdgeId: HalfEdgeId }> = [];
     for (let i = 0; i < n; i++) {
       const vFrom = vertexIds[i]!;
       const vTo = vertexIds[(i + 1) % n]!;
-      const directedKey = `${vFrom}_${vTo}`;
-      if (this.directedHalfEdges.has(directedKey)) {
+      if (this.getDirected(vFrom, vTo)) {
         throw new RangeError(`Directed edge ${vFrom} -> ${vTo} is already occupied`);
       }
-      const edgeKey = vFrom < vTo ? `${vFrom}_${vTo}` : `${vTo}_${vFrom}`;
-      let eId = this.undirectedEdges.get(edgeKey);
+      let eId = this.getUndirected(vFrom, vTo);
       if (!eId) {
         eId = brand<string, "EdgeId">(this.allocateId(this.mesh.edges, "e", "eCount"));
       } else if (this.mesh.edges.has(eId) === false) {
@@ -295,7 +356,7 @@ export class MeshBuilder {
         );
       }
       const heId = brand<string, "HalfEdgeId">(this.allocateId(this.mesh.halfEdges, "he", "heCount"));
-      planned.push({ edgeId: eId, edgeKey, halfEdgeId: heId });
+      planned.push({ edgeId: eId, halfEdgeId: heId });
     }
     return planned;
   }
@@ -310,7 +371,7 @@ export class MeshBuilder {
     meshId?: MeshId,
     faceIds?: CubeFaceIds,
   ): HalfEdgeMesh {
-    const builder = new MeshBuilder(meshId);
+    const builder = new MeshBuilder(meshId ? { meshId, revisionMode: "deferred" } : { revisionMode: "deferred" });
     const hx = width / 2;
     const hy = height / 2;
     const hz = depth / 2;
@@ -343,7 +404,7 @@ export class MeshBuilder {
     segments = 8,
     meshId?: MeshId,
   ): HalfEdgeMesh {
-    const builder = new MeshBuilder(meshId);
+    const builder = new MeshBuilder(meshId ? { meshId, revisionMode: "deferred" } : { revisionMode: "deferred" });
     const hy = height / 2;
     const segs = Math.max(3, segments);
 
@@ -383,7 +444,7 @@ export class MeshBuilder {
     rings = 6,
     meshId?: MeshId,
   ): HalfEdgeMesh {
-    const builder = new MeshBuilder(meshId);
+    const builder = new MeshBuilder(meshId ? { meshId, revisionMode: "deferred" } : { revisionMode: "deferred" });
     const segs = Math.max(3, segments);
     const numRings = Math.max(2, rings);
 
@@ -441,7 +502,7 @@ export class MeshBuilder {
     p3: [number, number, number],
     meshId?: MeshId,
   ): HalfEdgeMesh {
-    const builder = new MeshBuilder(meshId);
+    const builder = new MeshBuilder(meshId ? { meshId, revisionMode: "deferred" } : { revisionMode: "deferred" });
     const v0 = builder.addVertex(...p0);
     const v1 = builder.addVertex(...p1);
     const v2 = builder.addVertex(...p2);
@@ -456,7 +517,7 @@ export class MeshBuilder {
     p2: [number, number, number],
     meshId?: MeshId,
   ): HalfEdgeMesh {
-    const builder = new MeshBuilder(meshId);
+    const builder = new MeshBuilder(meshId ? { meshId, revisionMode: "deferred" } : { revisionMode: "deferred" });
     const v0 = builder.addVertex(...p0);
     const v1 = builder.addVertex(...p1);
     const v2 = builder.addVertex(...p2);
@@ -471,15 +532,15 @@ export class MeshBuilder {
         : { meshId: mesh.id },
     );
     builder.mesh = mesh;
+    builder.scanExistingIds = true;
     for (const he of mesh.halfEdges.values()) {
       const next = mesh.halfEdges.get(he.next);
       if (next) {
-        builder.directedHalfEdges.set(`${he.origin}_${next.origin}`, he.id);
+        builder.setDirected(he.origin, next.origin, he.id);
       }
       const dest = next?.origin;
       if (dest) {
-        const edgeKey = he.origin < dest ? `${he.origin}_${dest}` : `${dest}_${he.origin}`;
-        builder.undirectedEdges.set(edgeKey, he.edgeId);
+        builder.setUndirected(he.origin, dest, he.edgeId);
       }
     }
     for (const [edgeId] of mesh.edges) {

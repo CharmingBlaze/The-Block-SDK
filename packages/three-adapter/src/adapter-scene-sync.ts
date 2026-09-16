@@ -1,6 +1,7 @@
 import { brand, type MeshId, type ObjectId } from "@modeling-kit/core";
 import type { ModelingSession } from "@modeling-kit/commands";
 import { getEffectiveVisibility, isMeshLikeNode, type SceneNode } from "@modeling-kit/document";
+import { createMeshLocalBvh } from "@modeling-kit/mesh";
 import { BufferGeometry, Group, Mesh, type Object3D } from "three";
 import type { SharedGeometry, TrackedObject } from "./adapter-types";
 import { applyLocalTransform, resolveDisplayTransform } from "./adapter-transform";
@@ -132,6 +133,7 @@ export function releaseGeometry(
   handle.refs = Math.max(0, handle.refs - 1);
   if (handle.refs === 0) {
     handle.geometry.dispose();
+    handle.localBvh.dispose();
     context.geometries.delete(meshId);
   }
 }
@@ -199,19 +201,37 @@ function syncMesh(context: SceneMirrorContext, node: SceneNode, object: Mesh): v
       mapping: next.mapping,
       revision: kernel.revision,
       topologyRevision: kernel.topologyRevision,
+      positionsRevision: kernel.positionsRevision,
+      normalsRevision: kernel.normalsRevision,
       uvRevision: kernel.uvRevision,
+      localBvh: createMeshLocalBvh(),
       refs: 0,
     };
+    handle.localBvh.sync(kernel, next.triangulated);
     context.geometries.set(meshId, handle);
   } else if (handle.revision !== kernel.revision) {
-    const next = syncDerivedGeometry(kernel, { geometry: handle.geometry, mapping: handle.mapping });
-    if (!next.reused) {
-      handle.geometry.dispose();
+    const derivedChanged =
+      handle.topologyRevision !== kernel.topologyRevision ||
+      handle.positionsRevision !== kernel.positionsRevision ||
+      handle.normalsRevision !== kernel.normalsRevision ||
+      handle.uvRevision !== kernel.uvRevision;
+    if (derivedChanged) {
+      const next = syncDerivedGeometry(kernel, {
+        geometry: handle.geometry,
+        mapping: handle.mapping,
+        topologyRevision: handle.topologyRevision,
+      });
+      if (!next.reused) {
+        handle.geometry.dispose();
+      }
+      handle.geometry = next.geometry;
+      handle.mapping = next.mapping;
+      handle.localBvh.sync(kernel, next.triangulated);
     }
-    handle.geometry = next.geometry;
-    handle.mapping = next.mapping;
     handle.revision = kernel.revision;
     handle.topologyRevision = kernel.topologyRevision;
+    handle.positionsRevision = kernel.positionsRevision;
+    handle.normalsRevision = kernel.normalsRevision;
     handle.uvRevision = kernel.uvRevision;
   }
   if (tracked.geometry !== handle.geometry) {
@@ -224,6 +244,8 @@ function syncMesh(context: SceneMirrorContext, node: SceneNode, object: Mesh): v
     tracked.mapping = handle.mapping;
   }
   tracked.meshRevision = kernel.revision;
+  tracked.topologyRevision = kernel.topologyRevision;
+  tracked.positionsRevision = kernel.positionsRevision;
   if (record && tracked.geometry && tracked.mapping) {
     applyFaceMaterialGroups(tracked.geometry, kernel, tracked.mapping);
     if (tracked.materialKey !== materialKey) {

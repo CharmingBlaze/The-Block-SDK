@@ -20,9 +20,9 @@ Prior recorded SHAs: audit-repair `e8233db` ([run 35060344278](https://github.co
 
 Remaining before npm exists: add GitHub secret `NPM_TOKEN`, then `git tag v0.1.0 && git push origin v0.1.0`. See `docs/guides/publishing.md`. Do not tag until the secret exists — the same version cannot be republished.
 
-Out of 1.0: BOOL-001, LSCM/ABF, and preview-only rigging/animation **authoring** (IK, weight painting, NLA). Canonical skeleton/skin/clip data, evaluation, and glTF skins/animations/textures are stable interchange targets (see `docs/architecture/GLTF-PIPELINE.md`). GPU hover and advanced transparency/instancing stay 1.1. Engines stay Node 22: pnpm 11.7, `@changesets/cli`, and `dependency-cruiser` require it, so a Node 20 CI job cannot use this toolchain. Triangle `three-mesh-bvh` stays 1.1; object AABB BVH is in 1.0.
+Out of 1.0: BOOL-001, LSCM/ABF, and preview-only rigging/animation **authoring** (IK, weight painting, NLA). Canonical skeleton/skin/clip data, evaluation, and glTF skins/animations/textures are stable interchange targets (see `docs/architecture/GLTF-PIPELINE.md`). GPU hover and advanced transparency/instancing stay 1.1. Engines stay Node 22: pnpm 11.7, `@changesets/cli`, and `dependency-cruiser` require it, so a Node 20 CI job cannot use this toolchain. First-party mesh-local triangle BVH (`MeshLocalBvh`) is in: topology-revision rebuilds, position-revision refits, no rebuild on materials/selection. Triangle `three-mesh-bvh` remains an optional host backend.
 
-**0.1 interactive limits:** derived `triangulateMesh` on ~10k–100k vertex grids is a batch cost, not a pointer-move budget. Object AABB BVH is the 1.0 spatial layer. See `docs/guides/triangulation.md`.
+**0.1 interactive limits:** derived `triangulateMesh` on ~10k–100k vertex grids is a batch cost, not a pointer-move budget. Object AABB BVH plus `MeshLocalBvh` are the spatial layers. See `docs/guides/triangulation.md`.
 
 ## Last gate
 

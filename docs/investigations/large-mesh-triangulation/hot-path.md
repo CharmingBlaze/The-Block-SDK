@@ -1,6 +1,6 @@
 # Current hot path
 
-`triangulateMesh` is a full-mesh derived rebuild. The adapter calls it on every kernel revision before it even checks whether GPU buffers can be reused.
+`triangulateMesh` is a full-mesh derived rebuild for topology changes. `syncDerivedGeometry` copies positions/normals/UVs when `topologyRevision` is unchanged. Convex triangles/quads use `tessellateValidatedFace` instead of `triangulatePolygon`.
 
 ## Call graph (render / export / pick)
 

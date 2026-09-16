@@ -1,10 +1,10 @@
 # Large-mesh triangulation (R3 / 1.1)
 
-**Status:** Investigation + profiler. Not a 0.1 gate.  
+**Status:** Fast-path tessellation + revision-gated viewport landed. Grid construction still the 100k wall clock.  
 **Date:** 2026-09-16  
 **Related:** [`docs/guides/triangulation.md`](../guides/triangulation.md), PERF-001
 
-0.1 records wall-clock samples and keeps them out of `pnpm test`. A 2026-09-16 re-audit one-shot on a shared-load machine reported 2.67 s / 18.9 s for `triangulateMesh`. **Warmed medians on 2026-09-16 (Ryzen 7 250, Node 26) are 67 ms / 731 ms for triangulation and 246 ms / 3.68 s for `generateGrid`.** Grid construction is the large-mesh cost. This folder is the 1.1 work: split those two, record medians and memory, then change the actual bottleneck.
+0.1 records wall-clock samples and keeps them out of `pnpm test`. A 2026-09-16 re-audit one-shot on a shared-load machine reported 2.67 s / 18.9 s for `triangulateMesh`. **Warmed medians after the 1.1 fast path (Ryzen 7 250, Node 26) are 21 ms / 309 ms for triangulation and 232 ms / 3.15 s for `generateGrid`.** Grid construction is still the large-mesh cost. This folder tracks the remaining B1 work (3× grid) and optional dirty-face tessellation.
 
 ## Run
 

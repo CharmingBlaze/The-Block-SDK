@@ -33,7 +33,8 @@ export function collectSpatialPrimitives(
       objectId,
       min: { x: worldBox.min.x, y: worldBox.min.y, z: worldBox.min.z },
       max: { x: worldBox.max.x, y: worldBox.max.y, z: worldBox.max.z },
-      revision: handle.meshRevision ?? 0,
+      topologyRevision: handle.topologyRevision ?? 0,
+      positionsRevision: handle.positionsRevision ?? 0,
     });
   }
   return primitives;

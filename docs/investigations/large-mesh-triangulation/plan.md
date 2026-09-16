@@ -20,15 +20,14 @@ Do not file “make Earcut faster” as the 100k task. Split the work:
 
 Suspects: per-face `addFace` (string ids, four Maps, `polygonArea`, `bumpRevision`), `walkBudget`, directed-edge string keys.
 
-Possible modular changes (no new deps):
+Landed (2026-09-16, not the 3× gate):
 
-- Batch revision bump once per primitive, not per face.
-- Skip zero-area Newell in generators that already emit known-planar quads (keep the check on the public `addFace` API).
-- Reuse key buffers for `vFrom_vTo` instead of interpolating a new string per edge.
+- Deferred topology bump once per `getMesh()` for procedural builders.
+- Nested directed/undirected edge maps (no `vFrom_vTo` strings).
+- `skipAreaCheck` on known-planar generator quads (`generateGrid`).
+- Skip `Map.has` id scans on a fresh builder.
 
-Do **not** replace branded string ids with array indices (architecture invariant). Integer-looking prefixes (`v_1`) are already sequential; the cost is Map/string traffic.
-
-**Done when:** 100k `generateGrid` warmed median drops by **≥3×** on the same class of machine, topology tests still pass.
+100k `generateGrid` warmed median moved **3.68 s → 3.15 s** on the same class of machine. The remaining cost is branded string ids and Map records. The ≥3× gate is still open.
 
 ### B2 — derived tessellation (owns pointer-rate rebuilds)
 
@@ -48,20 +47,20 @@ Also in `triangulateMesh` only:
 
 Public `triangulatePolygon` keeps self-intersection tests. Kernel faces that were validated at insert can skip the triplicate self-intersect passes.
 
-**Done when:** 10k grid `triangulateMesh` warmed median is within ~2× of the fan probe (~5 ms → target ≤15 ms), `packages/mesh/tests/earcut-*.ts` pass, `triangleFaceIds` stay canonical FaceIds.
+**Landed 2026-09-16:** `packages/mesh/src/triangulation/fast-path.ts`. 10k warmed median **67 ms → 21 ms** (fan probe ~7.6 ms). 100k **731 ms → 309 ms**. `triangleFaceIds` stay canonical FaceIds.
 
 ## Phase C — revision-gated viewport
 
 - In `syncDerivedGeometry`, if topology maps can be reused, **do not** call `triangulateMesh`; copy positions/normals/uvs only.
 - Optional dirty-face set (not GPU indices): rebuild tessellation ranges for moved faces only. Blender `loop_triangles`, not a live CDT.
 
-**Done when:** a vertex translate on a 10k grid does not re-run `triangulatePolygon` for untouched faces. Pointer-move previews still commit **one** history command on release.
+**Landed (whole-mesh refit, not dirty-face set):** `syncDerivedGeometry` takes `topologyRevision` and rewrites attributes without `triangulatePolygon`. Pointer-move previews still commit **one** history command on release.
 
 ## Phase D — only if B+C are not enough
 
 - WASM Earcut.hpp / other triangulator behind `TriangulationBackendId`.
 - Incremental CDT / dearcut: **reject** unless a new requirement is “edit a 5k-vertex single face in real time”.
-- Triangle `three-mesh-bvh`: already deferred; object AABB BVH is 1.0.
+- Triangle `three-mesh-bvh`: still optional. First-party `MeshLocalBvh` now indexes derived triangles with topology-revision rebuilds and position-revision refits.
 
 ## Non-goals
 

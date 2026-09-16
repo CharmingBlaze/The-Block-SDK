@@ -1,19 +1,19 @@
 import type { BoundingBox } from "../bbox";
 
 export interface BvhPrimitive<T> {
-  readonly bounds: BoundingBox;
+  bounds: BoundingBox;
   readonly item: T;
 }
 
 export interface BvhLeaf<T> {
   readonly kind: "leaf";
-  readonly bounds: BoundingBox;
+  bounds: BoundingBox;
   readonly items: readonly BvhPrimitive<T>[];
 }
 
 export interface BvhBranch<T> {
   readonly kind: "branch";
-  readonly bounds: BoundingBox;
+  bounds: BoundingBox;
   readonly left: BvhNode<T>;
   readonly right: BvhNode<T>;
 }

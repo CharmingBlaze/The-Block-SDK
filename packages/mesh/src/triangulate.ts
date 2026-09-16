@@ -1,7 +1,9 @@
 import type { CornerId, FaceId, VertexId } from "@modeling-kit/core";
-import { Vector3 } from "@modeling-kit/math";
 import type { HalfEdgeMesh } from "./half-edge-mesh";
 import { triangulatePolygon } from "./polygon-triangulation";
+import { tessellateValidatedFace } from "./triangulation/fast-path";
+import { unitNormalOrNull } from "./triangulation/project";
+import type { Vec3 } from "./triangulation/types";
 import type { TriangulatedMesh } from "./types";
 
 export interface TriangulateMeshOptions {
@@ -10,97 +12,111 @@ export interface TriangulateMeshOptions {
 
 /**
  * Decomposes general polygons into render-ready triangles.
- * Convex faces use deterministic ear clipping; concave n-gons use Earcut.
+ * Convex planar triangles/quads use a fixed split; concave n-gons use Earcut.
  * Preserves source FaceId, VertexId, and CornerId on every generated triangle.
  */
 export function triangulateMesh(mesh: HalfEdgeMesh, options: TriangulateMeshOptions = {}): TriangulatedMesh {
-  const positions: number[] = [];
-  const normals: number[] = [];
-  const uvs: number[] = [];
-  const indices: number[] = [];
-  const triangleFaceIds: FaceId[] = [];
-  const vertexIdMap: VertexId[] = [];
-  const cornerIdMap: CornerId[] = [];
+  const expectedVerts = mesh.corners.size;
+  const expectedTris = Math.max(0, mesh.corners.size - 2 * mesh.faces.size);
+  const positions = new Float32Array(expectedVerts * 3);
+  const normals = new Float32Array(expectedVerts * 3);
+  const uvs = new Float32Array(expectedVerts * 2);
+  const indices = new Uint32Array(expectedTris * 3);
+  const triangleFaceIds: FaceId[] = new Array(expectedTris);
+  const vertexIdMap: VertexId[] = new Array(expectedVerts);
+  const cornerIdMap: CornerId[] = new Array(expectedVerts);
 
   let vertexCursor = 0;
+  let triangleCursor = 0;
   let faceIndex = 0;
+  const facePoints: Vec3[] = [];
 
   for (const [fId] of mesh.faces) {
     if (faceIndex % 8 === 0) {
       throwIfAborted(options.signal);
     }
     faceIndex += 1;
-    const vIds = mesh.getFaceVertices(fId);
-    if (vIds.length < 3) continue;
-
-    const facePoints: Vector3[] = [];
-    for (const vId of vIds) {
-      const v = mesh.vertices.get(vId);
-      if (v) {
-        facePoints.push(new Vector3(v.position[0], v.position[1], v.position[2]));
-      }
-    }
-    if (facePoints.length < 3) continue;
-
-    const tuples = facePoints.map((pt) => [pt.x, pt.y, pt.z] as const);
-    const triangulation = triangulatePolygon(tuples, { rejectSelfIntersecting: true });
-    if (triangulation.status !== "ok" || triangulation.triangles.length === 0) {
+    const loop = mesh.collectFaceLoop(fId);
+    const n = loop.vertexIds.length;
+    if (n < 3) {
       continue;
     }
 
-    const faceNormal = polygonNormal(facePoints);
+    facePoints.length = 0;
+    for (const vId of loop.vertexIds) {
+      const vertex = mesh.vertices.get(vId);
+      if (vertex) {
+        facePoints.push(vertex.position);
+      }
+    }
+    if (facePoints.length < 3) {
+      continue;
+    }
+
+    const triangles = tessellateValidatedFace(facePoints) ?? fallbackTriangles(facePoints);
+    if (!triangles || triangles.length === 0) {
+      continue;
+    }
+
+    const faceNormal = unitNormalOrNull(facePoints, 1e-12);
     if (!faceNormal) {
       continue;
     }
 
-    const cIds = mesh.getFaceCorners(fId);
-    const cornerUvs: [number, number][] = [];
-    const cornerNormals: [number, number, number][] = [];
-    for (const cId of cIds) {
-      const corner = mesh.corners.get(cId);
-      cornerUvs.push(corner?.uv ?? [0, 0]);
-      if (corner?.normal) {
-        cornerNormals.push(corner.normal);
-      }
-    }
-
-    const n = facePoints.length;
     const faceStartIdx = vertexCursor;
-
     for (let i = 0; i < n; i++) {
       const pt = facePoints[i]!;
-      const uv = cornerUvs[i] ?? [0, 0];
-      const norm = cornerNormals[i] ?? [faceNormal.x, faceNormal.y, faceNormal.z];
-
-      positions.push(pt.x, pt.y, pt.z);
-      normals.push(norm[0], norm[1], norm[2]);
-      uvs.push(uv[0], uv[1]);
-      vertexIdMap.push(vIds[i]!);
-      const cornerId = cIds[i];
+      const corner = loop.cornerIds[i] ? mesh.corners.get(loop.cornerIds[i]!) : undefined;
+      const uv = corner?.uv ?? [0, 0];
+      const norm = corner?.normal ?? faceNormal;
+      const base = vertexCursor * 3;
+      positions[base] = pt[0];
+      positions[base + 1] = pt[1];
+      positions[base + 2] = pt[2];
+      normals[base] = norm[0];
+      normals[base + 1] = norm[1];
+      normals[base + 2] = norm[2];
+      const uvBase = vertexCursor * 2;
+      uvs[uvBase] = uv[0];
+      uvs[uvBase + 1] = uv[1];
+      vertexIdMap[vertexCursor] = loop.vertexIds[i]!;
+      const cornerId = loop.cornerIds[i];
       if (cornerId) {
-        cornerIdMap.push(cornerId);
+        cornerIdMap[vertexCursor] = cornerId;
       }
-      vertexCursor++;
+      vertexCursor += 1;
     }
 
-    for (const tri of triangulation.triangles) {
+    for (const tri of triangles) {
       if (tri[0]! >= n || tri[1]! >= n || tri[2]! >= n) {
         continue;
       }
-      indices.push(faceStartIdx + tri[0], faceStartIdx + tri[1], faceStartIdx + tri[2]);
-      triangleFaceIds.push(fId);
+      const indexBase = triangleCursor * 3;
+      indices[indexBase] = faceStartIdx + tri[0]!;
+      indices[indexBase + 1] = faceStartIdx + tri[1]!;
+      indices[indexBase + 2] = faceStartIdx + tri[2]!;
+      triangleFaceIds[triangleCursor] = fId;
+      triangleCursor += 1;
     }
   }
 
   return {
-    positions: new Float32Array(positions),
-    normals: new Float32Array(normals),
-    uvs: new Float32Array(uvs),
-    indices: new Uint32Array(indices),
-    triangleFaceIds,
-    vertexIdMap,
-    cornerIdMap,
+    positions: shrinkFloat(positions, vertexCursor * 3),
+    normals: shrinkFloat(normals, vertexCursor * 3),
+    uvs: shrinkFloat(uvs, vertexCursor * 2),
+    indices: shrinkUint(indices, triangleCursor * 3),
+    triangleFaceIds: triangleFaceIds.slice(0, triangleCursor),
+    vertexIdMap: vertexIdMap.slice(0, vertexCursor),
+    cornerIdMap: cornerIdMap.slice(0, vertexCursor),
   };
+}
+
+function fallbackTriangles(points: readonly Vec3[]): readonly (readonly [number, number, number])[] {
+  const triangulation = triangulatePolygon(points, { rejectSelfIntersecting: true });
+  if (triangulation.status !== "ok" || triangulation.triangles.length === 0) {
+    return [];
+  }
+  return triangulation.triangles;
 }
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
@@ -109,27 +125,84 @@ function throwIfAborted(signal: AbortSignal | undefined): void {
   }
 }
 
-function polygonNormal(points: readonly Vector3[]): Vector3 | null {
-  let normal = new Vector3(0, 0, 0);
-  for (let i = 0; i < points.length; i++) {
-    const current = points[i]!;
-    const next = points[(i + 1) % points.length]!;
-    normal = normal.add(
-      new Vector3(
-        (current.y - next.y) * (current.z + next.z),
-        (current.z - next.z) * (current.x + next.x),
-        (current.x - next.x) * (current.y + next.y),
-      ),
-    );
+function shrinkFloat(values: Float32Array, length: number): Float32Array {
+  if (length === values.length) {
+    return values;
   }
-  const length = normal.length();
-  if (length > 1e-12) {
-    return normal.scale(1 / length);
+  return values.subarray(0, length).slice();
+}
+
+function shrinkUint(values: Uint32Array, length: number): Uint32Array {
+  if (length === values.length) {
+    return values;
   }
-  const cross = points[1]!.sub(points[0]!).cross(points[2]!.sub(points[0]!));
-  const crossLen = cross.length();
-  if (crossLen <= 1e-12) {
-    return null;
+  return values.subarray(0, length).slice();
+}
+
+export interface DerivedVertexMapping {
+  readonly renderVertexToVertex: readonly VertexId[];
+  readonly renderVertexToCorner: readonly CornerId[];
+}
+
+/**
+ * Rewrite derived positions/normals/uvs after a position or attribute edit.
+ * Tessellation connectivity is unchanged; callers must not use this after
+ * a topology revision.
+ */
+export function writeDerivedVertexAttributes(
+  mesh: HalfEdgeMesh,
+  mapping: DerivedVertexMapping,
+  positions: Float32Array,
+  normals: Float32Array,
+  uvs: Float32Array,
+): void {
+  const faceNormals = new Map<string, readonly [number, number, number]>();
+  const count = mapping.renderVertexToVertex.length;
+  for (let i = 0; i < count; i += 1) {
+    const vertex = mesh.vertices.get(mapping.renderVertexToVertex[i]!);
+    if (vertex) {
+      const base = i * 3;
+      positions[base] = vertex.position[0];
+      positions[base + 1] = vertex.position[1];
+      positions[base + 2] = vertex.position[2];
+    }
+    const cornerId = mapping.renderVertexToCorner[i];
+    const corner = cornerId ? mesh.corners.get(cornerId) : undefined;
+    if (corner?.uv) {
+      const uvBase = i * 2;
+      uvs[uvBase] = corner.uv[0];
+      uvs[uvBase + 1] = corner.uv[1];
+    }
+    const base = i * 3;
+    if (corner?.normal) {
+      normals[base] = corner.normal[0];
+      normals[base + 1] = corner.normal[1];
+      normals[base + 2] = corner.normal[2];
+      continue;
+    }
+    if (!corner) {
+      continue;
+    }
+    let normal = faceNormals.get(corner.faceId);
+    if (!normal) {
+      const loop = mesh.collectFaceLoop(corner.faceId);
+      const points: Vec3[] = [];
+      for (const vertexId of loop.vertexIds) {
+        const record = mesh.vertices.get(vertexId);
+        if (record) {
+          points.push(record.position);
+        }
+      }
+      const computed = unitNormalOrNull(points, 1e-12);
+      if (computed) {
+        faceNormals.set(corner.faceId, computed);
+        normal = computed;
+      }
+    }
+    if (normal) {
+      normals[base] = normal[0];
+      normals[base + 1] = normal[1];
+      normals[base + 2] = normal[2];
+    }
   }
-  return cross.scale(1 / crossLen);
 }

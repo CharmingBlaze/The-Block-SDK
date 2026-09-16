@@ -256,7 +256,7 @@ Added as runtime dependencies of `@modeling-kit/formats` only. Conversion bounda
 
 ## First-party AABB BVH (2026-09-16)
 
-Not a third-party install. `@modeling-kit/math` ships a median-split AABB BVH (`buildAabbBvh` / `raycastAabbBvh`). `@modeling-kit/three-adapter` wraps it as `BvhSpatialQuery` with revision-aware rebuild. `three-mesh-bvh` remains an uninstalled optional host backend (see `docs/architecture/dependency-policy.md`). No Blockbench code.
+Not a third-party install. `@modeling-kit/math` ships a median-split AABB BVH (`buildAabbBvh` / `raycastAabbBvh` / `refitAabbBvh`). `@modeling-kit/three-adapter` wraps it as `BvhSpatialQuery` with revision-aware rebuild. `@modeling-kit/mesh` adds `MeshLocalBvh` for derived triangles: rebuild on `topologyRevision`, refit on `positionsRevision`, ignore materials/selection. `three-mesh-bvh` remains an uninstalled optional host backend (see `docs/architecture/dependency-policy.md`). No Blockbench code.
 
 ## Incident log
 

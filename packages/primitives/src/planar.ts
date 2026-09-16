@@ -1,6 +1,7 @@
 import { MeshBuilder } from "@modeling-kit/mesh";
 import {
   addFace,
+  createPrimitiveBuilder,
   emptyGroups,
   finalizePrimitive,
   integerAtLeast,
@@ -107,7 +108,7 @@ export function generateGrid(
   context: PrimitiveGenerationContext = {},
 ): PrimitiveResult {
   requireValid(validateGridParameters(parameters), "grid");
-  const builder = new MeshBuilder(context.meshId);
+  const builder = createPrimitiveBuilder(context.meshId);
   const hx = parameters.width / 2;
   const hz = parameters.depth / 2;
   const nx = parameters.segmentsX;
@@ -141,6 +142,7 @@ export function generateGrid(
             [u1, v1],
             [u1, v0],
           ],
+          { skipAreaCheck: true },
         ),
       );
     }
