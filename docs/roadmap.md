@@ -1,6 +1,6 @@
 # Modeling-Kit Implementation Roadmap
 
-**Status:** Historical phase narrative only. Non-deferred 1.0 rows are `VERIFIED` in `docs/verification/RELEASE-1.0-EVIDENCE.md` (2026-09-16 gates: test 355, typecheck, lint, build, arch:check). Still out of 1.0: RIG, ANIM, BOOL, GPU picking, LSCM/ABF. See `docs/architecture/modeling-operator-specification.md`.  
+**Status:** Historical phase narrative only. Non-deferred 1.0 rows are `VERIFIED` in `docs/verification/RELEASE-1.0-EVIDENCE.md`. Still out of 1.0: RIG, ANIM, BOOL, LSCM/ABF. GPU-PICK-001 **click** picking is in 1.0; GPU hover / InstancedMesh / GPU skinning are 1.1. See `docs/architecture/modeling-operator-specification.md`.  
 **Constraint:** Clean-room implementation. Independent general 3D polygonal modeling foundation. Zero Minecraft or game-specific constraints.
 
 ---

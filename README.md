@@ -69,7 +69,7 @@ const viewport = createThreeViewport({
   pickDomain: "face",
   onSelect: (hit) => {
     if (hit) {
-      console.log("Picked", hit.domain, hit.elementId);
+      console.log("Picked", hit.kind, hit.domain, hit.objectId);
     }
   },
 });
@@ -186,7 +186,7 @@ These are the subsystems a host or agent uses to build a modeling application. T
 
 | System | Package | What it does |
 | --- | --- | --- |
-| Three.js adapter | `@modeling-kit/three-adapter` | Derived GPU view; incremental sync; CPU `Raycaster` pick to branded IDs; selection/hover/knife overlays; `createThreeViewport()` |
+| Three.js adapter | `@modeling-kit/three-adapter` | Derived GPU view; incremental sync; GPU ID-buffer object/face click picking; CPU `Raycaster` for hover/vertices/edges and fallback; selection/hover/knife overlays; `createThreeViewport()` |
 | Spatial query | `@modeling-kit/three-adapter` | Brute-force backend (no BVH yet) |
 
 The adapter never owns the editable mesh. Dispose the viewport, then the editor/session.
@@ -217,7 +217,7 @@ The adapter never owns the editable mesh. Dispose the viewport, then the editor/
 
 ### Not in this SDK
 
-Boolean CSG, GPU ID-buffer picking, LSCM/ABF unwrap, paint/IO worker jobs, game/Minecraft/`.bbmodel` formats, and a DCC application UI (hosts own cameras, panels, and widgets).
+Boolean CSG, LSCM/ABF unwrap, paint/IO worker jobs, GPU hover, `THREE.InstancedMesh` picking, GPU-skinned picking, game/Minecraft/`.bbmodel` formats, and a DCC application UI (hosts own cameras, panels, and widgets). Object/face GPU ID-buffer **click** picking is in `@modeling-kit/three-adapter`; see [`docs/architecture/GPU-ID-PICKING.md`](docs/architecture/GPU-ID-PICKING.md).
 
 ### Host examples
 
