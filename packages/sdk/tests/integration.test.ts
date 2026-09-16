@@ -42,7 +42,7 @@ describe("@modeling-kit/sdk unified portal", () => {
 
     // Workers
     expect(ModelingKit.AsyncComputePool).toBeDefined();
-    expect(ModelingKit.defaultComputePool).toBeDefined();
+    expect(ModelingKit.createInlineComputePool).toBeDefined();
   });
 
   it("executes Milestone 1 vertical workflow end-to-end", () => {

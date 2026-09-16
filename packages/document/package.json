@@ -1,7 +1,7 @@
 {
   "name": "@modeling-kit/document",
   "version": "0.1.0",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -23,5 +23,28 @@
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./dist/index.d.ts"
+  "types": "./dist/index.d.ts",
+  "description": "Canonical ModelDocument, hierarchy, and native serialization",
+  "homepage": "https://github.com/CharmingBlaze/The-Block-SDK/tree/main/packages/document",
+  "bugs": {
+    "url": "https://github.com/CharmingBlaze/The-Block-SDK/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharmingBlaze/The-Block-SDK.git",
+    "directory": "packages/document"
+  },
+  "keywords": [
+    "3d",
+    "modeling",
+    "document",
+    "scene-graph",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

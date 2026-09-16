@@ -81,6 +81,20 @@ import { createModelingSession } from "@modeling-kit/sdk";
 
 See `docs/architecture/dependency-policy.md` for the approved library set and backend wrappers.
 
+## Workers
+
+`@modeling-kit/workers` stays runtime-neutral: no `node:` imports and no `process` global. Heavy jobs (triangulate, pack UVs, validate) run through `AsyncComputePool`.
+
+| Import | Runtime |
+| --- | --- |
+| `@modeling-kit/workers` | Inline cooperative fallback. Safe for the headless SDK and for TypeScript hosts with no Node types. |
+| `@modeling-kit/workers/browser` | `new Worker(new URL(..., import.meta.url), { type: "module" })`, transferable buffers, bounded queue, crash replacement. |
+| `@modeling-kit/workers/node` | `worker_threads`. |
+
+Bundlers that honor the `browser` export condition resolve `@modeling-kit/workers` to the browser worker. Node's `node` condition resolves to `worker_threads`. Hosts construct a pool with `createInlineComputePool`, `createBrowserComputePool`, or `createNodeComputePool` and call `dispose()` on unmount. There is no shared global pool.
+
+The headless `@modeling-kit/sdk` re-exports the runtime-neutral pool so browser example apps do not pull Node types. Paint, format IO, and GPU picking stay on the main thread until they have their own task types.
+
 Input is documented in `docs/architecture/input.md`. Hosts bind DOM separately (`@modeling-kit/input/dom`); the adapter does not own keymaps.
 
 Ownership of document, session, tools, and derived Three.js objects is in `docs/architecture/ownership.md`.

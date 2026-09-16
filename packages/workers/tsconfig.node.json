@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": [
+    "src/backend.ts",
+    "src/compute-task.ts",
+    "src/inline-backend.ts",
+    "src/node-backend.ts",
+    "src/node-worker.ts",
+    "src/node.ts",
+    "src/pool.ts",
+    "src/transfer.ts",
+    "src/types.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
+}

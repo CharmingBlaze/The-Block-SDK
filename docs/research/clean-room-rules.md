@@ -6,7 +6,7 @@ This SDK is an independent TypeScript modeling foundation. Blockbench is a **ref
 
 Blockbench source code is GPL-3.0. This repository must not become a derivative work of that source.
 
-Until the repository owner chooses a licence for this SDK, treat every contribution as original work that could later be published under a permissive licence (MIT/Apache-2.0) **or** GPL. Copying GPL code would force GPL on the whole library. Do not copy it.
+This SDK is published under the MIT License (`LICENSE`). Copying GPL code would still be incompatible with that choice and would contaminate the library. Do not copy Blockbench source.
 
 ## Allowed research
 

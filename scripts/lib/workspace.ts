@@ -136,7 +136,7 @@ export const PACKAGE_LAYERS: Record<
     purpose: "Async job boundaries for heavy mesh work",
     layer: "io",
     requirementPrefixes: ["JOB"],
-    forbidden: ["three", "DOM"],
+    forbidden: ["three", "DOM in the runtime-neutral entry"],
   },
   "@modeling-kit/rigging": {
     purpose: "Skeletons and skin weights (preview)",

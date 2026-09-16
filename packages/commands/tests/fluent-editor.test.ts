@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createEditor } from "../src/index";
+import { createEditor, createModelingSession } from "../src/index";
 
 describe("FluentEditor", () => {
   it("chains spawn, tagged select, extrude, and inset", () => {
@@ -132,5 +132,22 @@ describe("FluentEditor", () => {
     expect(cube.mesh?.faces.size).toBe(12);
     editor.undo();
     expect(cube.mesh?.faces.size).toBe(6);
+  });
+
+  it("disposes an owned session and leaves a borrowed session to the host", () => {
+    const editor = createEditor();
+    editor.spawn.cube({ size: 1 });
+    editor.dispose();
+    editor.dispose();
+    expect(() => editor.spawn.cube({ size: 1 })).toThrow(/disposed/);
+
+    const session = createModelingSession();
+    const borrowed = createEditor(session);
+    borrowed.spawn.cube({ size: 1 });
+    borrowed.dispose();
+    expect(session.canUndo).toBe(true);
+    session.undo();
+    session.dispose();
+    expect(() => session.undo()).toThrow(/disposed/);
   });
 });

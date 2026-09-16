@@ -551,9 +551,6 @@ importers:
 
   packages/workers:
     dependencies:
-      '@modeling-kit/core':
-        specifier: workspace:*
-        version: link:../core
       '@modeling-kit/mesh':
         specifier: workspace:*
         version: link:../mesh

@@ -239,7 +239,7 @@ const reloaded = ModelingSession.loadNativeJson(json);
 
 **Target Packages:** `@modeling-kit/workers`, `@modeling-kit/sdk`, `apps/playground`, `apps/example-react`, `apps/example-vue`
 
-- [x] Asynchronous compute pool (`AsyncComputePool`, `defaultComputePool`) for offloading heavy geometry tasks (`triangulateAsync`, `packUvsAsync`, `validateAsync`).
+- [x] Asynchronous compute pool (`AsyncComputePool`, `createInlineComputePool` / `createBrowserComputePool` / `createNodeComputePool`) for offloading heavy geometry tasks (`triangulateAsync`, `packUvsAsync`, `validateAsync`). Hosts own the pool and `dispose()` it.
 - [x] Performance benchmarks verifying high-speed triangulation, document serialization/deserialization.
 - [x] Memory leak regression tests verifying command history depth capping across 100+ executed commands without memory bloat.
 - [x] End-to-end SDK integration test suite verifying the Milestone 1 pipeline and unified export facade.

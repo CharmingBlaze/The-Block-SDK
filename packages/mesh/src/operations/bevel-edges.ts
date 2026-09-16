@@ -250,13 +250,18 @@ function bevelEdgesUnlocked(
     const next = loop[(i + 1) % loop.length]!;
     const prevIsEdge = sameUndirected(prev, vertex, edgeA, edgeB);
     const nextIsEdge = sameUndirected(vertex, next, edgeA, edgeB);
-    const other = prevIsEdge ? next : prev;
     const selectedCount =
       (plans.some((plan) => sameUndirected(plan.a, plan.b, prev, vertex)) ? 1 : 0) +
       (plans.some((plan) => sameUndirected(plan.a, plan.b, vertex, next)) ? 1 : 0);
     if (selectedCount === 2) {
       return miterAt(vertex, prev, next);
     }
+    if (prevIsEdge === nextIsEdge) {
+      throw new RangeError(
+        `Cannot bevel vertex ${vertex}: expected exactly one adjacent loop edge to match the selected edge`,
+      );
+    }
+    const other = prevIsEdge ? next : prev;
     return offsetToward(vertex, other);
   };
 

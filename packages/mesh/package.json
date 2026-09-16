@@ -1,7 +1,7 @@
 {
   "name": "@modeling-kit/mesh",
   "version": "0.1.0",
-  "description": "Half-edge mesh kernel, adjacency queries, and triangulation for modeling-kit",
+  "description": "Half-edge mesh kernel, adjacency queries, and triangulation",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -21,8 +21,30 @@
     "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "files": [
     "dist"
-  ]
+  ],
+  "homepage": "https://github.com/CharmingBlaze/The-Block-SDK/tree/main/packages/mesh",
+  "bugs": {
+    "url": "https://github.com/CharmingBlaze/The-Block-SDK/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharmingBlaze/The-Block-SDK.git",
+    "directory": "packages/mesh"
+  },
+  "keywords": [
+    "3d",
+    "mesh",
+    "half-edge",
+    "topology",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

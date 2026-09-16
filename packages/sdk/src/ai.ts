@@ -214,6 +214,11 @@ export function getEditorToolDefinitions(): readonly EditorToolDefinition[] {
       additionalProperties: false,
       properties: {},
     }),
+    tool("save_scene", "Serialize the document to native versioned JSON for the host to persist.", {
+      type: "object",
+      additionalProperties: false,
+      properties: {},
+    }),
   ];
 }
 
@@ -337,6 +342,8 @@ export function executeEditorTool(
         return success(editor, name);
       case "inspect_scene":
         return success(editor, name);
+      case "save_scene":
+        return success(editor, name, { json: editor.session.saveNativeJson() });
       default:
         throw new RangeError(`Unknown editor tool: ${name}`);
     }

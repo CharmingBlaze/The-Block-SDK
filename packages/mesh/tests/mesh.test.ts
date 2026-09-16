@@ -136,7 +136,6 @@ describe("MeshBuilder validation", () => {
     const builder = new MeshBuilder();
     const v0 = builder.addVertex(0, 0, 0);
     const v1 = builder.addVertex(1, 0, 0);
-    const v2 = builder.addVertex(0, 1, 0);
     expect(() => builder.addFace([v0, v1, "missing" as typeof v0])).toThrow(/does not exist/);
     expect(() => builder.addFace([v0, v1, v1])).toThrow(/consecutive duplicate/);
   });

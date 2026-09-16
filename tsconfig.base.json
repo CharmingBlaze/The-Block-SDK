@@ -47,7 +47,9 @@
       "@modeling-kit/transform": ["./packages/transform/src/index.ts"],
       "@modeling-kit/uv": ["./packages/uv/src/index.ts"],
       "@modeling-kit/validation": ["./packages/validation/src/index.ts"],
-      "@modeling-kit/workers": ["./packages/workers/src/index.ts"]
+      "@modeling-kit/workers": ["./packages/workers/src/index.ts"],
+      "@modeling-kit/workers/browser": ["./packages/workers/src/browser.ts"],
+      "@modeling-kit/workers/node": ["./packages/workers/src/node.ts"]
     }
   }
 }

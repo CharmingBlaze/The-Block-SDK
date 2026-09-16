@@ -11,6 +11,8 @@ export default tseslint.config(
       "generated/**",
       ".dependency-cruiser.cjs",
       "**/vite.config.ts",
+      "**/vitest.config.ts",
+      "**/vitest.dist.config.ts",
       "**/tsup.config.ts",
     ],
   },

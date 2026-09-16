@@ -375,13 +375,31 @@ export class FluentSelection {
 export class FluentEditor {
   readonly session: ModelingSession;
   private lastObject: FluentMeshObject | null = null;
+  private readonly ownsSession: boolean;
+  private disposed = false;
 
   constructor(session?: ModelingSession) {
+    this.ownsSession = session === undefined;
     this.session = session ?? createModelingSession();
   }
 
   get selection(): FluentSelection {
     return new FluentSelection(this);
+  }
+
+  /**
+   * Releases session resources when this editor created the session.
+   * Hosts that passed an existing `ModelingSession` still own that session.
+   */
+  dispose(): void {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    this.lastObject = null;
+    if (this.ownsSession) {
+      this.session.dispose();
+    }
   }
 
   activeObject(): FluentMeshObject | undefined {

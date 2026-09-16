@@ -1,7 +1,7 @@
 {
   "name": "@modeling-kit/primitives",
   "version": "0.1.0",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -24,5 +24,27 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
-  ]
+  ],
+  "description": "Procedural mesh generators for modeling-kit",
+  "homepage": "https://github.com/CharmingBlaze/The-Block-SDK/tree/main/packages/primitives",
+  "bugs": {
+    "url": "https://github.com/CharmingBlaze/The-Block-SDK/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharmingBlaze/The-Block-SDK.git",
+    "directory": "packages/primitives"
+  },
+  "keywords": [
+    "3d",
+    "primitives",
+    "procedural",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

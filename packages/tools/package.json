@@ -1,7 +1,7 @@
 {
   "name": "@modeling-kit/tools",
   "version": "0.1.0",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -27,5 +27,27 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
-  ]
+  ],
+  "description": "Interactive tool state machines for modeling-kit",
+  "homepage": "https://github.com/CharmingBlaze/The-Block-SDK/tree/main/packages/tools",
+  "bugs": {
+    "url": "https://github.com/CharmingBlaze/The-Block-SDK/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharmingBlaze/The-Block-SDK.git",
+    "directory": "packages/tools"
+  },
+  "keywords": [
+    "3d",
+    "modeling",
+    "tools",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

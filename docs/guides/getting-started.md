@@ -29,6 +29,7 @@ const adapter = new ThreeViewportAdapter({
 });
 adapter.mount();
 adapter.dispose();
+session.dispose();
 ```
 
 ```ts
@@ -50,9 +51,12 @@ session.execute(new ExtrudeFacesCommand({ distance: 1 }));
 session.undo();
 session.redo();
 const json = session.saveNativeJson();
+session.dispose();
 ```
 
-Install from this monorepo with pnpm workspaces. Packages are private (`UNLICENSED`) until a licence is chosen.
+Install from this monorepo with pnpm workspaces. Public packages are MIT-licensed.
+
+Heavy triangulation, UV packing, and mesh validation can run on `@modeling-kit/workers`. The headless SDK re-exports the inline pool. Browser apps should import `@modeling-kit/workers/browser` and call `dispose()` when the editor unmounts; Node servers use `@modeling-kit/workers/node`.
 
 There is no Minecraft, `.bbmodel`, or game-format support. Native JSON is the only persistence format in Phase 1.
 

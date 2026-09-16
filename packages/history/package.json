@@ -1,7 +1,7 @@
 {
   "name": "@modeling-kit/history",
   "version": "0.1.0",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -25,5 +25,28 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
-  ]
+  ],
+  "description": "Undo/redo stacks and command history for modeling-kit",
+  "homepage": "https://github.com/CharmingBlaze/The-Block-SDK/tree/main/packages/history",
+  "bugs": {
+    "url": "https://github.com/CharmingBlaze/The-Block-SDK/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharmingBlaze/The-Block-SDK.git",
+    "directory": "packages/history"
+  },
+  "keywords": [
+    "3d",
+    "undo",
+    "redo",
+    "history",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

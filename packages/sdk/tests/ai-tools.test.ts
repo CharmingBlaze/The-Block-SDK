@@ -29,6 +29,7 @@ describe("editor AI tools", () => {
       "undo",
       "redo",
       "inspect_scene",
+      "save_scene",
     ]);
     for (const tool of tools) {
       expect(tool.function.parameters.type).toBe("object");
@@ -77,6 +78,14 @@ describe("editor AI tools", () => {
     const undone = executeEditorTool(editor, "undo", {});
     expect(undone.ok).toBe(true);
     expect(undone.inspection.objects[0]?.faces).toBeLessThan(inset.inspection.objects[0]?.faces ?? 0);
+
+    const saved = executeEditorTool(editor, "save_scene", {});
+    expect(saved.ok).toBe(true);
+    if (saved.ok) {
+      expect(typeof (saved.data as { json?: string }).json).toBe("string");
+      expect((saved.data as { json: string }).json).toContain("schemaVersion");
+    }
+    editor.dispose();
   });
 
   it("returns a structured failure for unknown tools", () => {

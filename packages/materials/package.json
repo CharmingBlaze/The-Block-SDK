@@ -1,7 +1,7 @@
 {
   "name": "@modeling-kit/materials",
   "version": "0.1.0",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -24,5 +24,27 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
-  ]
+  ],
+  "description": "PBR material definitions and slots for modeling-kit",
+  "homepage": "https://github.com/CharmingBlaze/The-Block-SDK/tree/main/packages/materials",
+  "bugs": {
+    "url": "https://github.com/CharmingBlaze/The-Block-SDK/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharmingBlaze/The-Block-SDK.git",
+    "directory": "packages/materials"
+  },
+  "keywords": [
+    "3d",
+    "pbr",
+    "materials",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

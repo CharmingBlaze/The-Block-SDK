@@ -18,8 +18,8 @@ Status: `OPEN` · `PARTIAL` · `CLOSED` (behavior + tests). `CLOSED` does not me
 | 7 | Vertex/object pivots and oriented scaling | CLOSED | Vertex world points, mesh AABB bounds, `activeId`, `T R S R⁻¹ T⁻¹`. Multi-object vertex edits and selection-derived normals remain medium gaps. |
 | 8 | Paint undo across tiles | CLOSED | Stroke AABB capture; sparse tiles; no full-texture baseline. |
 | 9 | One animation schema | OPEN | Document `AnimationClipData` is canonical; legacy `KeyframeTrack` remains. `CUBICSPLINE` is rejected instead of silently lerping. |
-| 10 | Real workers | PARTIAL | Node `worker_threads` exists with an explicit inline fallback. Browser `Worker`, bounded scheduler, transfer lists, and crash recovery are not done. |
-| 11 | Package exports and tarball consumers | PARTIAL | Public packages export `dist` JavaScript + types (`files: ["dist"]`). `pack:verify` (clean tarball install into Node/Vite/Vue/React) is not in the release gate. Workspace `typecheck` still pulls broken mesh source (bevel/builder `exactOptionalPropertyTypes`). |
+| 10 | Real workers | CLOSED | Runtime-neutral `@modeling-kit/workers` (inline). `@modeling-kit/workers/browser` uses `Worker`; `/node` uses `worker_threads`. Bounded queue, result transfer lists, crash replacement, `dispose()` unsubscribe + terminate. Paint/IO jobs are not task types yet. |
+| 11 | Package exports and tarball consumers | CLOSED | Public packages export `dist` (`files: ["dist"]`). `pnpm pack:verify` is in `check:release` / CI. Nested `@modeling-kit/*` versions resolve through local tarball `pnpm.overrides`. |
 
 ## Phase board (from the original audit)
 
@@ -29,7 +29,7 @@ Status: `OPEN` · `PARTIAL` · `CLOSED` (behavior + tests). `CLOSED` does not me
 | 2 Kernel correctness | Builder, concave triangulation, validator, attributes, corpus | PARTIAL — builder/triangulator started; validator, attributes, corpus open |
 | 3 Modeling behavior | Bevel, rings, marquee, snapping, pivots | PARTIAL — rings/pivots/oriented scale closed; bevel open; marquee/snapping professional gaps remain |
 | 4 Assets and animation | Materials, animation schema, skeleton, weights, data-loss reports | PARTIAL — skeleton/weights stricter; glTF reports texture/skin/clip loss; schema unification and texture export open |
-| 5 Runtime and distribution | Workers, BVH, WebGL tests, compiled exports, tarball proof | PARTIAL — dist exports; Node workers exist; BVH, browser workers, pack:verify open |
+| 5 Runtime and distribution | Workers, BVH, WebGL tests, compiled exports, tarball proof | PARTIAL — dist exports, browser/Node workers, and `pack:verify` closed; BVH/WebGL still open |
 
 ## Package overlay
 
@@ -56,12 +56,11 @@ Closed in the post-audit fix pass unless noted.
 | rigging | Cycles, duplicate IDs, parents, weights, skin collapse | Weight remap after topology; segment-distance weights |
 | animation | CUBICSPLINE reject; legacy track validation | Single schema; document-clip validation; Hermite spline |
 | formats | Empty mesh skip; STL finite; data-loss strings | Texture/skin/anim export; attribute-aware weld; OBJ UVs |
-| workers | Node `worker_threads` | Browser workers; queue; transfers |
+| workers | Inline + `/browser` + `/node`; host-owned factories; queue; result transfers; crash replace | Dedicated paint/IO jobs. Removed unsafe `defaultComputePool` singleton. |
 | three-adapter | — | BVH; demand render; context loss |
-| sdk | dist exports | pack:verify; small 1.0 surface |
+| sdk | dist exports; pack:verify in CI | small 1.0 surface |
 
 ## Next work (original overlay leftovers)
 
 1. Viewport occlusion for box/lasso (`xray: false`).
 2. Canonical animation schema (delete or wrap the legacy sampler).
-3. `pack:verify` and a clean-checkout typecheck that does not depend on stale `dist`.

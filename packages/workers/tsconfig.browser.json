@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": []
+  },
+  "include": [
+    "src/backend.ts",
+    "src/browser-backend.ts",
+    "src/browser-worker.ts",
+    "src/browser.ts",
+    "src/compute-task.ts",
+    "src/inline-backend.ts",
+    "src/pool.ts",
+    "src/transfer.ts",
+    "src/types.ts",
+    "tests/workers.browser.test.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
+}

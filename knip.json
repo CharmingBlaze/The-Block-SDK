@@ -7,8 +7,8 @@
   },
   "workspaces": {
     ".": {
-      "entry": ["scripts/**/*.ts", "vitest.config.ts", "eslint.config.js"],
-      "project": ["scripts/**/*.ts", "vitest.config.ts", "eslint.config.js"]
+      "entry": ["scripts/**/*.ts", "vitest.config.ts", "vitest.dist.config.ts", "eslint.config.js"],
+      "project": ["scripts/**/*.ts", "vitest.config.ts", "vitest.dist.config.ts", "eslint.config.js"]
     },
     "packages/*": {
       "entry": ["src/index.ts!"],
@@ -20,6 +20,10 @@
     },
     "packages/sdk": {
       "entry": ["src/index.ts!", "src/ai.ts!"],
+      "project": ["src/**/*.ts"]
+    },
+    "packages/workers": {
+      "entry": ["src/index.ts!", "src/browser.ts!", "src/node.ts!", "src/browser-worker.ts!", "src/node-worker.ts!"],
       "project": ["src/**/*.ts"]
     }
   }

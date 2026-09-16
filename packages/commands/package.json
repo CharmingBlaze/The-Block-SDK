@@ -1,7 +1,7 @@
 {
   "name": "@modeling-kit/commands",
   "version": "0.1.0",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "exports": {
@@ -38,5 +38,28 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
-  ]
+  ],
+  "description": "Undoable modeling commands and fluent editor for modeling-kit",
+  "homepage": "https://github.com/CharmingBlaze/The-Block-SDK/tree/main/packages/commands",
+  "bugs": {
+    "url": "https://github.com/CharmingBlaze/The-Block-SDK/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharmingBlaze/The-Block-SDK.git",
+    "directory": "packages/commands"
+  },
+  "keywords": [
+    "3d",
+    "modeling",
+    "commands",
+    "undo",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

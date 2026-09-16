@@ -1,5 +1,6 @@
-export { AsyncComputePool, defaultComputePool, type ComputeBackend } from "./task-runner";
+export { type ComputeBackend } from "./backend";
 export { runComputeTask } from "./compute-task";
+export { AsyncComputePool, createInlineComputePool, type AsyncComputePoolOptions } from "./pool";
 export type {
   TaskPayload,
   TaskType,

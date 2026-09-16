@@ -507,6 +507,21 @@ describe("mesh operations", () => {
     const result = bevelEdges(cube, { edgeIds, offset: 0.15, segments: 1 }, ctx);
     expect(result.chamferFaceIds.length).toBeGreaterThanOrEqual(2);
     assertManifold(cube, true);
+    for (const faceId of cube.faces.keys()) {
+      for (const vertexId of cube.getFaceVertices(faceId)) {
+        expect(cube.getVertexEdges(vertexId).length).toBeGreaterThanOrEqual(2);
+      }
+    }
+    for (const edgeId of cube.edges.keys()) {
+      const ends = cube.getEdgeVertices(edgeId);
+      expect(ends).not.toBeNull();
+      if (!ends) {
+        continue;
+      }
+      const pa = cube.vertices.get(ends[0])!.position;
+      const pb = cube.vertices.get(ends[1])!.position;
+      expect(Math.hypot(pa[0] - pb[0], pa[1] - pb[1], pa[2] - pb[2])).toBeGreaterThan(1e-8);
+    }
   });
 
   it("fills a boundary hole as an n-gon, fan, and triangles", () => {

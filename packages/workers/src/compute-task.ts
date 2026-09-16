@@ -12,17 +12,11 @@ export function runComputeTask(task: TaskPayload, signal?: AbortSignal): unknown
     return triangulateMesh(mesh, signal ? { signal } : {});
   }
   if (task.type === "pack-uv") {
-    if (signal?.aborted) {
-      throw new Error("cancelled");
-    }
     const mesh = deserializeMesh(task.payload.serializedMesh);
     packUvs(mesh, task.payload.options);
     return serializeMesh(mesh);
   }
   if (task.type === "validate") {
-    if (signal?.aborted) {
-      throw new Error("cancelled");
-    }
     const mesh = deserializeMesh(task.payload.serializedMesh);
     return validateMesh(mesh);
   }

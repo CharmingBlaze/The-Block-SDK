@@ -326,7 +326,8 @@ export {
 } from "@modeling-kit/snapping";
 export {
   AsyncComputePool,
-  defaultComputePool,
+  createInlineComputePool,
+  type ComputeBackend,
   type TaskPayload,
   type TaskType,
   type TriangulateTaskPayload,

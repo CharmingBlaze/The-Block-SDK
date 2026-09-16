@@ -23,6 +23,8 @@ export default defineConfig({
       "@modeling-kit/paint": path.resolve(__dirname, "packages/paint/src/index.ts"),
       "@modeling-kit/formats": path.resolve(__dirname, "packages/formats/src/index.ts"),
       "@modeling-kit/workers": path.resolve(__dirname, "packages/workers/src/index.ts"),
+      "@modeling-kit/workers/browser": path.resolve(__dirname, "packages/workers/src/browser.ts"),
+      "@modeling-kit/workers/node": path.resolve(__dirname, "packages/workers/src/node.ts"),
       "@modeling-kit/transform": path.resolve(__dirname, "packages/transform/src/index.ts"),
       "@modeling-kit/snapping": path.resolve(__dirname, "packages/snapping/src/index.ts"),
       "@modeling-kit/primitives": path.resolve(__dirname, "packages/primitives/src/index.ts"),

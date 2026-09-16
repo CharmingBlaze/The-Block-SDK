@@ -2,9 +2,9 @@
 
 **Audit date:** 2026-09-16 (pipeline re-verified after release-readiness fixes)  
 **Specification:** `docs/architecture/modeling-operator-specification.md`  
-**Baseline command:** `pnpm check:release` → **55 files, 356 tests passed**; clean-checkout `pnpm typecheck` passed; `pnpm examples:typecheck` passed; `pnpm lint` 0 errors; `pnpm build` passed; `pnpm arch:check` 356 modules (2026-09-16).  
-**Repo:** `3777e45` on `main` at `https://github.com/CharmingBlaze/The-Block-SDK.git` (release pipeline fixes pending commit).  
-**Release gate status:** Clean workspace TypeScript resolution, dist-based package exports, and CI/`check:release` alignment are **fixed**. Remaining before npm 1.0: public licence decision, packed-tarball consumer smoke tests, tagged release workflow, dead-code triage, README preview/deferred labelling for rigging/animation.  
+**Baseline command:** `pnpm check:release` — typecheck, examples:typecheck, lint, `pnpm test` **56 files / 410 tests**, build, `pnpm test:dist`, `pnpm arch:check` (376 modules), `pnpm pack:verify` (23 packages, 11 fixture imports). Worker Node spawn recorded 2026-09-16.  
+**Repo:** working tree on `main` at `https://github.com/CharmingBlaze/The-Block-SDK.git`.  
+**Release gate status:** Worker boundaries, packed-tarball verification, CI `check:release`, and MIT metadata are in this branch. Remaining before npm 1.0: tagged release workflow. Rigging/animation stay preview (`RIG-001` / `ANIM-001`).  
 **Rule:** `VERIFIED` requires named tests plus a recorded passing command. Non-deferred requirement rows are `VERIFIED`. Out of 1.0 scope: RIG-001, ANIM-001, BOOL-001, GPU-PICK-001, LSCM/ABF.
 
 Owner: Cursor unless a task ID assigns implementation to Antigravity.
@@ -15,7 +15,7 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 
 | Requirement ID | Requirement | Status | Implementation | Tests | Evidence | Owner | Task ID | Blocker |
 | -------------- | ----------- | ------ | -------------- | ----- | -------- | ----- | ------- | ------- |
-| ARCH-001 | Clean-room; no game formats | VERIFIED | provenance + LICENSE ARR; no game codecs in `packages/*/src` | `packages/core/tests/architecture.test.ts` | Codec scan empty; `.bbmodel`/MoLang/OptiFine forbidden | Cursor | | public licence unset (not a 1.0 codec gate) |
+| ARCH-001 | Clean-room; no game formats | VERIFIED | provenance + MIT LICENSE; no game codecs in `packages/*/src` | `packages/core/tests/architecture.test.ts` | Codec scan empty; `.bbmodel`/MoLang/OptiFine forbidden | Cursor | | |
 | ARCH-002 | Headless packages without three/DOM | VERIFIED | sdk main entry has no three-adapter import; adapter isolated | `packages/sdk/tests/headless-entry.test.ts`; `pnpm arch:check` | Main `@modeling-kit/sdk` does not require `three` | Cursor | R1-T007 | |
 | ARCH-003 | Three isolated; sdk facade headless | VERIFIED | `@modeling-kit/sdk/three` optional re-export; hosts import adapter | headless-entry.test.ts + arch:check | Optional peers `three` / `three-adapter` | Cursor | R1-T007 | |
 | ARCH-004 | Branded IDs | VERIFIED | `packages/core/src/brand.ts` string brands | architecture.test.ts + core.test.ts | IDs are branded strings, not render indices | Cursor | | |
@@ -160,11 +160,11 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 | Requirement ID | Status | Implementation | Tests | Evidence | Owner | Task ID | Blocker |
 | -------------- | ------ | -------------- | ----- | -------- | ----- | ------- | ------- |
 | LIFE-001 dispose/remount | VERIFIED | adapter, session, input, selection, paint, tools dispose idempotent | lifecycle.test.ts (16); commands session dispose; input dispose | Remount resource baseline; later execute throws | Cursor | | |
-| LIFE-002 workers/URLs | VERIFIED | `ObjectUrlRegistry`; `AsyncComputePool` clears timers/pending/URLs | lifecycle.test.ts; workers.test.ts | Dispose revokes URLs and is idempotent; pool dispose cancels in-flight timers | Cursor | | |
+| LIFE-002 workers/URLs | VERIFIED | `ObjectUrlRegistry` in core/adapter; `AsyncComputePool` cancels queued/in-flight work, unsubscribes, and terminates workers | lifecycle.test.ts; workers.test.ts; workers.browser.test.ts | Dispose is idempotent; abort/dispose do not hang; browser fake-worker crash replacement | Cursor | | |
 | PERF-001 benchmarks | VERIFIED | 10k + 100k verts triangulation; 1k nodes serialize | `packages/sdk/tests/benchmark.test.ts` | Isolated run 6 passed; 100k grid (`316×316` segments) triangulation under 15s (~8.4s isolated, ~20s wall in full suite including mesh build); four-viewport pick in adapter.test.ts | Cursor | | |
 | EXT-001 registries | VERIFIED | per-document `SceneNodeExtensionRegistry` | `packages/document/tests/document.test.ts` | Global Map removed | Cursor | R1-T008 | |
 | EXT-002 capabilities | VERIFIED | `session.capabilities.canExecute` + standalone `canExecute` | `packages/commands/tests/capabilities.test.ts` | 292 tests; typecheck | Cursor | R1-T009 | |
-| AI-001 tool schemas | VERIFIED | `getEditorToolDefinitions` / `executeEditorTool` | ai-tools.test.ts (3) | Frozen name list; additionalProperties false | Cursor | | |
+| AI-001 tool schemas | VERIFIED | `getEditorToolDefinitions` / `executeEditorTool` including `save_scene` | ai-tools.test.ts (3) | Frozen name list; additionalProperties false; native JSON in `data.json` | Cursor | | |
 | DX-001 docs/examples | VERIFIED | architecture docs; `docs/guides/getting-started.md`; `pnpm examples:typecheck` in CI | `.github/workflows/ci.yml` | CI runs examples typecheck | Cursor | | |
 | RIG-001 / ANIM-001 | DEFERRED | packages exist with small tests | rigging.test.ts (3), animation.test.ts (3) | Preview only; not 1.0 gate | Cursor | | |
 | BOOL-001 | DEFERRED | not in 1.0 | — | Manifold boolean backend is 1.1 | Cursor | | |
@@ -202,6 +202,6 @@ pnpm check:release
 Release-readiness fixes applied in this pass:
 
 - Central workspace `paths` in `tsconfig.base.json` (replaces incomplete per-package path tables).
-- All publishable packages export compiled `dist/` (`files: ["dist"]`, version `0.1.0`, `license: UNLICENSED`).
+- All publishable packages export compiled `dist/` (`files: ["dist"]`, version `0.1.0`, `license: MIT`).
 - Removed bogus `@modeling-kit/validation` CommonJS export (`index.cjs` was never built).
 - CI and `check:release` run the full gate sequence including `lint` and `examples:typecheck`.

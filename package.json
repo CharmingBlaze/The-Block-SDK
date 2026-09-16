@@ -2,7 +2,7 @@
   "name": "modeling-kit",
   "private": true,
   "version": "0.0.0",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "packageManager": "pnpm@11.7.0",
   "type": "module",
   "scripts": {
@@ -21,10 +21,13 @@
     "repo:context": "tsx scripts/generate-agent-context.ts",
     "arch:check": "depcruise packages --config .dependency-cruiser.cjs",
     "deadcode": "knip --no-exit-code",
+    "clean:dist": "tsx scripts/clean-dist.ts",
     "check:changed": "tsx scripts/check-changed-packages.ts",
     "check:agent": "tsx scripts/check-agent-task.ts",
     "pack:verify": "tsx scripts/pack-verify.ts",
-    "check:release": "pnpm typecheck && pnpm examples:typecheck && pnpm lint && pnpm test && pnpm build && pnpm arch:check && pnpm pack:verify"
+    "sync:metadata": "tsx scripts/sync-package-metadata.ts",
+    "test:dist": "vitest run --config vitest.dist.config.ts",
+    "check:release": "pnpm typecheck && pnpm examples:typecheck && pnpm lint && pnpm test && pnpm build && pnpm test:dist && pnpm arch:check && pnpm pack:verify"
   },
   "devDependencies": {
     "@eslint/js": "^9.35.0",

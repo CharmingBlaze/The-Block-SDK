@@ -4,9 +4,9 @@ Record every research source and every third-party dependency. If Blockbench sou
 
 ## Repository licence (this SDK)
 
-**Status:** unset.
+**Status:** MIT.
 
-No `LICENSE` file exists yet. Do not assume MIT, Apache-2.0, or GPL.
+`LICENSE` is the MIT License. Host applications may depend on these packages without inheriting GPL from Blockbench, which remains a capability reference only.
 
 ## Blockbench (reference product only)
 

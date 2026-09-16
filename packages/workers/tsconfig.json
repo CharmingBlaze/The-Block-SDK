@@ -1,11 +1,20 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    "lib": ["ES2022"],
+    "types": ["node"]
   },
   "include": [
-    "src",
-    "tests"
+    "src/backend.ts",
+    "src/compute-task.ts",
+    "src/index.ts",
+    "src/inline-backend.ts",
+    "src/pool.ts",
+    "src/transfer.ts",
+    "src/types.ts",
+    "tests/workers.test.ts",
+    "tests/workers.dist.spec.ts"
   ],
   "exclude": [
     "dist",

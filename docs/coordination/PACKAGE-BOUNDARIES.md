@@ -43,7 +43,7 @@ math
 | tools | core, math, mesh, input | OK; **re-exports mesh operators** (misplaced API) |
 | commands | core, math, document, history, mesh, scene, selection, tools, materials, uv, rigging, animation, transform, snapping, paint, primitives, validation | Wide; depends on **tools** |
 | formats | core, math, mesh, document, scene | OK |
-| workers | core, mesh, uv, validation | OK |
+| workers | mesh, uv, validation | OK; runtime-neutral entry has no `node:` / `process`; `/browser` and `/node` are explicit |
 | rigging / animation | document/mesh | Preview; deferred 1.0 gate |
 | three-adapter | commands, core, document, mesh, scene, rigging; **peer three** | OK isolation |
 | sdk | headless facade; optional peer three-adapter for `./three` | ARCH-003 |
