@@ -94,7 +94,7 @@ Not created (equivalents exist): `docs/architecture/package-boundaries.md`, `sta
 
 ### Knip (`pnpm deadcode`)
 
-- Unused files (review later, do not delete now): `packages/document/src/serialization.ts`, `packages/document/src/validate.ts`, `packages/selection/src/types.ts`.
+- Many unused *internal* exports and types. Public entries use `src/index.ts!` so package-root exports are treated as used. Classification: `docs/verification/knip-inventory.md`. `pnpm deadcode:files` fails on new unused files.
 - Unused workspace dependencies listed in several package.json files (commands→snapping, etc.) — may be pending implementation; not a deletion list.
 - Many unused *internal* exports and types. Public entries use `src/index.ts!` so package-root exports are treated as used.
 - `ignoreIssues` for `packages/**/tests/**` / `unlisted`: tests import sibling packages through Vitest aliases; those are not runtime dependencies. Reason recorded here, not as silent cleanup.

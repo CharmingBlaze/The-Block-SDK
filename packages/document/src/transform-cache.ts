@@ -47,6 +47,12 @@ export class WorldTransformCache {
     }
   }
 
+  clear(): void {
+    this.entries.clear();
+    this.localRevisions.clear();
+    this.worldClock = 1;
+  }
+
   getWorldMatrix(document: ModelDocument, nodeId: NodeId): Matrix4 {
     const chain: NodeId[] = [];
     let current: NodeId | null = nodeId;

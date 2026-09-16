@@ -812,6 +812,41 @@ describe("create cube, extrude, undo, redo", () => {
     expect(() => session.saveNativeJson()).toThrow(disposed);
     expect(() => session.markSaved()).toThrow(disposed);
     expect(() => session.resetSessionDocument()).toThrow(disposed);
+    expect(() => session.replaceFromNativeJson("{}")).toThrow(disposed);
+    expect(() => session.beginHistoryTransaction()).toThrow(disposed);
+    expect(() => session.commitHistoryTransaction()).toThrow(disposed);
+    expect(() => session.rollbackHistoryTransaction()).toThrow(disposed);
     void cube;
+  });
+
+  it("replaces the live document from native JSON without creating a new session", () => {
+    const session = createModelingSession(createSequenceIdFactory("replace-json"));
+    const first = session.execute(new CreatePrimitiveCommand("cube", { width: 1, height: 1, depth: 1, name: "Keep" }));
+    const json = session.serializeNativeJson();
+    session.execute(new CreatePrimitiveCommand("plane", { name: "Drop" }));
+    expect(session.meshes.size).toBe(2);
+    session.replaceFromNativeJson(json);
+    expect(session.meshes.size).toBe(1);
+    expect(session.document.scene.nodes.has(first.objectId)).toBe(true);
+    expect(session.history.canUndo).toBe(false);
+    expect(() => session.replaceFromNativeJson("{")).toThrow(/malformed/i);
+    expect(session.meshes.size).toBe(1);
+    session.dispose();
+  });
+
+  it("rolls back an open history transaction", () => {
+    const session = createModelingSession(createSequenceIdFactory("history-tx"));
+    session.beginHistoryTransaction();
+    session.execute(new CreatePrimitiveCommand("cube", { width: 1, height: 1, depth: 1 }));
+    session.rollbackHistoryTransaction();
+    expect(session.meshes.size).toBe(0);
+    expect(session.history.canUndo).toBe(false);
+    session.beginHistoryTransaction();
+    session.execute(new CreatePrimitiveCommand("cube", { width: 1, height: 1, depth: 1 }));
+    session.commitHistoryTransaction("cube");
+    expect(session.meshes.size).toBe(1);
+    session.undo();
+    expect(session.meshes.size).toBe(0);
+    session.dispose();
   });
 });

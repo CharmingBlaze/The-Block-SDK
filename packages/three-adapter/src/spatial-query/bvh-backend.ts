@@ -26,9 +26,7 @@ export class BvhSpatialQuery implements SpatialQueryBackend {
   }
 
   syncPrimitives(primitives: readonly SpatialAabb[]): void {
-    if (this.disposed) {
-      return;
-    }
+    this.assertOpen();
     const next = spatialPrimitivesFingerprint(primitives);
     if (!shouldRebuildSpatialIndex(this.fingerprint, next)) {
       return;
@@ -69,6 +67,12 @@ export class BvhSpatialQuery implements SpatialQueryBackend {
     this.tree = undefined;
     this.fingerprint = undefined;
     this.primitiveCount = 0;
+  }
+
+  private assertOpen(): void {
+    if (this.disposed) {
+      throw new Error("BvhSpatialQuery is disposed");
+    }
   }
 }
 

@@ -4,6 +4,7 @@ import {
   deserializeMesh,
   serializeMesh,
   type CubeFaceIds,
+  type HalfEdgeMesh,
   type SerializedMesh,
 } from "@modeling-kit/mesh";
 import type { PrimitiveFaceGroups, PrimitiveResult } from "@modeling-kit/primitives";
@@ -73,6 +74,59 @@ export function unpersistGeneratedPrimitive(context: CommandContext, result: Cre
   context.document.meshes.delete(result.meshId);
   context.meshes.delete(result.meshId);
   context.events.emit("document:changed", { aspect: "scene", objectIds: [result.objectId] });
+}
+
+export function persistImportedMesh(
+  context: CommandContext,
+  mesh: HalfEdgeMesh,
+  name: string,
+): CreatePrimitiveResult {
+  const meshId = mesh.id;
+  const kernel = serializeMesh(mesh);
+  const groups: PrimitiveFaceGroups = {
+    top: [],
+    bottom: [],
+    front: [],
+    back: [],
+    sides: [],
+    caps: [],
+  };
+  context.meshes.set(meshId, mesh);
+  context.document.meshes.set({
+    id: meshId,
+    name,
+    kernel,
+    materialIds: [],
+    metadata: {},
+  });
+  const objectId = context.ids.object();
+  addNode(context.document, objectId, {
+    name,
+    type: "mesh_instance",
+    payloadRef: meshId,
+  });
+  const fallback = [...mesh.faces.keys()][0];
+  if (!fallback) {
+    throw new RangeError("Imported mesh has no faces");
+  }
+  const result: CreatePrimitiveResult = {
+    objectId,
+    meshId,
+    groups,
+    faceIds: {
+      posX: fallback,
+      negX: fallback,
+      posY: fallback,
+      negY: fallback,
+      posZ: fallback,
+      negZ: fallback,
+      top: fallback,
+      bottom: fallback,
+    },
+  };
+  context.events.emit("document:changed", { aspect: "scene", objectIds: [objectId] });
+  context.events.emit("mesh:changed", { meshIds: [meshId] });
+  return result;
 }
 
 function cubeFaceIdsFromGroups(

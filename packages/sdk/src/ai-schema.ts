@@ -4,8 +4,14 @@ export interface ToolValidationIssue {
   readonly message: string;
 }
 
+export type EditorToolFailureCode =
+  | "invalid_json"
+  | "invalid_argument"
+  | "invalid_state"
+  | "operation_failed";
+
 export class ToolArgumentError extends TypeError {
-  readonly code = "invalid_argument";
+  readonly code = "invalid_argument" as const;
   readonly retryable = true;
   readonly field?: string;
   readonly issues: readonly ToolValidationIssue[];
@@ -17,6 +23,18 @@ export class ToolArgumentError extends TypeError {
       this.field = options.field;
     }
     this.issues = options.issues ?? [];
+  }
+}
+
+export class ToolJsonError extends TypeError {
+  readonly code = "invalid_json" as const;
+  readonly retryable = false;
+  readonly issues: readonly ToolValidationIssue[];
+
+  constructor(message: string) {
+    super(message);
+    this.name = "ToolJsonError";
+    this.issues = [{ code: "type", path: "", message }];
   }
 }
 

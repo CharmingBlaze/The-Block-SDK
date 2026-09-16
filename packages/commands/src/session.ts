@@ -4,6 +4,7 @@ import {
   createIdFactory,
   emptyResourceDiagnostics,
   type BoneId,
+  type Brand,
   type EditorEvents,
   type IdFactory,
   type MeshId,
@@ -19,6 +20,8 @@ import {
   createModelDocument,
   parseDocument,
   serializeDocument,
+  worldTransformCache,
+  EntityStore,
   type AnimationClipData,
   type ModelDocument,
 } from "@modeling-kit/document";
@@ -338,6 +341,64 @@ export class ModelingSession {
   }
 
   /**
+   * Replace this session's document from native JSON. Non-undoable.
+   * Invalid JSON is rejected before the current document is touched.
+   */
+  replaceFromNativeJson(json: string): void {
+    this.assertOpen();
+    const source = parseDocument(json);
+    if (this.gesture) {
+      this.cancelTransform();
+    }
+    if (this.paintStroke) {
+      this.cancelPaintStroke();
+    }
+    this.selection.clear();
+    this.meshes.clear();
+    this.textures.clear();
+    this.history.clear();
+    this.document.schemaVersion = source.schemaVersion;
+    this.document.revision = source.revision;
+    this.document.revisions = source.revisions;
+    this.document.id = source.id;
+    this.document.name = source.name;
+    this.document.settings = source.settings;
+    this.document.metadata = { ...source.metadata };
+    this.document.lifecycle = source.lifecycle;
+    this.document.scene.rootNodeId = source.scene.rootNodeId;
+    this.document.scene.rootIds = [...source.scene.rootIds];
+    copyStore(this.document.scene.nodes, source.scene.nodes);
+    copyStore(this.document.meshes, source.meshes);
+    copyStore(this.document.materials, source.materials);
+    copyStore(this.document.materialInstances, source.materialInstances);
+    copyStore(this.document.textures, source.textures);
+    copyStore(this.document.textureSets, source.textureSets);
+    copyStore(this.document.images, source.images);
+    copyStore(this.document.skeletons, source.skeletons);
+    copyStore(this.document.animations, source.animations);
+    worldTransformCache(this.document).clear();
+    this.hydrateMeshes();
+    this.hydrateTextures();
+    this.events.emit("document:changed", { aspect: "scene" });
+    this.events.emit("mesh:changed", { meshIds: [...this.meshes.keys()] });
+  }
+
+  beginHistoryTransaction(): void {
+    this.assertOpen();
+    this.history.beginTransaction();
+  }
+
+  commitHistoryTransaction(label = "Agent transaction"): void {
+    this.assertOpen();
+    this.history.commitTransaction(label);
+  }
+
+  rollbackHistoryTransaction(): void {
+    this.assertOpen();
+    this.history.rollbackTransaction(this.context());
+  }
+
+  /**
    * Non-undoable document reset. Clears scene nodes, meshes, textures, selection, and history.
    * Hosts that need an undoable edit should delete selected objects through commands instead.
    */
@@ -438,6 +499,16 @@ export class ModelingSession {
 
 export function createModelingSession(ids?: IdFactory): ModelingSession {
   return new ModelingSession({ ids });
+}
+
+function copyStore<T extends { readonly id: Brand<string, string> }>(
+  target: EntityStore<T>,
+  source: EntityStore<T>,
+): void {
+  target.clear();
+  for (const item of source.values()) {
+    target.set(item);
+  }
 }
 
 function isSerializedMesh(value: unknown): value is SerializedMesh {

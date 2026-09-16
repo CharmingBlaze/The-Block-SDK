@@ -58,6 +58,7 @@ export {
 export { UpdateMaterialCommand, type UpdateMaterialParams } from "./update-material";
 export { canExecute, type CapabilityDecision, type CapabilityContext } from "./capabilities";
 export { ModelingSession, createModelingSession } from "./session";
+export { ImportMeshCommand } from "./import-mesh";
 export { unwrapSessionMesh, type SessionAutomaticUnwrapParams } from "./session-unwrap";
 export { CreateMaterialCommand, type CreateMaterialParams } from "./create-material";
 export { AssignMaterialCommand, type AssignMaterialParams } from "./assign-material";

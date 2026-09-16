@@ -6,7 +6,8 @@
   "ignoreIssues": {
     "packages/**/tests/**": ["unlisted"],
     "packages/primitives/src/planar.ts": ["duplicates"],
-    "packages/sdk/package.json": ["optionalPeerDependencies"]
+    "packages/sdk/package.json": ["optionalPeerDependencies"],
+    "packages/formats/src/gltf/validation/validate-roundtrip.ts": ["files", "exports", "types"]
   },
   "workspaces": {
     ".": {

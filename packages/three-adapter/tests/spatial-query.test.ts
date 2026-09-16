@@ -81,6 +81,25 @@ describe("SpatialQueryBackend", () => {
     const b = { objectId: "b", min: { x: 2, y: 0, z: 0 }, max: { x: 3, y: 1, z: 1 }, revision: 2 };
     expect(spatialPrimitivesFingerprint([a, b])).toBe(spatialPrimitivesFingerprint([b, a]));
   });
+
+  it("rejects mutation after dispose and leaves raycast empty", () => {
+    const backend = new BvhSpatialQuery([
+      { objectId: "near", min: { x: -0.5, y: -0.5, z: 1 }, max: { x: 0.5, y: 0.5, z: 2 }, revision: 1 },
+    ]);
+    backend.dispose();
+    expect(() =>
+      backend.syncPrimitives([
+        { objectId: "near", min: { x: -0.5, y: -0.5, z: 1 }, max: { x: 0.5, y: 0.5, z: 2 }, revision: 1 },
+      ]),
+    ).toThrow(/disposed/);
+    expect(
+      backend.raycast({
+        origin: { x: 0, y: 0, z: 0 },
+        direction: { x: 0, y: 0, z: 1 },
+      }),
+    ).toBeNull();
+    backend.dispose();
+  });
 });
 
 describe("adapter spatial BVH", () => {

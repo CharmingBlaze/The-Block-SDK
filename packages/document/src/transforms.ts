@@ -2,11 +2,11 @@ import {
   identityTransform,
   matrixToTransform,
   transformToMatrix,
-  Matrix4,
   Quaternion,
-  Vector3,
+  type Matrix4,
   type TransformData,
   type Vec3,
+  type Vector3,
 } from "@modeling-kit/math";
 import { SingularTransformError } from "@modeling-kit/core";
 import type { Transform } from "./scene-node";

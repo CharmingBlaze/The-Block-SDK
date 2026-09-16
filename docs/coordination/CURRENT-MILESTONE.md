@@ -8,7 +8,9 @@
 
 ## Just finished
 
-Audit-repair `e8233db` on `main`. GitHub Actions [run 35060344278](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35060344278) succeeded: `verify` (`pnpm check:release`), `clean-typecheck`, `webgl-smoke`.
+Re-audit 0.1 follow-ups on `main`. Recorded this pass: `pnpm test` **115 files / 705 tests**; `pnpm typecheck` 24 packages; `pnpm lint` exit 0; `pnpm deadcode:gate` exit 0.
+
+Audit-repair `e8233db` on `main`. GitHub Actions [run 35060344278](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35060344278) succeeded: `verify` (`pnpm check:release`), `clean-typecheck`, `webgl-smoke`. Packed export-path checks landed in `a88debc`.
 
 ## Next
 
@@ -19,17 +21,12 @@ Out of 1.0: BOOL-001, LSCM/ABF, and preview-only rigging/animation **authoring**
 ## Last gate
 
 ```text
-pnpm check:release      # exit 0 (~113s) after knip optional-peer ignore
-pnpm typecheck          # packages passed; @modeling-kit/formats mapped for clean clones
-pnpm examples:typecheck # example-react, example-vue, geometry-gallery, playground, scratch-host, webgl-smoke
+pnpm test               # 115 files, 705 tests (benches are pnpm test:bench)
+pnpm typecheck          # 24 packages
 pnpm lint               # eslint . exit 0
-pnpm test               # 114 files, 690 tests (benches are pnpm test:bench)
-pnpm build              # packages/* tsup passed
-pnpm test:dist          # 1 file, 3 tests (compiled Node worker_threads)
-pnpm arch:check         # 742 modules, 2816 dependencies, no violations
-pnpm pack:verify        # 24 packages, 14 fixture imports
-pnpm release:check      # 24 packages at 0.1.0 (no tag required locally)
-pnpm deadcode:gate      # unused deps + duplicate exports; sdk/three is a knip entry
-pnpm test:webgl         # 1 passed (real WebGL GPU picking smoke)
-# CI e8233db https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35060344278 success
+pnpm deadcode:gate      # unused deps + duplicates + unused-files allowlist
+# Last full check:release + CI: e8233db https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35060344278
+# pnpm check:release      # exit 0 on e8233db (~113s)
+# pnpm pack:verify        # 24 packages, 14 fixture imports (e8233db / a88debc packing rules)
+# pnpm test:webgl         # 1 passed
 ```

@@ -55,5 +55,15 @@ Pass `tools` to the model as function/tool definitions. On each tool call, run `
 | `undo` / `redo` | History |
 | `inspect_scene` | Compact structured summary |
 | `save_scene` | Native versioned JSON in `data.json` |
+| `load_scene` | Replace the session from native JSON (non-undoable) |
+| `list_objects` | Search by id, name, type, parent, or bounds |
+| `inspect_mesh` | Topology, tags, seams, and creases |
+| `query_near` | Snap-query components near a world point |
+| `import_mesh` | OBJ text → new object + conversion report |
+| `export_mesh` | OBJ or ASCII STL + conversion report |
+| `begin_transaction` / `commit_transaction` / `rollback_transaction` | Multi-tool undo group |
+| `issue_request_id` | Mint an idempotency key |
 
-Unknown tool names and invalid arguments return `{ ok: false, error }` without throwing. Schema mismatches set `retryable: true` and a `field` path when possible. `select_components` unions every requested face tag. `merge_vertices` `custom` / `cursor` require `position` / `cursorPosition`. See [Fluent editor](fluent-editor.md) for the underlying operators.
+Unknown tool names and invalid arguments return `{ ok: false, error, code, retryable, inspection }` without throwing. `code` is `invalid_json`, `invalid_argument`, `invalid_state`, or `operation_failed`. Schema mismatches set `retryable: true`, a `field` path when possible, and the full validator `issues` array. Malformed JSON sets `code: "invalid_json"` and `retryable: false`. Pass `clientRequestId` (from `issue_request_id` or the host) to retry a tool without applying it twice.
+
+`select_components` unions every requested face tag. `merge_vertices` `custom` / `cursor` require `position` / `cursorPosition`. See [Fluent editor](fluent-editor.md) for the underlying operators.

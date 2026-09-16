@@ -11,6 +11,9 @@ export { wrapTime } from "./evaluation/time";
 export { evaluateTrackValue } from "./evaluation/evaluate-track";
 export { AnimationPlayer, reverseClip, scaleClipTime } from "./playback/player";
 export { CanonicalClipBuilder } from "./model/clip";
+export { keyframe } from "./model/keyframe";
+export { marker } from "./model/marker";
+export { isLooping, type LoopPolicy } from "./playback/loop-policy";
 export { AnimationClipBuilder, evaluateClip, type EvaluatedTransform } from "./compatibility/legacy-clip";
 export { findKeyframeIndex, sampleTrack, validateKeyframeTrack } from "./compatibility/sample-legacy";
 export {

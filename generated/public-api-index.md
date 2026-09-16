@@ -27,6 +27,10 @@ Entry: `packages/animation/src/index.ts`
 | `reverseClip` | export | no |
 | `scaleClipTime` | export | no |
 | `CanonicalClipBuilder` | export | no |
+| `keyframe` | export | no |
+| `marker` | export | no |
+| `isLooping` | export | no |
+| `LoopPolicy` | export | no |
 | `AnimationClipBuilder` | export | no |
 | `evaluateClip` | export | no |
 | `EvaluatedTransform` | export | no |
@@ -120,6 +124,7 @@ Entry: `packages/commands/src/index.ts`
 | `CapabilityContext` | export | no |
 | `ModelingSession` | export | no |
 | `createModelingSession` | export | no |
+| `ImportMeshCommand` | export | no |
 | `unwrapSessionMesh` | export | no |
 | `SessionAutomaticUnwrapParams` | export | no |
 | `CreateMaterialCommand` | export | no |
@@ -1290,6 +1295,7 @@ Entry: `packages/sdk/src/index.ts`
 | `ConnectVerticesCommand` | export | no |
 | `MergeVerticesCommand` | export | no |
 | `TriangulateFacesCommand` | export | no |
+| `ImportMeshCommand` | export | no |
 | `ModelingSession` | export | no |
 | `createModelingSession` | export | no |
 | `FluentEditor` | export | no |
@@ -1480,6 +1486,8 @@ Entry: `packages/sdk/src/index.ts`
 | `EditorToolResult` | export | no |
 | `EditorToolSuccess` | export | no |
 | `EditorToolFailure` | export | no |
+| `EditorToolFailureCode` | export | no |
+| `ToolValidationIssue` | export | no |
 | `JsonSchemaObject` | export | no |
 | `ToolDefinition` | export | no |
 | `ToolExecutionResult` | export | no |
@@ -1500,12 +1508,16 @@ Entry: `packages/sdk/src/index.ts`
 | `evaluateClip` | export | no |
 | `evaluateDocumentClip` | export | no |
 | `findKeyframeIndex` | export | no |
+| `isLooping` | export | no |
+| `keyframe` | export | no |
+| `marker` | export | no |
 | `sampleTrack` | export | no |
 | `EvaluatedTransform` | export | no |
 | `AnimationClip` | export | no |
 | `AnimationInterpolation` | export | no |
 | `AnimationPath` | export | no |
 | `KeyframeTrack` | export | no |
+| `LoopPolicy` | export | no |
 | `TextureBuffer` | export | no |
 | `PaintEngine` | export | no |
 | `drawBrushDab` | export | no |
@@ -1769,6 +1781,8 @@ Entry: `packages/sdk/src/ai.ts`
 
 | Name | Kind | Deprecated |
 | ---- | ---- | ---------- |
+| `EditorToolFailureCode` | type | no |
+| `ToolValidationIssue` | type | no |
 | `JsonSchemaObject` | interface | no |
 | `EditorToolDefinition` | interface | no |
 | `EditorToolSuccess` | type | no |

@@ -719,6 +719,27 @@ export class FluentEditor {
     return inspectScene(this.session);
   }
 
+  loadNativeJson(json: string): this {
+    this.session.replaceFromNativeJson(json);
+    this.lastObject = null;
+    return this;
+  }
+
+  beginTransaction(): this {
+    this.session.beginHistoryTransaction();
+    return this;
+  }
+
+  commitTransaction(label?: string): this {
+    this.session.commitHistoryTransaction(label);
+    return this;
+  }
+
+  rollbackTransaction(): this {
+    this.session.rollbackHistoryTransaction();
+    return this;
+  }
+
   clear(): this {
     this.session.resetSessionDocument();
     this.lastObject = null;
