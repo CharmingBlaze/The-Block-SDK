@@ -348,9 +348,16 @@ export {
   identityTransform,
   transformToMatrix,
   matrixToTransform,
+  defaultGeometryPredicates,
+  orient2d,
+  orient3d,
+  orientation2d,
+  orientation3d,
   type Vec3,
   type Quat,
   type TransformData,
+  type GeometryPredicates,
+  type PredicateSign,
 } from "@modeling-kit/math";
 export {
   brand,

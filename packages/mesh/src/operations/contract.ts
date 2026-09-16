@@ -8,6 +8,14 @@ import type {
 import type { HalfEdgeMesh } from "../half-edge-mesh";
 import { restoreMesh, serializeMesh } from "../serialize";
 
+/**
+ * Distance, angle, and snapping thresholds for mesh operations.
+ *
+ * Orientation *signs* (left/right, CCW/CW, above/below, collinear/coplanar)
+ * use `@modeling-kit/math` `GeometryPredicates`, not these epsilons.
+ *
+ * @see docs/guides/geometry-predicates.md
+ */
 export interface GeometryTolerance {
   readonly epsilon: number;
   readonly angleEpsilon: number;

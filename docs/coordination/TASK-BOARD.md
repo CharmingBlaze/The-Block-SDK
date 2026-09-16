@@ -34,6 +34,12 @@ Tooling setup (Serena, Repomix, dependency-cruiser, Knip, fast-check) is Cursor-
 | R1-T007 | Split `@modeling-kit/sdk` headless vs three | INTEGRATED | `tasks/R1-T007.md` |
 | R1-T008 | Replace `extensionNodeRegistry` global | INTEGRATED | `tasks/R1-T008.md` |
 
+## Library integrations
+
+| Task ID | Title | State | Allowed packages | Packet |
+| ------- | ----- | ----- | ---------------- | ------ |
+| R1-T013 | Robust geometric predicates | VERIFIED | `@modeling-kit/math` (+ mesh/selection call sites) | `tasks/R1-T013.md` |
+
 ## Backlog
 
 None in M3–M7. Next Cursor-owned work is M8–M12 (box/lasso, formats, UV/paint evidence, CI, perf/lifecycle). Do not start without a new packet.
@@ -49,3 +55,4 @@ None in M3–M7. Next Cursor-owned work is M8–M12 (box/lasso, formats, UV/pain
 - R1-T009 — 2026-09-15. `session.capabilities.canExecute`.
 - R1-T011 — 2026-09-15. Concave L-face inset (distance 0.05; large inset still inverts).
 - R1-T012 — 2026-09-15. Two connected cube edges bevel.
+- R1-T013 — 2026-09-16. `robust-predicates` behind `GeometryPredicates`. Focused tests 78 passed; math/mesh/selection/sdk typecheck passed.

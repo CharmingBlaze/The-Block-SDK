@@ -1,5 +1,5 @@
 import type { FaceId } from "@modeling-kit/core";
-import { Vector3 } from "@modeling-kit/math";
+import { planarTurnSign, Vector3 } from "@modeling-kit/math";
 import { cloneMesh, restoreMesh, serializeMesh } from "../serialize";
 import type { HalfEdgeMesh } from "../half-edge-mesh";
 import { faceNormal } from "../internal/delete-face";
@@ -31,8 +31,7 @@ function isConvexQuad(mesh: HalfEdgeMesh, faceId: FaceId): boolean {
     const a = pts[i]!;
     const b = pts[(i + 1) % 4]!;
     const c = pts[(i + 2) % 4]!;
-    const cross = b.clone().sub(a).cross(c.clone().sub(b));
-    const s = Math.sign(cross.dot(n));
+    const s = planarTurnSign(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z, n.x, n.y, n.z);
     if (s === 0) {
       continue;
     }

@@ -131,6 +131,41 @@ All of the following are **root `devDependencies` only**. They must not appear o
 
 Do not add a dependency that is GPL unless the owner has chosen GPL for this SDK.
 
+## robust-predicates 3.0.3 (Unlicense) — 2026-09-16
+
+Added as a runtime dependency of `@modeling-kit/math` only. Conversion boundary: `packages/math/src/predicates.ts` (`GeometryPredicates`).
+
+1. Problem: naive 2D/3D cross products lose the sign of orientation for near-collinear, near-coplanar, tiny, huge, and mixed-scale coordinates, which corrupts winding, ear clipping, segment intersection, and knife/split classification.  
+2. Why current stack cannot: `GeometryTolerance` is a magnitude threshold. It cannot recover a reliable left/right or above/below sign.  
+3. Bundle-size: small pure-JS Shewchuk port; isolated to `@modeling-kit/math`.  
+4. Runtime cost: ordinary floating-point on the easy path; adaptive exact arithmetic only when the determinant is ambiguous. No WASM, workers, or caches.  
+5. Licence: Unlicense (public domain).  
+6. Maintenance: Vladimir Agafonkin / mourner; widely used (Earcut, Mapbox).  
+7. Browser/Node: ESM, no DOM, Node >= 22.  
+8. Canonical model: unchanged. Predicates classify signs; they do not store mesh data.  
+9. Abstraction: mesh, selection, and knife import `@modeling-kit/math` only. The library’s Y-down convention is negated so SDK winding stays Y-up CCW-positive.  
+10. Tests: `packages/math/tests/predicates.test.ts`, `packages/mesh/tests/predicates-regression.test.ts`, existing triangulation/operations/selection tests.
+
+Distance, snapping, weld, and user tolerances remain `GeometryTolerance` (`docs/guides/geometry-predicates.md`).
+
+## primitive-geometry 2.11.0 (MIT) — 2026-09-16
+
+Added as a runtime dependency of `@modeling-kit/primitives` only. Conversion boundary: `convertSimplicialComplex`.
+
+1. Problem: the SDK needed additional render-ready recipes (rounded cube, squircle, Reuleaux, ellipsoid, platonic solids, annulus) with UVs, normals, and cell indices, without inventing a second mesh format.  
+2. Why current stack cannot: existing generators cover the modeling box/plane/cylinder set; they do not implement rounded-cube fillets, Fernández-Guasti squircles, or Reuleaux polygons.  
+3. Bundle-size: ~30KB advertised minzip for the library; isolated to the primitives package.  
+4. Runtime cost: one-shot typed-array generation then a single weld/convert into `HalfEdgeMesh`. No per-frame cost.  
+5. Licence: MIT (Damien Seguin). Copyright notice retained via the npm package.  
+6. Maintenance: stable 2.x, zero runtime dependencies.  
+7. Browser/Node: ESM, Node >= 22, no DOM.  
+8. Canonical model: unchanged. Library arrays are discarded after conversion. `ModelDocument` still stores serialized half-edge meshes.  
+9. Abstraction: `convertSimplicialComplex` is the only import site. Commands, triangulation, Three.js adapter, undo, and validation never import `primitive-geometry`.  
+10. Tests: `packages/primitives/tests/library.test.ts`; command undo in `packages/commands/tests/library-primitive.test.ts`; adapter rebuild/dispose in `packages/three-adapter/tests/adapter.test.ts`. Visual fixture: `apps/_tmp-geometry-gallery`.
+
+Excluded library entries: `circle` (polyline, no faces) and catalog `box`/`cube` (SDK keeps the 6-quad modeling bar). The converter still accepts the library `box` (no UVs/normals) and `cube` in tests.
+
+
 ## Incident log
 
 No GPL code has been copied. No implementation phase has started.

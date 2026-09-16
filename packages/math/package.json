@@ -42,5 +42,8 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "robust-predicates": "^3.0.3"
   }
 }

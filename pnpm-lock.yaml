@@ -48,6 +48,28 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@24.13.4)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
 
+  apps/_tmp-geometry-gallery:
+    dependencies:
+      '@modeling-kit/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@modeling-kit/three-adapter':
+        specifier: workspace:*
+        version: link:../../packages/three-adapter
+      three:
+        specifier: ^0.180.0
+        version: 0.180.0
+    devDependencies:
+      '@types/three':
+        specifier: ^0.180.0
+        version: 0.180.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^5.4.14
+        version: 5.4.21(@types/node@24.13.4)
+
   apps/example-react:
     dependencies:
       '@modeling-kit/sdk':
@@ -297,7 +319,11 @@ importers:
         specifier: workspace:*
         version: link:../mesh
 
-  packages/math: {}
+  packages/math:
+    dependencies:
+      robust-predicates:
+        specifier: ^3.0.3
+        version: 3.0.3
 
   packages/mesh:
     dependencies:
@@ -334,6 +360,9 @@ importers:
       '@modeling-kit/validation':
         specifier: workspace:*
         version: link:../validation
+      primitive-geometry:
+        specifier: 2.11.0
+        version: 2.11.0
 
   packages/rigging:
     dependencies:
@@ -2783,6 +2812,10 @@ packages:
     engines: {node: '>=14'}
     hasBin: true
 
+  primitive-geometry@2.11.0:
+    resolution: {integrity: sha512-W/Kl9za7sIQWRWvY6Fvr/wnexhP6D3fBcPz4gZsE2aMiUgm0N8ZUCQiwG/h+r+P1qTKi2yEINF3x79WN6gJSXA==}
+    engines: {node: '>=22.0.0', npm: '>=10.5.1', snowdev: '>=2.3.x'}
+
   prompts@2.4.2:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
     engines: {node: '>= 6'}
@@ -2873,6 +2906,9 @@ packages:
   reusify@1.1.0:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
+
+  robust-predicates@3.0.3:
+    resolution: {integrity: sha512-NS3levdsRIUOmiJ8FZWCP7LG3QpJyrs/TE0Zpf1yvZu8cAJJ6QMW92H1c7kWpdIHo8RvmLxN/o2JXTKHp74lUA==}
 
   rollup@4.63.2:
     resolution: {integrity: sha512-l5eyksV4tPBj6lJyEa37YzIOCSOV7lkZzEHUdpjWZbtD7wTcFYmEYXSgm5bT4vV+dZLb9rBG1W9GROOG4NS4Ew==}
@@ -5388,6 +5424,8 @@ snapshots:
 
   prettier@3.9.6: {}
 
+  primitive-geometry@2.11.0: {}
+
   prompts@2.4.2:
     dependencies:
       kleur: 3.0.3
@@ -5493,6 +5531,8 @@ snapshots:
       supports-preserve-symlinks-flag: 1.0.0
 
   reusify@1.1.0: {}
+
+  robust-predicates@3.0.3: {}
 
   rollup@4.63.2:
     dependencies:

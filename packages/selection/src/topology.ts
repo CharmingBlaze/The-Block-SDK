@@ -1,5 +1,11 @@
 import type { EdgeId, FaceId, VertexId } from "@modeling-kit/core";
-import { Vector3 } from "@modeling-kit/math";
+import {
+  isCollinear3d,
+  isCoplanar,
+  pointInPolygonEvenOdd2d,
+  polygonTwiceSignedArea2d,
+  Vector3,
+} from "@modeling-kit/math";
 import { collectQuadEdgeLoop, collectQuadEdgeRing, type HalfEdgeMesh } from "@modeling-kit/mesh";
 import { createRayOccluder, type OcclusionSample } from "./occlusion";
 import type { SelectionSnapshot } from "./types";
@@ -193,18 +199,7 @@ export function boundaryElementIds(mesh: HalfEdgeMesh, snapshot: SelectionSnapsh
 }
 
 function pointInPolygon(x: number, y: number, polygon: readonly (readonly [number, number])[]): boolean {
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
-    const xi = polygon[i]![0];
-    const yi = polygon[i]![1];
-    const xj = polygon[j]![0];
-    const yj = polygon[j]![1];
-    const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi + Number.EPSILON) + xi;
-    if (intersect) {
-      inside = !inside;
-    }
-  }
-  return inside;
+  return pointInPolygonEvenOdd2d(x, y, polygon);
 }
 
 export type MarqueeContainment = "touch" | "center" | "fully-contained";
@@ -391,16 +386,7 @@ interface Rect2 {
 }
 
 function polygonSignedArea(polygon: readonly (readonly [number, number])[]): number {
-  if (polygon.length < 3) {
-    return 0;
-  }
-  let area = 0;
-  for (let i = 0; i < polygon.length; i += 1) {
-    const a = polygon[i]!;
-    const b = polygon[(i + 1) % polygon.length]!;
-    area += a[0] * b[1] - b[0] * a[1];
-  }
-  return area / 2;
+  return polygonTwiceSignedArea2d(polygon) * 0.5;
 }
 
 function normalizeRect(minX: number, minY: number, maxX: number, maxY: number): Rect2 {
@@ -667,11 +653,19 @@ export function coplanarFaceIds(
         continue;
       }
       const q = mesh.vertices.get(mesh.getFaceVertices(adj)[0]!)!.position;
-      const dx = q[0] - seedP[0];
-      const dy = q[1] - seedP[1];
-      const dz = q[2] - seedP[2];
-      if (Math.abs(seedN.x * dx + seedN.y * dy + seedN.z * dz) > 1e-4) {
-        continue;
+      const seedLoop = mesh.getFaceVertices(id);
+      const seedA = mesh.vertices.get(seedLoop[0]!)!.position;
+      const seedB = mesh.vertices.get(seedLoop[1]!)!.position;
+      const seedC = mesh.vertices.get(seedLoop[2]!)!.position;
+      const planeDefined = !isCollinear3d(seedA, seedB, seedC);
+      const exactlyCoplanar = planeDefined && isCoplanar(seedA, seedB, seedC, q);
+      if (!exactlyCoplanar) {
+        const dx = q[0] - seedP[0];
+        const dy = q[1] - seedP[1];
+        const dz = q[2] - seedP[2];
+        if (Math.abs(seedN.x * dx + seedN.y * dy + seedN.z * dz) > 1e-4) {
+          continue;
+        }
       }
       selected.add(adj);
       queue.push(adj);

@@ -1,5 +1,5 @@
 import type { EdgeId, FaceId, VertexId } from "@modeling-kit/core";
-import { Vector3, type Vec3 } from "@modeling-kit/math";
+import { orient2d, pointInPolygonEvenOdd2d, Vector3, type Vec3 } from "@modeling-kit/math";
 import type { HalfEdgeMesh } from "../../half-edge-mesh";
 import { faceNormal } from "../../internal/delete-face";
 import type { MeshOperationContext, MeshOperationWarning } from "../contract";
@@ -680,8 +680,11 @@ function clipLineToFaceBoundary(
     const d = to2(new Vector3(vb[0], vb[1], vb[2]));
     const ex = d[0] - c[0];
     const ey = d[1] - c[1];
+    if (orient2d(0, 0, dx, dy, ex, ey) === 0) {
+      continue;
+    }
     const denom = dx * ey - dy * ex;
-    if (Math.abs(denom) < 1e-12) {
+    if (denom === 0) {
       continue;
     }
     const qx = c[0] - a[0];
@@ -752,19 +755,5 @@ function pointInFace(mesh: HalfEdgeMesh, faceId: FaceId, p: Vector3): boolean {
     return to2(new Vector3(pos[0], pos[1], pos[2]));
   });
   const pt = to2(p);
-  let inside = false;
-  for (let i = 0, j = loop.length - 1; i < loop.length; j = i++) {
-    const a = loop[i]!;
-    const c = loop[j]!;
-    const dy = c[1] - a[1];
-    if (Math.abs(dy) < 1e-12) {
-      continue;
-    }
-    const intersect =
-      a[1] > pt[1] !== c[1] > pt[1] && pt[0] < ((c[0] - a[0]) * (pt[1] - a[1])) / dy + a[0];
-    if (intersect) {
-      inside = !inside;
-    }
-  }
-  return inside;
+  return pointInPolygonEvenOdd2d(pt[0], pt[1], loop);
 }

@@ -65,4 +65,4 @@ math
 
 ## Optional engines
 
-None installed. Earcut, robust-predicates, three-mesh-bvh, manifold-3d remain **not approved for this milestone**.
+`robust-predicates` is installed in `@modeling-kit/math` only (R1-T013), behind `GeometryPredicates`. Earcut, three-mesh-bvh, and manifold-3d remain uninstalled until their adapter tasks. `primitive-geometry` may already be present in `@modeling-kit/primitives` as a conversion-only dependency.

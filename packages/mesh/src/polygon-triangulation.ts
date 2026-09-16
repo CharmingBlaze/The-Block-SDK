@@ -1,7 +1,20 @@
 /**
  * Deterministic ear-clipping triangulation for simple polygons.
  * Projects onto the dominant coordinate plane, then clips ears in original-index order.
+ *
+ * Orientation signs (winding, convex ears, proper intersections, exact collinearity)
+ * use `@modeling-kit/math` GeometryPredicates. Near-duplicate collapse and
+ * near-collinear cleanup still use `epsilon` from GeometryTolerance.
  */
+
+import {
+  isCollinear3d,
+  orient2dPoints,
+  pointInTriangleCCW2d,
+  polygonTwiceSignedArea2d,
+  projectPointToOrientedPlane2d,
+  segmentsIntersectProper2d,
+} from "@modeling-kit/math";
 
 export type PolygonTriangulationStatus = "ok" | "degenerate" | "self-intersecting";
 
@@ -44,11 +57,11 @@ export function triangulatePolygon(
   const unit = scale(normal, 1 / area);
   const nonPlanar = maxPlaneDeviation(cleaned.points, cleaned.points[0]!, unit) > Math.max(epsilon * 10, 1e-6);
   const projected = projectPolygon(cleaned.points, unit);
-  const winding = signedArea2(projected);
+  const winding = polygonTwiceSignedArea2d(projected);
   const reversed = winding < 0;
   const coords = reversed ? projected.map(([x, y]) => [x, -y] as Vec2) : projected;
 
-  if (polygonSelfIntersects(coords, epsilon)) {
+  if (polygonSelfIntersects(coords)) {
     if (rejectSelfIntersecting) {
       return { triangles: [], status: "self-intersecting", nonPlanar, reversed };
     }
@@ -71,7 +84,7 @@ export function triangulatePolygon(
 
   while (rest.length > 3 && guard < maxSteps) {
     guard += 1;
-    const ear = findEar(rest, coords, epsilon);
+    const ear = findEar(rest, coords);
     if (ear < 0) {
       return { triangles, status: "self-intersecting", nonPlanar, reversed };
     }
@@ -124,7 +137,8 @@ function collapseNearlyDuplicateAndCollinear(
       const bc = sub(next, curr);
       const crossLen = vectorLength(cross(ab, bc));
       const denom = vectorLength(ab) * vectorLength(bc);
-      if (denom > epsilon && crossLen <= epsilon * denom) {
+      const nearlyCollinear = denom > epsilon && crossLen <= epsilon * denom;
+      if (nearlyCollinear || isCollinear3d(prev, curr, next)) {
         indices.splice(i, 1);
         changed = true;
         break;
@@ -135,7 +149,7 @@ function collapseNearlyDuplicateAndCollinear(
   return { points: indices.map((i) => points[i]!), indices };
 }
 
-function findEar(rest: readonly number[], coords: readonly Vec2[], epsilon: number): number {
+function findEar(rest: readonly number[], coords: readonly Vec2[]): number {
   for (let i = 0; i < rest.length; i++) {
     const prev = rest[(i - 1 + rest.length) % rest.length]!;
     const curr = rest[i]!;
@@ -143,7 +157,7 @@ function findEar(rest: readonly number[], coords: readonly Vec2[], epsilon: numb
     const a = coords[prev]!;
     const b = coords[curr]!;
     const c = coords[next]!;
-    if (cross2(a, b, c) <= epsilon) {
+    if (orient2dPoints(a, b, c) <= 0) {
       continue;
     }
     let contains = false;
@@ -151,7 +165,7 @@ function findEar(rest: readonly number[], coords: readonly Vec2[], epsilon: numb
       if (j === i || j === (i - 1 + rest.length) % rest.length || j === (i + 1) % rest.length) {
         continue;
       }
-      if (pointInTriangle(coords[rest[j]!]!, a, b, c, epsilon)) {
+      if (pointInTriangleCCW2d(coords[rest[j]!]!, a, b, c)) {
         contains = true;
         break;
       }
@@ -163,7 +177,7 @@ function findEar(rest: readonly number[], coords: readonly Vec2[], epsilon: numb
   return -1;
 }
 
-function polygonSelfIntersects(coords: readonly Vec2[], epsilon: number): boolean {
+function polygonSelfIntersects(coords: readonly Vec2[]): boolean {
   const n = coords.length;
   for (let i = 0; i < n; i++) {
     const a1 = coords[i]!;
@@ -174,7 +188,7 @@ function polygonSelfIntersects(coords: readonly Vec2[], epsilon: number): boolea
       }
       const b1 = coords[j]!;
       const b2 = coords[(j + 1) % n]!;
-      if (segmentsIntersect(a1, a2, b1, b2, epsilon)) {
+      if (segmentsIntersectProper2d(a1, a2, b1, b2)) {
         return true;
       }
     }
@@ -182,36 +196,8 @@ function polygonSelfIntersects(coords: readonly Vec2[], epsilon: number): boolea
   return false;
 }
 
-function segmentsIntersect(a1: Vec2, a2: Vec2, b1: Vec2, b2: Vec2, epsilon: number): boolean {
-  const d1 = cross2(a1, a2, b1);
-  const d2 = cross2(a1, a2, b2);
-  const d3 = cross2(b1, b2, a1);
-  const d4 = cross2(b1, b2, a2);
-  if (((d1 > epsilon && d2 < -epsilon) || (d1 < -epsilon && d2 > epsilon)) &&
-      ((d3 > epsilon && d4 < -epsilon) || (d3 < -epsilon && d4 > epsilon))) {
-    return true;
-  }
-  return false;
-}
-
-function pointInTriangle(p: Vec2, a: Vec2, b: Vec2, c: Vec2, epsilon: number): boolean {
-  const c1 = cross2(a, b, p);
-  const c2 = cross2(b, c, p);
-  const c3 = cross2(c, a, p);
-  return c1 >= -epsilon && c2 >= -epsilon && c3 >= -epsilon;
-}
-
 function projectPolygon(points: readonly Vec3[], normal: Vec3): Vec2[] {
-  const ax = Math.abs(normal[0]);
-  const ay = Math.abs(normal[1]);
-  const az = Math.abs(normal[2]);
-  if (ax >= ay && ax >= az) {
-    return points.map((p) => (normal[0] >= 0 ? [p[1], p[2]] : [p[1], -p[2]]) as Vec2);
-  }
-  if (ay >= ax && ay >= az) {
-    return points.map((p) => (normal[1] >= 0 ? [p[2], p[0]] : [p[2], -p[0]]) as Vec2);
-  }
-  return points.map((p) => (normal[2] >= 0 ? [p[0], p[1]] : [p[0], -p[1]]) as Vec2);
+  return points.map((p) => projectPointToOrientedPlane2d(normal[0], normal[1], normal[2], p[0], p[1], p[2]));
 }
 
 function polygonNormal(points: readonly Vec3[]): Vec3 {
@@ -239,22 +225,8 @@ function maxPlaneDeviation(points: readonly Vec3[], origin: Vec3, unit: Vec3): n
   return max;
 }
 
-function signedArea2(coords: readonly Vec2[]): number {
-  let area = 0;
-  for (let i = 0; i < coords.length; i++) {
-    const a = coords[i]!;
-    const b = coords[(i + 1) % coords.length]!;
-    area += a[0] * b[1] - b[0] * a[1];
-  }
-  return area * 0.5;
-}
-
 function orderTriple(a: number, b: number, c: number, reversed: boolean): [number, number, number] {
   return reversed ? [a, c, b] : [a, b, c];
-}
-
-function cross2(a: Vec2, b: Vec2, c: Vec2): number {
-  return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
 }
 
 function sub(a: Vec3, b: Vec3): Vec3 {

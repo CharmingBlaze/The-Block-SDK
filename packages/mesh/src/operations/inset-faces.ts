@@ -1,5 +1,11 @@
 import type { FaceId, IdFactory, VertexId } from "@modeling-kit/core";
-import { Vector3 } from "@modeling-kit/math";
+import {
+  planarTurnSign,
+  polygonTwiceSignedArea2d,
+  projectPointToOrientedPlane2d,
+  segmentsIntersectProper2d,
+  Vector3,
+} from "@modeling-kit/math";
 import { MeshBuilder } from "../builder";
 import type { HalfEdgeMesh } from "../half-edge-mesh";
 import { collectBoundaryEdges, connectedFaceIslands } from "../internal/boundary-cycles";
@@ -284,8 +290,20 @@ function insetLoopPositions(
     const prevPt = originalPoints[(i - 1 + n) % n]!;
     const currPt = originalPoints[i]!;
     const nextPt = originalPoints[(i + 1) % n]!;
-    const cross = nextPt.clone().sub(currPt).cross(currPt.clone().sub(prevPt));
-    const s = Math.sign(cross.dot(normal));
+    const s = planarTurnSign(
+      prevPt.x,
+      prevPt.y,
+      prevPt.z,
+      currPt.x,
+      currPt.y,
+      currPt.z,
+      nextPt.x,
+      nextPt.y,
+      nextPt.z,
+      normal.x,
+      normal.y,
+      normal.z,
+    );
     if (s === 0) {
       continue;
     }
@@ -398,24 +416,27 @@ function insetSelfIntersects(points: readonly Vector3[], normal: Vector3): boole
 }
 
 function segmentsCross(a1: Vector3, a2: Vector3, b1: Vector3, b2: Vector3, normal: Vector3): boolean {
-  const da = a2.sub(a1);
-  const db = b2.sub(b1);
-  const denom = da.cross(db).dot(normal);
-  if (Math.abs(denom) < 1e-12) {
-    return false;
-  }
-  const s = b1.sub(a1).cross(db).dot(normal) / denom;
-  const t = b1.sub(a1).cross(da).dot(normal) / denom;
-  return s > 1e-6 && s < 1 - 1e-6 && t > 1e-6 && t < 1 - 1e-6;
+  const p = (q: Vector3): readonly [number, number] =>
+    projectPointToOrientedPlane2d(normal.x, normal.y, normal.z, q.x, q.y, q.z);
+  return segmentsIntersectProper2d(p(a1), p(a2), p(b1), p(b2));
 }
 
 function insetInverts(original: readonly Vector3[], inset: readonly Vector3[], normal: Vector3): boolean {
   const orig = signedArea(original, normal);
   const next = signedArea(inset, normal);
+  const origWinding = polygonTwiceSignedArea2d(projectLoop(original, normal));
+  const nextWinding = polygonTwiceSignedArea2d(projectLoop(inset, normal));
+  if (origWinding !== 0 && nextWinding * origWinding <= 0) {
+    return true;
+  }
   if (Math.abs(orig) < 1e-12) {
     return false;
   }
-  return next * orig <= 0 || Math.abs(next) > Math.abs(orig) * 1.05;
+  return Math.abs(next) > Math.abs(orig) * 1.05;
+}
+
+function projectLoop(points: readonly Vector3[], normal: Vector3): Array<readonly [number, number]> {
+  return points.map((p) => projectPointToOrientedPlane2d(normal.x, normal.y, normal.z, p.x, p.y, p.z));
 }
 
 function signedArea(points: readonly Vector3[], normal: Vector3): number {
