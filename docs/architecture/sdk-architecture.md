@@ -1,6 +1,6 @@
 # SDK architecture
 
-Working name: **modeling-kit** (`@modeling-kit/*`). The name must stay easy to rename. No Blockbench branding.
+**The Block SDK** is the product name. Public npm packages are **`@modeling-kit/*`**. The private workspace root is **`modeling-kit`**. Keep those three labels; do not rename published packages for 0.1.0. The npm scope must stay easy to rename later. No Blockbench branding.
 
 ## Purpose
 

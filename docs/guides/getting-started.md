@@ -1,10 +1,10 @@
 # Getting started
 
-`modeling-kit` is a headless TypeScript SDK. Hosts own cameras, renderers, and UI. The systems list lives in the [root README](../../README.md). The full documentation index is [`../README.md`](../README.md).
+**The Block SDK** is a headless TypeScript SDK. npm installs are `@modeling-kit/*` (start with `@modeling-kit/sdk`). The private git workspace is named `modeling-kit`. Hosts own cameras, renderers, and UI. The systems list lives in the [root README](../../README.md). The full documentation index is [`../README.md`](../README.md).
 
 Public packages are MIT-licensed, currently `0.1.0`. There is no Minecraft, `.bbmodel`, or game-format support. Native JSON is the canonical persistence format.
 
-**Runtime:** Node.js 22+, pnpm 11. Node 22 is the CI-proven floor (`setup-node` in `.github/workflows/ci.yml` and `.github/workflows/release.yml`). Browser bundles still target ES2022; the engine field exists so package managers do not install the SDK on an untested Node 20 toolchain.
+**Runtime:** Node.js 22+, pnpm 11. Node 22 is the CI-proven floor (`setup-node` in `.github/workflows/ci.yml` and `.github/workflows/release.yml`). A Node 20 job is not in CI: this repo's `packageManager` is pnpm@11.7.0 (Node >=22.13), and `@changesets/cli` / `dependency-cruiser` also require Node 22. Browser bundles still target ES2022; `engines.node` is `>=22` so package managers do not install the SDK on an untested Node 20 toolchain.
 
 From source:
 

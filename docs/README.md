@@ -1,12 +1,12 @@
 # Documentation
 
-`modeling-kit` (`@modeling-kit/*`) is a headless TypeScript SDK for polygonal 3D modeling. Hosts own cameras, renderers, and UI. Persistent edits go through commands. Topology lives on the half-edge kernel. `THREE.BufferGeometry` is derived only.
+**The Block SDK** is a headless TypeScript SDK for polygonal 3D modeling. Public packages are `@modeling-kit/*`. The private workspace root is `modeling-kit`. Hosts own cameras, renderers, and UI. Persistent edits go through commands. Topology lives on the half-edge kernel. `THREE.BufferGeometry` is derived only.
 
 There is no Minecraft, Blockbench, or other game-format pipeline. Native versioned JSON is the canonical save format. Implemented interchange is glTF/GLB, Wavefront OBJ, ASCII STL, and PPM images. PLY is an allowed open standard; there is no codec yet.
 
 Public packages are MIT-licensed and currently versioned `0.1.0`. They are not on npm until `v0.1.0` is tagged with `NPM_TOKEN` set. See [Publishing](guides/publishing.md).
 
-**Requirements:** Node.js 22+, pnpm 11.
+**Requirements:** Node.js 22+, pnpm 11. Do not lower `engines.node` until a Node 20 job using a package manager that supports Node 20 is green. This repo's `packageManager` is pnpm 11.7, which requires Node >=22.13.
 
 ## Start here
 
@@ -47,7 +47,7 @@ The root [README](../README.md) lists every package and the systems they impleme
 | --- | --- |
 | [Geometry predicates](guides/geometry-predicates.md) | Robust `orient2d`/`orient3d` vs `GeometryTolerance` |
 | [Primitive-geometry](guides/primitive-geometry.md) | Library recipes → `HalfEdgeMesh` |
-| [Triangulation](guides/triangulation.md) | Ear clip vs Earcut; 0.1 interactive limits |
+| [Triangulation](guides/triangulation.md) | Ear clip vs Earcut; 0.1 interactive limits; [1.1 profiler](investigations/large-mesh-triangulation/) |
 | [Profile extrude](guides/profile-extrude.md) | 2D profile / path walls |
 | [Meshopt](guides/meshopt.md) | Derived-triangle reorder and LOD |
 

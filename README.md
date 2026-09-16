@@ -1,6 +1,8 @@
-# modeling-kit (`The Block SDK`)
+# The Block SDK
 
 A framework-agnostic TypeScript SDK for polygonal 3D modeling on web and desktop.
+
+**Names:** the product is **The Block SDK**. npm packages are **`@modeling-kit/*`**. The private workspace root is **`modeling-kit`**. These are one product. Do not rename the npm scope or published package names for 0.1.0.
 
 The modeling engine is **headless**: it runs in Node.js with no DOM or WebGL. Hosts own UI, cameras, and widgets. An optional [Three.js adapter](packages/three-adapter) derives a viewport, hybrid picking (GPU ID-buffer on click, CPU raycast for hover/vertices/edges), and overlays from the canonical document. There is **no** Minecraft, Blockbench, or other game-format pipeline.
 
@@ -8,7 +10,7 @@ Persistent edits go through commands. Topology lives on the mesh kernel. `THREE.
 
 ---
 
-**Requirements:** Node.js 22+, pnpm 11. Documentation index: [`docs/README.md`](docs/README.md).
+**Requirements:** Node.js 22+, pnpm 11. Node 20 is untested: pnpm 11.7 requires Node >=22.13, and the release gate (`@changesets/cli`, `dependency-cruiser`) also requires Node 22. Documentation index: [`docs/README.md`](docs/README.md).
 
 ## Quick start
 

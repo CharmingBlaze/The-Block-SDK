@@ -53,7 +53,7 @@ Earcut is not a file importer. glTF/OBJ/STL enter through `@modeling-kit/formats
 
 `triangulateMesh` rebuilds derived triangles for the whole mesh. That is a batch / commit cost, not a pointer-move budget. Do not call it on every hover, snap, or gizmo tick. Hosts should keep it behind revision-gated viewport sync or `@modeling-kit/workers` (`triangulateAsync`).
 
-Observed samples from the 2026-09-16 re-audit (shared-load machine, not CI):
+Observed samples from the 2026-09-16 re-audit (shared-load machine, not CI). These are **single wall-clock shots**, not warmed medians:
 
 | Work | Size | Wall clock |
 | --- | --- | --- |
@@ -61,6 +61,8 @@ Observed samples from the 2026-09-16 re-audit (shared-load machine, not CI):
 | `triangulateMesh` grid | ~100k vertices (`segments` 316×316) | 18.9 s |
 | Native serialize | 1,000 scene nodes | 347 ms |
 
+Warmed medians from `pnpm bench:triangulation` (Ryzen 7 250, Node 26, 2026-09-16): `generateGrid` 246 ms / 3.68 s; `triangulateMesh` 67 ms / 731 ms. Full tables: `docs/investigations/large-mesh-triangulation/samples.md`.
+
 Optional `BENCHMARK_ASSERT=1` budgets in `triangulation.bench.test.ts` are looser (10k < 4 s, 100k < 30 s) so CI does not flake. Those budgets are not interactive targets.
 
-0.1 does not claim 100k-vertex edit/render rebuilds at modeling-tool rates. Speeding grid construction vs triangulation, plus warmed medians and memory, is 1.1 work. Object AABB `BvhSpatialQuery` is the 1.0 spatial layer; triangle/edge/vertex acceleration is also 1.1.
+0.1 does not claim 100k-vertex edit/render rebuilds at modeling-tool rates. Speeding grid construction vs triangulation, plus warmed medians and memory, is 1.1 work (`docs/investigations/large-mesh-triangulation/`). Run `pnpm bench:triangulation`. Object AABB `BvhSpatialQuery` is the 1.0 spatial layer; triangle/edge/vertex acceleration is also 1.1.

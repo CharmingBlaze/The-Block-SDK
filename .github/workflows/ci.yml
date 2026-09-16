@@ -6,6 +6,12 @@ on:
       - "**"
   pull_request:
 
+# Node 20 is not in the matrix. This repo's packageManager is pnpm@11.7.0, which
+# requires Node >=22.13 (it imports node:sqlite). @changesets/cli@3.0.3 and
+# dependency-cruiser@18.3.0 also require Node 22. Do not add a Node 20 runner
+# and do not lower package engines until those constraints change and a probe
+# job using a compatible package manager is green.
+
 jobs:
   verify:
     runs-on: ubuntu-latest

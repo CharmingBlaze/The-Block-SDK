@@ -1,6 +1,7 @@
 export const PACKAGE_LICENSE = "MIT";
 export const REPO_URL = "https://github.com/CharmingBlaze/The-Block-SDK";
 export const REPO_GIT = `${REPO_URL}.git`;
+/** CI-proven floor. pnpm 11.7, @changesets/cli 3, and dependency-cruiser 18 require Node 22. Do not lower until a Node 20 job using a compatible package manager is green. */
 export const NODE_ENGINE = ">=22";
 
 export const PACKAGE_DESCRIPTIONS: Record<string, string> = {

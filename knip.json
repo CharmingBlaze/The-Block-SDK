@@ -5,6 +5,7 @@
   "ignoreDependencies": ["repomix"],
   "ignoreIssues": {
     "packages/**/tests/**": ["unlisted"],
+    "scripts/bench/**": ["unlisted"],
     "packages/primitives/src/planar.ts": ["duplicates"],
     "packages/sdk/package.json": ["optionalPeerDependencies"],
     "packages/formats/src/gltf/validation/validate-roundtrip.ts": ["files", "exports", "types"]

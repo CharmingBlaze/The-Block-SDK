@@ -1,6 +1,6 @@
 # Publishing `@modeling-kit/*`
 
-Public packages ship from a **git tag**. CI on `main` only verifies. The release workflow publishes.
+Public packages ship from a **git tag** as **`@modeling-kit/*`**. The product name is **The Block SDK**. The private workspace root `modeling-kit` does not publish. CI on `main` only verifies. The release workflow publishes.
 
 Packages are currently `0.1.0`. The first npm release is tag `v0.1.0`. A later `v1.0.0` is a version bump, not a new pipeline.
 

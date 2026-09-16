@@ -6,6 +6,7 @@ import {
   parseReleaseTag,
   resolveReleaseTag,
 } from "./lib/release.ts";
+import { NODE_ENGINE } from "./lib/publication.ts";
 import { repoRoot } from "./lib/workspace.ts";
 
 describe("release tag parsing", () => {
@@ -80,5 +81,28 @@ describe("release check against this repo", () => {
     const ci = readFileSync(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8");
     expect(ci).toContain("branches:");
     expect(ci).not.toMatch(/on:\s*\n\s*push:\s*\n\s*pull_request:/);
+  });
+
+  it("keeps Node 22 as the CI and package engine floor", () => {
+    const ci = readFileSync(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8");
+    const release = readFileSync(path.join(repoRoot, ".github/workflows/release.yml"), "utf8");
+    const root = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
+      name: string;
+      private: boolean;
+      description?: string;
+      engines?: { node?: string };
+      packageManager?: string;
+    };
+    expect(ci).toContain('node-version: "22"');
+    expect(ci).not.toMatch(/^\s+node-version:\s*"20"/m);
+    expect(release).toContain('node-version: "22"');
+    expect(release).not.toMatch(/^\s+node-version:\s*"20"/m);
+    expect(NODE_ENGINE).toBe(">=22");
+    expect(root.engines?.node).toBe(">=22");
+    expect(root.packageManager).toMatch(/^pnpm@11\./);
+    expect(root.name).toBe("modeling-kit");
+    expect(root.private).toBe(true);
+    expect(root.description).toMatch(/The Block SDK/);
+    expect(root.description).toMatch(/@modeling-kit\/\*/);
   });
 });

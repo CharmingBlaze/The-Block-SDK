@@ -34,6 +34,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
+          # Same floor as CI. pnpm 11.7 cannot run a Node 20 probe.
           node-version: "22"
           cache: pnpm
           registry-url: "https://registry.npmjs.org"

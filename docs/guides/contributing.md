@@ -1,10 +1,10 @@
 # Contributing
 
-`modeling-kit` is a clean-room TypeScript SDK. Implementation follows first-principles computational geometry and open format specifications. Do **not** inspect, copy, or adapt Blockbench (GPL-3.0) source, comments, or UI.
+The Block SDK (`@modeling-kit/*`) is a clean-room TypeScript SDK. The private workspace package is `modeling-kit`. Implementation follows first-principles computational geometry and open format specifications. Do **not** inspect, copy, or adapt Blockbench (GPL-3.0) source, comments, or UI.
 
 ## Requirements
 
-- Node.js 22 or newer
+- Node.js 22 or newer (pnpm 11.7, Changesets, and dependency-cruiser all require Node 22; do not add a Node 20 CI job until that toolchain changes)
 - pnpm 11 (`packageManager` in the repo root)
 - Windows, macOS, or Linux
 

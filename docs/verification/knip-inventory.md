@@ -18,6 +18,8 @@ The unused-files report is empty. `pnpm deadcode:files` fails if a new unused fi
 
 `packages/formats/src/gltf/validation/validate-roundtrip.ts` is an **internal** helper ignored in `knip.json` until a formats test imports it.
 
+`scripts/bench/**` is ignored for `unlisted` because the triangulation profiler imports workspace packages (`@modeling-kit/mesh`, `@modeling-kit/primitives`) from the repo root, which does not declare those as root `dependencies`.
+
 ## Orphans removed
 
 - `packages/document/src/serialization.ts` — duplicate of `serialize.ts`
