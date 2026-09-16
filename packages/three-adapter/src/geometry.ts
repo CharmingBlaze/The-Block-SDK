@@ -1,10 +1,11 @@
-import type { FaceId, VertexId } from "@modeling-kit/core";
+import type { CornerId, FaceId, VertexId } from "@modeling-kit/core";
 import { triangulateMesh, type HalfEdgeMesh, type TriangulatedMesh } from "@modeling-kit/mesh";
 import { BufferAttribute, BufferGeometry } from "three";
 
 export interface RenderMapping {
   readonly triangleToFace: readonly FaceId[];
   readonly renderVertexToVertex: readonly VertexId[];
+  readonly renderVertexToCorner: readonly CornerId[];
 }
 
 export function createBufferGeometry(mesh: HalfEdgeMesh): {
@@ -38,6 +39,7 @@ export function syncDerivedGeometry(
   const mapping: RenderMapping = {
     triangleToFace: tri.triangleFaceIds,
     renderVertexToVertex: tri.vertexIdMap,
+    renderVertexToCorner: tri.cornerIdMap,
   };
   geometry.userData.mapping = mapping;
   return { geometry, mapping, reused: false };
@@ -62,6 +64,9 @@ function canReuseDerived(
   if (mapping.renderVertexToVertex.length !== tri.vertexIdMap.length) {
     return false;
   }
+  if (mapping.renderVertexToCorner.length !== tri.cornerIdMap.length) {
+    return false;
+  }
   for (let i = 0; i < mapping.triangleToFace.length; i += 1) {
     if (mapping.triangleToFace[i] !== tri.triangleFaceIds[i]) {
       return false;
@@ -69,6 +74,11 @@ function canReuseDerived(
   }
   for (let i = 0; i < mapping.renderVertexToVertex.length; i += 1) {
     if (mapping.renderVertexToVertex[i] !== tri.vertexIdMap[i]) {
+      return false;
+    }
+  }
+  for (let i = 0; i < mapping.renderVertexToCorner.length; i += 1) {
+    if (mapping.renderVertexToCorner[i] !== tri.cornerIdMap[i]) {
       return false;
     }
   }

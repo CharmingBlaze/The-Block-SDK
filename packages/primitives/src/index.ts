@@ -115,7 +115,9 @@ export {
   type ConvertSimplicialOptions,
   type SimplicialComplexInput,
   type LibraryGeometryId,
+  type WeldPolicy,
 } from "./library";
+export type { GeometryBuildWarning } from "./source/types";
 export {
   generateProfileExtrude,
   generateFloor,

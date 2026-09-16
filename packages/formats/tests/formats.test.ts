@@ -36,7 +36,7 @@ describe("@modeling-kit/formats", () => {
     expect(stlText).toContain("endsolid SampleCube");
   });
 
-  it("exports ModelDocument scene hierarchy to glTF 2.0", () => {
+  it("exports ModelDocument scene hierarchy to glTF 2.0", async () => {
     const ids = createSequenceIdFactory("gltf");
     const doc = createModelDocument({ ids });
     const cube = MeshBuilder.createCube(2, 2, 2, ids.mesh());
@@ -73,7 +73,7 @@ describe("@modeling-kit/formats", () => {
     });
     const meshes = new Map([[cube.id, cube]]);
 
-    const exported = exportGltfWithReport(doc, meshes);
+    const exported = await exportGltfWithReport(doc, meshes);
     const gltf = exported.gltf;
     expect(exported.report.dataLoss.some((item) => item.includes("triangulated"))).toBe(true);
     expect((gltf["asset"] as { version: string }).version).toBe("2.0");
@@ -103,7 +103,7 @@ describe("@modeling-kit/formats", () => {
     expect(exportedMaterials[0]?.doubleSided).toBe(true);
     expect(gltf["buffers"]).toHaveLength(1);
 
-    const imported = importGltf(JSON.stringify(gltf), createSequenceIdFactory("gltf-in"));
+    const imported = await importGltf(JSON.stringify(gltf), createSequenceIdFactory("gltf-in"));
     const importedMeshes = [...imported.meshes.values()];
     expect(importedMeshes).toHaveLength(1);
     expect(imported.report.dataLoss.length).toBeGreaterThan(0);
@@ -136,7 +136,7 @@ describe("@modeling-kit/formats", () => {
     expect(imported.value.faces.size).toBe(cube.faces.size);
   });
 
-  it("exports and imports a GLB 2.0 container", () => {
+  it("exports and imports a GLB 2.0 container", async () => {
     const ids = createSequenceIdFactory("glb");
     const doc = createModelDocument({ ids });
     const cube = MeshBuilder.createCube(2, 2, 2, ids.mesh());
@@ -145,13 +145,13 @@ describe("@modeling-kit/formats", () => {
       type: "mesh_instance",
       payloadRef: cube.id,
     });
-    const glb = exportGlb(doc, new Map([[cube.id, cube]]));
+    const glb = await exportGlb(doc, new Map([[cube.id, cube]]));
     const header = new DataView(glb.buffer, glb.byteOffset, glb.byteLength);
     expect(header.getUint32(0, true)).toBe(0x46546c67);
     expect(header.getUint32(4, true)).toBe(2);
     expect(header.getUint32(8, true)).toBe(glb.byteLength);
 
-    const imported = importGltf(glb, createSequenceIdFactory("glb-in"));
+    const imported = await importGltf(glb, createSequenceIdFactory("glb-in"));
     const importedMeshes = [...imported.meshes.values()];
     expect(importedMeshes).toHaveLength(1);
     expect(importedMeshes[0]?.vertices.size).toBe(8);
@@ -176,7 +176,7 @@ describe("@modeling-kit/formats", () => {
     expect(() => importStlAscii(stl, ids, { signal })).toThrow(/cancelled/);
   });
 
-  it("does not recurse forever on a cyclic scene graph", () => {
+  it("does not recurse forever on a cyclic scene graph", async () => {
     const ids = createSequenceIdFactory("cycle");
     const doc = createModelDocument({ ids });
     const a = ids.object();
@@ -187,11 +187,11 @@ describe("@modeling-kit/formats", () => {
     const nodeB = doc.scene.nodes.get(b)!;
     doc.scene.nodes.set(a, { ...nodeA, childIds: [b] });
     doc.scene.nodes.set(b, { ...nodeB, childIds: [a], parentId: a });
-    const gltf = exportGltf(doc, new Map());
+    const gltf = await exportGltf(doc, new Map());
     expect((gltf["nodes"] as unknown[]).length).toBe(2);
   });
 
-  it("skips empty meshes instead of writing non-finite POSITION bounds", () => {
+  it("skips empty meshes instead of writing non-finite POSITION bounds", async () => {
     const ids = createSequenceIdFactory("empty-mesh");
     const doc = createModelDocument({ ids });
     const empty = new MeshBuilder(ids.mesh()).getMesh();
@@ -200,8 +200,8 @@ describe("@modeling-kit/formats", () => {
       type: "mesh_instance",
       payloadRef: empty.id,
     });
-    const exported = exportGltfWithReport(doc, new Map([[empty.id, empty]]));
-    const accessors = exported.gltf["accessors"] as Array<{ min?: number[]; max?: number[] }>;
+    const exported = await exportGltfWithReport(doc, new Map([[empty.id, empty]]));
+    const accessors = (exported.gltf["accessors"] as Array<{ min?: number[]; max?: number[] }> | undefined) ?? [];
     expect(accessors.some((item) => item.min?.some((value) => !Number.isFinite(value)))).toBe(false);
     expect(exported.report.warnings.some((item) => item.includes("empty mesh"))).toBe(true);
   });
@@ -246,7 +246,7 @@ f 1 2 99
     ).toThrow(/missing vertex/);
   });
 
-  it("rejects corrupt glTF accessors in strict mode", () => {
+  it("rejects corrupt glTF accessors in strict mode", async () => {
     const ids = createSequenceIdFactory("gltf-strict");
     const gltf = {
       asset: { version: "2.0" },
@@ -259,6 +259,6 @@ f 1 2 99
         },
       ],
     };
-    expect(() => importGltf(gltf, ids, { strict: true })).toThrow(/past the end|invalid/);
+    await expect(importGltf(gltf, ids, { strict: true })).rejects.toThrow(/past the end|invalid|range|accessor|buffer/i);
   });
 });

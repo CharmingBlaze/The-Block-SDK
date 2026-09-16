@@ -18,7 +18,7 @@ The half-edge mesh remains the editable source of truth. Library typed arrays ar
 | `ProfileDrawTool` | Pointer collection on `ModalToolSession` only; no document mutation |
 | `ThreeViewportAdapter` | Derived `BufferGeometry`; dispose on rebuild |
 
-Callers import `generateProfileExtrude` from `@modeling-kit/primitives` (or `@modeling-kit/sdk`). They must not import `geometry-extrude` directly.
+Callers import `generateProfileExtrude` from `@modeling-kit/primitives` (or `@modeling-kit/sdk`). They must not import `geometry-extrude` directly. Profile meshes are library recipes (`cellSize: 3`), not format imports.
 
 ## Pipeline
 

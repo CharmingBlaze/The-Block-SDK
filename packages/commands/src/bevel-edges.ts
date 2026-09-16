@@ -16,6 +16,11 @@ export interface BevelEdgesParams {
   readonly offset: number;
   readonly edgeIds?: readonly EdgeId[];
   readonly segments?: number;
+  readonly widthMode?: "offset" | "percent";
+  readonly miterMode?: "sharp" | "clip";
+  readonly overlapMode?: "clamp" | "error";
+  readonly allowClipFallback?: boolean;
+  readonly miterLimit?: number;
 }
 
 export class BevelEdgesCommand implements Command<BevelEdgesResult> {
@@ -51,6 +56,13 @@ export class BevelEdgesCommand implements Command<BevelEdgesResult> {
         edgeIds,
         offset: this.params.offset,
         ...(this.params.segments !== undefined ? { segments: this.params.segments } : {}),
+        ...(this.params.widthMode !== undefined ? { widthMode: this.params.widthMode } : {}),
+        ...(this.params.miterMode !== undefined ? { miterMode: this.params.miterMode } : {}),
+        ...(this.params.overlapMode !== undefined ? { overlapMode: this.params.overlapMode } : {}),
+        ...(this.params.allowClipFallback !== undefined
+          ? { allowClipFallback: this.params.allowClipFallback }
+          : {}),
+        ...(this.params.miterLimit !== undefined ? { miterLimit: this.params.miterLimit } : {}),
       },
       createMeshOperationContext(context.ids),
     );

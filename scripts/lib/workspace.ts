@@ -127,7 +127,7 @@ export const PACKAGE_LAYERS: Record<
     forbidden: ["three"],
   },
   "@modeling-kit/formats": {
-    purpose: "glTF/OBJ/STL/PLY interchange",
+    purpose: "glTF/OBJ/STL/PLY interchange via glTF Transform",
     layer: "io",
     requirementPrefixes: ["FMT"],
     forbidden: ["three"],
@@ -145,14 +145,14 @@ export const PACKAGE_LAYERS: Record<
     forbidden: ["three", "canonical mesh mutation"],
   },
   "@modeling-kit/rigging": {
-    purpose: "Skeletons and skin weights (preview)",
-    layer: "deferred",
+    purpose: "Canonical skeletons, skins, inverse binds, and weight validation",
+    layer: "editor",
     requirementPrefixes: ["RIG"],
     forbidden: ["three"],
   },
   "@modeling-kit/animation": {
-    purpose: "Clips and sampling (preview)",
-    layer: "deferred",
+    purpose: "Canonical clips, tracks, and renderer-neutral evaluation",
+    layer: "editor",
     requirementPrefixes: ["ANIM"],
     forbidden: ["three"],
   },

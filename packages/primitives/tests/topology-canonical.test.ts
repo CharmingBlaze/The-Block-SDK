@@ -157,6 +157,7 @@ describe("canonical quad-first topology", () => {
     expect(sizes.ngons).toBe(2);
     expect(sizes.tris).toBe(0);
     expect(validateMesh(cylinder).statistics.isClosed).toBe(true);
+    expectOutward(cylinder);
   });
 
   it("keeps icosphere triangular by design", () => {
@@ -184,6 +185,7 @@ describe("canonical quad-first topology", () => {
     expect(sizes.ngons).toBe(1);
     expectNoRepeatedVertexIds(cone);
     expect(validateMesh(cone).statistics.isClosed).toBe(true);
+    expectOutward(cone);
   });
 
   it("uses capsule quad bands with triangle pole caps", () => {
@@ -247,6 +249,14 @@ describe("canonical quad-first topology", () => {
     expect(converted.mesh.vertices.size).toBe(8);
     expect(faceSizes(converted.mesh)).toEqual({ tris: 12, quads: 0, ngons: 0 });
     expect(generatePrimitive("cube").mesh.faces.size).toBe(6);
+    expect(converted.sourceFaceToCanonicalFaceIds).toHaveLength(12);
+  });
+
+  it("keeps packed-cell expansion off the public primitives barrel", async () => {
+    const publicApi = await import("../src/index");
+    expect(publicApi.convertSimplicialComplex).toBeTypeOf("function");
+    expect(publicApi.PRIMITIVE_CATALOG).toBeDefined();
+    expect((publicApi as Record<string, unknown>).facesFromFlatCells).toBeUndefined();
   });
 
   it("does not infer face size from index-buffer length", () => {

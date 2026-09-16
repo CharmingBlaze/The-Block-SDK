@@ -54,7 +54,7 @@ Dependencies will be logged here when added, with licence and purpose. Expected 
 | ------------------------------------------------------------ | -------------- | ----------------------------------------------------- | -------------------------------- |
 | three                                                        | MIT            | Viewport adapter (`@modeling-kit/three-adapter` peer) | Added Phase 4                    |
 | glTF validator / loaders                                     | per package    | Formats package                                       | Prefer Khronos-aligned libraries |
-| TypeScript, Vitest, Vite, tsup, ESLint, Prettier, Changesets | various OSI    | Tooling                                               | Not shipped as modeling IP       |
+| TypeScript, Vitest, Vite, tsup, ESLint, Prettier, Changesets | MIT / various OSI | Tooling (`@changesets/cli` 3.0.3, 2026-09-16)     | Not shipped as modeling IP       |
 
 | https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html | Open glTF 2.0 JSON/buffer layout and GLB chunk container for import/export | Blockbench’s exporter |
 
@@ -115,6 +115,19 @@ All of the following are **root `devDependencies` only**. They must not appear o
 8. Canonical model: unchanged.  
 9. Abstraction: presets in `scripts/generate-agent-context.ts`; output gitignored.  
 10. Tests: mesh preset token count recorded in TOOLING-AUDIT.
+
+### @changesets/cli 3.0.3 (MIT)
+
+1. Problem: packages cannot be versioned or published as a lockstep public SDK.  
+2. Why current stack cannot: `.changeset/config.json` existed without the CLI, and CI never published.  
+3. Bundle-size: none (dev-only).  
+4. Runtime cost: `pnpm changeset` / `pnpm version-packages` locally; GitHub Actions on `v*` tags.  
+5. Licence: MIT.  
+6. Maintenance: actively maintained (`changesets.dev`).  
+7. Browser/Node: Node CLI.  
+8. Canonical model: unchanged.  
+9. Abstraction: publish is tag-triggered; modeling packages do not import Changesets.  
+10. Tests: `scripts/release.test.ts`; `pnpm release:check`.
 
 ### Serena MCP (Apache-2.0, not an npm dependency)
 
@@ -210,6 +223,36 @@ Added as a runtime dependency of `@modeling-kit/meshopt` only. Conversion bounda
 8. Canonical model: unchanged. HalfEdgeMesh is not an input.  
 9. Abstraction: callers import `optimizeDerivedTriangles`. Commands, mesh kernel, and sdk do not import `meshoptimizer`.  
 10. Tests: `packages/meshopt/tests/meshopt.test.ts`, `packages/meshopt/tests/mapping.test.ts`.
+
+## watlas 1.0.1 (MIT) wrapping xatlas (MIT) — 2026-09-16
+
+Added as a runtime dependency of `@modeling-kit/uv` only. Conversion boundary: `packages/uv/src/unwrap/backend/xatlas/`.
+
+1. Problem: the UV package had projections and packing, but no automatic chart unwrap for arbitrary connected meshes.  
+2. Why the current stack cannot: writing a production chart packer in TypeScript is out of scope; exact LSCM/ABF++ would need a separate maintained WASM build.  
+3. Bundle-size: `watlas.wasm` 220,140 bytes plus JS glue ~88 KB, isolated to `@modeling-kit/uv`.  
+4. Runtime cost: one WASM `Initialize()` per process/worker; each unwrap creates and `delete()`s an `Atlas`. `generate()` is synchronous on the calling thread unless a worker backend is used.  
+5. Licence: watlas MIT (Brandon Jones); xatlas MIT (Jonathan Young); thekla_atlas lineage MIT.  
+6. Maintenance: watlas 1.0.1 on npm; written for gltf-transform. xatlas is a thekla_atlas fork, not an LSCM/ABF++ product name.  
+7. Browser/Node: Emscripten module detects Node, browser, and worker. Node >= 22. Headless, no DOM.  
+8. Canonical model: unchanged. xatlas output vertices are not editable kernel vertices. UVs are written to canonical corners.  
+9. Abstraction: callers import `automaticUnwrap`. `UvUnwrapBackend` hides watlas. Future exact LSCM/ABF++ can implement the same interface.  
+10. Tests: `packages/uv/tests/xatlas-integration.spike.test.ts`, `packages/uv/tests/unwrap/*.test.ts`, `packages/commands/tests/automatic-unwrap.test.ts`, `packages/workers/tests/unwrap-uv.test.ts`.
+
+## @gltf-transform/core 4.4.2 and @gltf-transform/extensions 4.4.2 (MIT) — 2026-09-16
+
+Added as runtime dependencies of `@modeling-kit/formats` only. Conversion boundary: `packages/formats/src/gltf/`.
+
+1. Problem: full glTF/GLB support needs skins, animations, textures, samplers, and external buffers. A complete handwritten parser/writer duplicates a maintained spec implementation and is hard to keep aligned with extensions.  
+2. Why current stack cannot: the previous formats codec covered geometry and basic PBR factors only. Three.js `GLTFLoader`/`GLTFExporter` cannot be the headless source of truth.  
+3. Bundle-size: core + extensions, isolated to formats. No `@gltf-transform/functions`, sharp, Draco, or KTX in the base package.  
+4. Runtime cost: in-memory `PlatformIO`; no `fetch`/`fs` in the core importer. Encoded images are not decoded on import.  
+5. Licence: MIT (Don McCurdy / glTF Transform).  
+6. Maintenance: the Khronos-adjacent TypeScript library for glTF documents.  
+7. Browser/Node: no DOM in core I/O. Node and browser resolvers are separate package entries.  
+8. Canonical model: unchanged. Transform `Document` is disposed after conversion; `ModelDocument` remains canonical.  
+9. Abstraction: public APIs are `importGltf` / `exportGltf` / `exportGlb` plus structured diagnostics. Transform types do not leak.  
+10. Tests: `packages/formats/tests/formats.test.ts`, `packages/formats/tests/gltf-roundtrip.test.ts`.
 
 ## Incident log
 

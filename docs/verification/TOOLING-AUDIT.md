@@ -20,7 +20,7 @@ This document is the Phase 1–10 record for agent-context tooling. It does not 
 | Public API tracking | none | — | no | generated index | `pnpm repo:api` → `generated/public-api-index.md`. Do not add api-extractor yet. |
 | Documentation generation | hand-written `docs/` | — | yes | TypeDoc | Do not add TypeDoc until public API freeze. |
 | Changed-package testing | none (no GitHub Actions) | — | no | helper script | `pnpm check:changed` lists packages from git; no commits yet so it reports the full workspace. |
-| Release management | `.changeset/config.json` without `@changesets/cli` | config only | no | CLI | Keep config; do not install Changesets CLI in this pass. |
+| Release management | `@changesets/cli` 3.0.3 + tag workflow | `.changeset/config.json`, `.github/workflows/release.yml` | yes | npm org + `NPM_TOKEN` | First publish is `git tag v0.1.0` after the secret exists. |
 | Browser integration tests | none | — | no | Playwright | Do not add; viewport tests stay Vitest/jsdom-free Node tests. |
 | Agent coordination | `docs/coordination/*`, `tasks/R1-T00x.md` | present | yes | task template + check script | Reused existing board/milestone/freeze/review docs. Added `tasks/TEMPLATE.md` + `pnpm check:agent`. |
 
@@ -48,8 +48,7 @@ All are root `devDependencies` only. None appear in `packages/*/package.json`. R
 - **Aider** — Serena + generated maps cover repository maps; a second coding agent duplicates Cursor/Antigravity.
 - **CrewAI / AutoGPT / general multi-agent frameworks** — Cursor and Antigravity already provide agents.
 - **ast-grep** — evaluate later for DOM/`addEventListener` structural rules; import rules belong to dependency-cruiser.
-- **TypeDoc / api-extractor / Playwright / Turbo / Nx / Husky / commitlint / Renovate** — overlap or premature.
-- **`@changesets/cli`** — config already exists; installing the CLI is a release-process task, not this pass.
+- **TypeDoc / api-extractor / Playwright / Turbo / Nx / Husky / commitlint / Renovate** — overlap or premature. The Changesets CLI is installed for tagged npm publish.
 
 ## Configuration locations
 
@@ -61,6 +60,8 @@ All are root `devDependencies` only. None appear in `packages/*/package.json`. R
 | dependency-cruiser | `.dependency-cruiser.cjs` |
 | Knip | `knip.json` |
 | Repomix | `repomix.config.json` + `scripts/generate-agent-context.ts` |
+| Changesets | `.changeset/config.json` |
+| npm tag publish | `.github/workflows/release.yml` |
 | Task template | `tasks/TEMPLATE.md` |
 | Indexes | `generated/*.md` (context dumps gitignored) |
 | Provenance | `docs/research/provenance-log.md` |
@@ -156,5 +157,7 @@ pnpm deadcode
 pnpm test:properties
 pnpm check:changed
 pnpm check:agent -- --task tasks/R1-T001.md --changed-files <files>
-pnpm check:release   # typecheck, lint (currently red on legacy issues), test, build, arch:check
+pnpm check:release   # typecheck, lint, test, build, arch:check, pack:verify, release:check
+pnpm release:check
+pnpm changeset
 ```

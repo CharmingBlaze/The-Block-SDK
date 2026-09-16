@@ -12,12 +12,14 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "pnpm -w exec vitest run packages/uv/tests"
   },
   "dependencies": {
     "@modeling-kit/core": "workspace:*",
     "@modeling-kit/math": "workspace:*",
-    "@modeling-kit/mesh": "workspace:*"
+    "@modeling-kit/mesh": "workspace:*",
+    "watlas": "1.0.1"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -25,7 +27,7 @@
   "files": [
     "dist"
   ],
-  "description": "UV islands, projection, and packing helpers",
+  "description": "UV islands, projections, packing, and automatic chart unwrap",
   "homepage": "https://github.com/CharmingBlaze/The-Block-SDK/tree/main/packages/uv",
   "bugs": {
     "url": "https://github.com/CharmingBlaze/The-Block-SDK/issues"

@@ -61,7 +61,7 @@ export {
   type ExtrudeRegionResult,
 } from "./extrude-region";
 export { collectQuadEdgeLoop, collectQuadEdgeRing, collectOrientedQuadEdgeLoop, previewLoopCut, loopCut, loopCutFactors, factorOnOrientedEdge, type LoopCutRequest, type LoopCutResult, type LoopCutPreview, type OrientedLoopEdge } from "./loop-cut";
-export { bevelEdges, type BevelEdgesRequest, type BevelEdgesResult, type BevelWidthMode } from "./bevel-edges";
+export { bevelEdges, DEFAULT_MITER_LIMIT, type BevelEdgesRequest, type BevelEdgesResult, type BevelWidthMode, type BevelOverlapMode, type SimpleBevelMiterMode, type SimpleBevelOptions } from "./bevel-edges";
 export { insetFaces, type InsetFacesOpResult, type InsetFacesRequest, type InsetFacesResult } from "./inset-faces";
 export { subdivideFaces, type SubdivideFacesRequest, type SubdivideOpResult, type SubdivideResult } from "./subdivide";
 export { bridgeLoops, type BridgeEdgesResult, type BridgeLoopsOpResult as BridgeLoopsResult, type BridgeLoopsOpResult, type BridgeLoopsRequest } from "./bridge-loops";
@@ -111,3 +111,18 @@ export {
   type CatmullClarkRequest,
   type CatmullClarkResult,
 } from "./catmull-clark";
+export {
+  CREASE_EPSILON,
+  CREASE_WEIGHT_MAX,
+  CREASE_WEIGHT_MIN,
+  clampCreaseWeight,
+  isValidCreaseWeight,
+  readCreaseWeight,
+  repairEdgeCreaseWeights,
+  requireCreaseWeight,
+  setEdgeCreaseWeights,
+  storedCreaseWeight,
+  type EdgeCreaseWeight,
+  type RepairCreaseWeightsResult,
+  type SetEdgeCreaseWeightsRequest,
+} from "./creases";

@@ -21,7 +21,6 @@ const FORBIDDEN_DEPENDENCIES = [
   "manifold-3d",
   "opencascade.js",
   "gl-matrix",
-  "@gltf-transform/core",
   "comlink",
 ];
 
@@ -30,6 +29,7 @@ const ALLOWED_OPTIONAL_DEPENDENCIES: Readonly<Record<string, readonly string[]>>
   math: ["robust-predicates"],
   primitives: ["primitive-geometry", "geometry-extrude"],
   meshopt: ["meshoptimizer"],
+  formats: ["@gltf-transform/core", "@gltf-transform/extensions"],
 };
 
 function walkTsFiles(dir: string, out: string[] = []): string[] {
@@ -104,7 +104,9 @@ describe("architecture gates", () => {
             name === "robust-predicates" ||
             name === "primitive-geometry" ||
             name === "geometry-extrude" ||
-            name === "meshoptimizer") &&
+            name === "meshoptimizer" ||
+            name === "@gltf-transform/core" ||
+            name === "@gltf-transform/extensions") &&
           !allowed.includes(name)
         ) {
           found.push(`${pkg.name}:${name}`);

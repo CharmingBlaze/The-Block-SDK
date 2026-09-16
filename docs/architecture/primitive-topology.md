@@ -5,22 +5,39 @@ modeling-kit is **quad-first**, not all-quads. Editable topology is intentional.
 ## Pipeline
 
 ```text
-Geometry sources
+Ingest (three families, never mixed)
     ↓
-Explicit face recipe (SourceFace loops)
+MeshBuilder  (the only constructor)
     ↓
-Canonical mesh construction (MeshBuilder)
+Half-edge editable mesh  (native JSON source of truth)
     ↓
-Half-edge editable mesh
+triangulateMesh  (derived triangles + FaceId / VertexId / CornerId maps)
     ↓
-Render triangulation (triangulateMesh)
-    ↓
-Three.js buffers + picking map
+Three.js / meshopt / glTF-OBJ-STL export  (derived dumps)
 ```
 
-There is **one** mesh constructor: `MeshBuilder`. Canonical generators call it with construction keys. Library import expands packed `cells` into explicit `SourceFace` loops, then uses the same builder, corner attributes, UV-seam marking, and `validateMesh` finalization.
+There is **one** mesh constructor: `MeshBuilder`. Do not add a second kernel. Do not send file formats through the library cell converter, and do not send library typed arrays through the glTF/OBJ parsers.
 
-Do not add a second kernel.
+## Three ingest families
+
+| Family | Enters through | Topology comes from | Must not |
+| --- | --- | --- | --- |
+| Canonical generators | `generateBox`, `generateUvSphere`, `spawn.cube`, … | Construction keys (`PRIMITIVE_CATALOG`) | Emit triangle soup and reconstruct quads |
+| Recipe libraries | `convertSimplicialComplex` (`cellSize` required). `primitive-geometry` and `geometry-extrude` only. | Caller-declared `cellSize` 3 or 4, never `cells.length` | Import `primitive-geometry` / `geometry-extrude` from hosts; guess 3 vs 4 |
+| Interchange formats | `@modeling-kit/formats` `importGltf` / `importObj` / `importStlAscii` | The file: OBJ face loops, glTF `TRIANGLES` primitives, STL triangles | Route through `GeometrySourceData` / `facesFromFlatCells`; treat glTF as the editor document |
+
+Native JSON is not an ingest converter. It already *is* the half-edge document.
+
+`facesFromFlatCells` is the library-family expander inside `@modeling-kit/primitives`. It is not a host SDK export and not a format importer. Formats already know their polygons; stuffing an OBJ n-gon list into a packed `cellSize` buffer would throw away that metadata.
+
+Outward dumps are the reverse of ingest:
+
+| Dump | Package | Mutates HalfEdgeMesh? |
+| --- | --- | --- |
+| Viewport `BufferGeometry` | `@modeling-kit/three-adapter` | no |
+| Vertex-cache / LOD triangles | `@modeling-kit/meshopt` | no |
+| glTF / OBJ / STL | `@modeling-kit/formats` | no (export triangulates n-gons and reports loss) |
+| Earcut / ear-clip | `@modeling-kit/mesh` `triangulatePolygon` | only if `triangulateFaces` is the command |
 
 ## Layer 1 — sources
 
@@ -28,14 +45,14 @@ Do not add a second kernel.
 | --- | --- |
 | Canonical SDK generators | Intentional quads / mixed / triangles from `PRIMITIVE_CATALOG` |
 | `primitive-geometry` | Packed `cells` + **required** `cellSize` |
-| OBJ / glTF / STL (formats package) | Format-native faces or triangles (`TRIANGLES` mode), not guessed from length |
+| `geometry-extrude` | Triangle soup + `cellSize: 3`, then `convertSimplicialComplex` |
+| OBJ / glTF / STL | Format-native faces or triangles, in `@modeling-kit/formats` |
+| PLY | Allowed open standard; no codec in this package yet |
 | Documents / scripts | Already half-edge |
 
-Source-specific recipes must not leak into `MeshBuilder`.
+## Layer 2 — explicit face recipe (library family only)
 
-## Layer 2 — explicit face recipe
-
-`packages/primitives/src/source/` holds the intermediate contract:
+`packages/primitives/src/source/` is the *library* expander. Formats never construct `GeometrySourceData`. Hosts never import it: they call `convertSimplicialComplex` and read `ConvertedPrimitive` mappings.
 
 - `SourceFace.indices` is the polygon loop.
 - Packed buffers become faces only through `facesFromFlatCells(cells, cellSize)` or `facesFromOffsets`.
@@ -71,7 +88,7 @@ Library conversion defaults to `skipDegenerateFaces: true`. Source faces with re
 - `vertexIdMap` → canonical `VertexId`
 - `cornerIdMap` → canonical `CornerId`
 
-The Three.js adapter copies those into `RenderMapping`. Flat shading is a material flag.
+The Three.js adapter copies those into `RenderMapping` (`triangleToFace`, `renderVertexToVertex`, `renderVertexToCorner`). Those IDs are branded kernel IDs, never GPU buffer indices. Flat shading is a material flag.
 
 ## Catalog
 

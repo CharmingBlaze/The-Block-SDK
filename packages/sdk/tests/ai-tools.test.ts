@@ -14,6 +14,7 @@ describe("editor AI tools", () => {
       "extrude_faces",
       "inset_faces",
       "bevel_edges",
+      "set_edge_creases",
       "subdivide_faces",
       "catmull_clark",
       "loop_cut",

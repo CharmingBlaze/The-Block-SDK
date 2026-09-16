@@ -24,6 +24,7 @@ import { ExtrudeProfileCommand } from "./extrude-profile";
 import { ExtrudeFacesCommand, type ExtrudeFacesParams } from "./extrude-faces";
 import { InsetFacesCommand, type InsetFacesParams } from "./inset-faces";
 import { BevelEdgesCommand, type BevelEdgesParams } from "./bevel-edges";
+import { SetEdgeCreasesCommand } from "./set-edge-creases";
 import { SplitEdgeCommand, CutFaceCommand, type CutFaceParams } from "./split-cut";
 import { SubdivideFacesCommand } from "./subdivide-faces";
 import { CatmullClarkSubdivideCommand } from "./catmull-clark";
@@ -47,6 +48,7 @@ import { CreateMaterialCommand, type CreateMaterialParams } from "./create-mater
 import { UpdateMaterialCommand } from "./update-material";
 import { AssignMaterialSlotCommand } from "./assign-material-slot";
 import { AddMaterialSlotCommand, ReorderMaterialSlotsCommand } from "./material-slot-commands";
+import { unwrapFluentSelection } from "./fluent-unwrap";
 
 export type VecDelta = { readonly x?: number; readonly y?: number; readonly z?: number };
 
@@ -157,6 +159,16 @@ export class FluentMeshObject {
 
   bevel(offset = 0.1, options: Omit<BevelEdgesParams, "offset"> = {}): this {
     this.editor.session.execute(new BevelEdgesCommand({ offset, ...options }));
+    return this;
+  }
+
+  setCrease(weight: number, edgeIds?: readonly EdgeId[]): this {
+    this.editor.session.execute(
+      new SetEdgeCreasesCommand({
+        weight,
+        ...(edgeIds ? { edgeIds } : {}),
+      }),
+    );
     return this;
   }
 
@@ -687,6 +699,14 @@ export class FluentEditor {
   redo(): this {
     this.session.redo();
     return this;
+  }
+
+  async automaticUnwrap(options: import("@modeling-kit/uv").AutomaticUvUnwrapOptions = {}): Promise<import("@modeling-kit/uv").AutomaticUvUnwrapResult> {
+    const object = this.activeObject();
+    if (!object) {
+      throw new RangeError("automaticUnwrap requires an active mesh object");
+    }
+    return unwrapFluentSelection(this.session, object.meshId, options);
   }
 
   get canUndo(): boolean {

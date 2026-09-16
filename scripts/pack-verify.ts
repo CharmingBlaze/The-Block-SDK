@@ -27,6 +27,7 @@ const HEADLESS_IMPORTS: Record<string, readonly string[]> = {
   "@modeling-kit/sdk": ["@modeling-kit/sdk"],
   "@modeling-kit/workers": ["@modeling-kit/workers", "@modeling-kit/workers/node"],
   "@modeling-kit/meshopt": ["@modeling-kit/meshopt"],
+  "@modeling-kit/uv": ["@modeling-kit/uv"],
 };
 
 function runPnpm(args: string[], cwd: string): string {
@@ -244,13 +245,17 @@ function verifyPackedConsumer(
   const lines = [
     "const loaded = [];",
     "const { MeshBuilder, serializeMesh } = await import('@modeling-kit/mesh');",
+    "const { automaticUnwrap } = await import('@modeling-kit/uv');",
     "const workers = await import('@modeling-kit/workers');",
     "const pool = new workers.AsyncComputePool();",
     "if (pool.backend !== 'worker-threads') { throw new Error(`expected worker-threads, got ${pool.backend}`); }",
     "const tri = await pool.triangulateAsync(serializeMesh(MeshBuilder.createCube(1, 1, 1)));",
     "if (tri.indices.length !== 36) { throw new Error('packed worker triangulation failed'); }",
+    "const unwrapped = await automaticUnwrap({ mesh: MeshBuilder.createCube(1, 1, 1) });",
+    "if (unwrapped.cornerUvs.size === 0) { throw new Error('packed automatic unwrap failed'); }",
     "pool.dispose();",
     "loaded.push(['@modeling-kit/workers#node-task', 1]);",
+    "loaded.push(['@modeling-kit/uv#automatic-unwrap', unwrapped.cornerUvs.size]);",
   ];
   for (const [pkg, specifiers] of Object.entries(HEADLESS_IMPORTS)) {
     for (const specifier of specifiers) {

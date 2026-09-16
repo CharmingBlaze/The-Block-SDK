@@ -8,12 +8,15 @@ export type {
   TaskType,
   TriangulateTaskPayload,
   PackUvsTaskPayload,
+  UnwrapUvTaskPayload,
   ValidateTaskPayload,
   WorkerTaskRequest,
   WorkerTaskResponse,
   WorkerTaskSuccessResponse,
   WorkerTaskErrorResponse,
 } from "./types";
+export { runComputeTask } from "./compute-task";
+export { WorkerPoolUnwrapBackend } from "./worker-unwrap-backend";
 export { createNodeWorkerBackend, nodeWorkerUrl, type NodeWorkerBackendOptions } from "./node-backend";
 
 /** `new AsyncComputePool()` from this entry uses `worker_threads`. Pass `backend: "inline"` to opt out. */

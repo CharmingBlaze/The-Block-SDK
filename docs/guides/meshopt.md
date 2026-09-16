@@ -14,7 +14,7 @@ This package never replaces the editable `HalfEdgeMesh`. It only consumes derive
 | `@modeling-kit/meshopt` | Reorder, vertex-cache/fetch locality, controlled simplification, LOD |
 | Host / exporter | Whether to display or serialize the optimized arrays |
 
-Do not import `meshoptimizer` from `@modeling-kit/mesh`, `@modeling-kit/document`, or `@modeling-kit/sdk`.
+Do not import `meshoptimizer` from `@modeling-kit/mesh`, `@modeling-kit/document`, or `@modeling-kit/sdk`. This is the same class of *dump* as glTF/OBJ/STL export: derived triangles leave the kernel; they never become a second ingest path.
 
 ## Jobs and cleanup
 
@@ -38,6 +38,19 @@ Simplification may delete triangles. `mapping.status` is `partial` with `limitat
 
 - `optimizeDerivedTriangles(buffers, { mode, lod, signal })` — convenience one-shot
 - `MeshoptOptimizer.run` / `dispose`
+- `derivedFromTriangulated` — typed copy of `triangulateMesh` buffers; does not mutate the kernel
 - `MeshoptRequest.mode`: `"reorder"` | `"simplify"`
 - Optional `lodRatios` for extra simplified index buffers
 - `MeshoptJobResult.ok` discriminates success from `cancelled` / `stale-revision` / `invalid-input` / `limit-exceeded` / `timeout` / `backend-failed` / `disposed`
+
+Do not import `@modeling-kit/meshopt` from commands or the headless SDK. Hosts that want LOD import the optional package directly.
+
+## Module map
+
+- `types.ts` — request/result and mapping status
+- `library.ts` — lazy `MeshoptEncoder` / `MeshoptSimplifier` WASM
+- `limits.ts` / `validate.ts` — size and timeout gates
+- `mapping.ts` — inverse remap and FaceId recovery
+- `optimize.ts` — reorder vs simplify
+- `job.ts` / `job-lifecycle.ts` / `timeout.ts` / `abort.ts` — one in-flight job
+- `service.ts` — `MeshoptOptimizer` / `optimizeDerivedTriangles`

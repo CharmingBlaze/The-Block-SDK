@@ -3,6 +3,7 @@ import {
   createMeshOperationContext,
   deleteFace,
   mergeVertices,
+  repairEdgeCreaseWeights,
   reverseFaceWinding,
   type HalfEdgeMesh,
 } from "@modeling-kit/mesh";
@@ -53,6 +54,7 @@ export function healMesh(mesh: HalfEdgeMesh, ids: IdFactory): MeshCleanupReport 
   duplicateFacesRemoved += removeDuplicateFaces(mesh);
   facesRewound += unifyWinding(mesh, ids);
   isolatedVerticesRemoved += removeIsolatedVertices(mesh);
+  repairEdgeCreaseWeights(mesh);
 
   return {
     isolatedVerticesRemoved,

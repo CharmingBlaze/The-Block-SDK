@@ -9,6 +9,9 @@ import type {
   UVChannelId,
 } from "@modeling-kit/core";
 
+/** Finite Catmull–Clark edge sharpness in `[0, 1]`. */
+export type EdgeCreaseWeight = number;
+
 export interface VertexRecord {
   readonly id: VertexId;
   position: [x: number, y: number, z: number];
@@ -22,7 +25,17 @@ export interface EdgeRecord {
   isSeam: boolean;
   /** Per-channel seam intent. Independent of mesh topology. */
   seamChannels?: readonly UVChannelId[] | undefined;
+  /**
+   * Shading/dihedral hint used by existing operators and the viewport.
+   * Independent of Catmull–Clark `creaseWeight`.
+   */
   creaseAngle?: number | undefined;
+  /**
+   * Normalized Catmull–Clark crease sharpness.
+   * `0` = smooth, `1` = fully sharp for this simple model.
+   * `undefined` is treated as `0`.
+   */
+  creaseWeight?: EdgeCreaseWeight | undefined;
 }
 
 export interface HalfEdgeRecord {

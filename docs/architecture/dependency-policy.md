@@ -2,7 +2,7 @@
 
 Use a small, deliberate stack. There is no complete TypeScript library that already provides professional editable topology, primitives, UVs, selections, bevels, loop cuts, undo, rigging, and Three.js rendering correctly. **This SDK’s canonical work stays in our packages.** Third-party code is only for derived work (triangulation, predicates, viewport acceleration, interchange processing).
 
-This document is adapted to modeling-kit as it exists today. Do not restart the kernel, math, commands, or the hand-written glTF/GLB codecs to chase a “perfect” stack.
+This document is adapted to modeling-kit as it exists today. Do not restart the kernel, math, or commands to chase a “perfect” stack. glTF/GLB interchange in `@modeling-kit/formats` uses glTF Transform (see the 10-point review in `docs/research/provenance-log.md`).
 
 ## Already true here (do not reverse)
 
@@ -31,6 +31,7 @@ Do **not** make Three.js primitive geometries (`BoxGeometry`, etc.) canonical. D
 | `primitive-geometry` | Typed-array geometry recipes (positions/normals/UVs/cells) | `@modeling-kit/primitives` behind `convertSimplicialComplex` | 2026-09-16. Canonical primitives use `MeshBuilder`. Library `cells` are triangles unless `cellSize` is explicit. See `docs/architecture/primitive-topology.md`. |
 | `geometry-extrude` | 2D profile / path → triangle soup | `@modeling-kit/primitives` behind `generateProfileExtrude` | **Added 2026-09-16.** Does not replace `extrudeFaces` or catalog `wall`. XY+Z remaps to SDK XZ ground / +Y height. See `docs/guides/profile-extrude.md`. |
 | `meshoptimizer` | Vertex-cache/fetch reorder and controlled LOD on **derived** triangles | `@modeling-kit/meshopt` behind `optimizeDerivedTriangles` | **Added 2026-09-16.** Never mutates HalfEdgeMesh. Not a required `@modeling-kit/sdk` dependency. See `docs/guides/meshopt.md`. |
+| `watlas` | Automatic chart unwrap (xatlas WASM) | `@modeling-kit/uv` behind `UvUnwrapBackend` / `automaticUnwrap` | **Added 2026-09-16.** Do not expose watlas or xatlas objects. Not LSCM or ABF++. See `docs/architecture/AUTOMATIC-UV-UNWRAP.md`. |
 
 ## Approved later, optional adapter packages only
 
@@ -38,10 +39,12 @@ Do **not** make Three.js primitive geometries (`BoxGeometry`, etc.) canonical. D
 | ------- | ------- | ---- |
 | `three-mesh-bvh` | optional peer of `three-adapter` as `SpatialQueryBackend` | Picking/lasso on large meshes; dirty levels, not rebuild every pointer move |
 | `manifold-3d` | `@modeling-kit/booleans-manifold` as `BooleanBackend` | After kernel, selection, extrusion, undo, save/load (already passing) **and** a conversion-report design |
-| `@gltf-transform/*` | optional processor **beside** our codecs as `GltfBackend` helpers | Dedup/prune/texture resize. **Do not replace** `exportGltf` / `importGltf` / `exportGlb` |
+| `@gltf-transform/core` + `@gltf-transform/extensions` | **canonical** glTF/GLB read/write inside `@modeling-kit/formats` | **Added 2026-09-16.** Transform documents are internal. Public APIs stay `importGltf` / `exportGltf` / `exportGlb`. Do not add `@gltf-transform/functions`, sharp, Draco, or KTX to the base package. See `docs/architecture/decisions/GLTF-TRANSFORM-BACKEND.md`. |
 | `comlink` | workers | If postMessage friction is measured |
 
-Keep Manifold, glTF Transform, and Comlink **out of** `@modeling-kit/mesh`, `@modeling-kit/document`, and `@modeling-kit/sdk` required dependencies. `meshoptimizer` lives only in `@modeling-kit/meshopt`.
+Keep Manifold, glTF Transform, and Comlink **out of** `@modeling-kit/mesh` and `@modeling-kit/document`. glTF Transform is a required dependency of `@modeling-kit/formats` only — not of `@modeling-kit/sdk` (sdk re-exports formats APIs). `meshoptimizer` lives only in `@modeling-kit/meshopt`.
+
+`@modeling-kit/formats` does not depend on `@modeling-kit/primitives` or `primitive-geometry`. OBJ/glTF/STL already declare faces or triangle primitives; they go through `MeshBuilder` in the formats package. Packed `cells` + `cellSize` is only for recipe libraries. Hosts that need both a catalog cube and a glTF cube call `generateBox` / `importGltf` separately — they do not share an IR.
 
 ## Forbidden until a 10-point review is logged
 
@@ -66,8 +69,9 @@ New geometry/math/state/format libraries require, in `docs/research/provenance-l
 - `GeometryPredicates` — wrap `robust-predicates`  
 - `SpatialQueryBackend` — wrap `three-mesh-bvh` in the adapter  
 - `BooleanBackend` — wrap Manifold; result includes warnings and discarded attributes  
-- `GltfBackend` — our formats package is the first implementation; Transform is optional processing  
+- `GltfBackend` — `@modeling-kit/formats` is the implementation; glTF Transform is the codec, not the editor document  
 - `MeshOptimizationBackend` — meshoptimizer on export triangles only  
+- `UvUnwrapBackend` — watlas/xatlas automatic chart unwrap; future exact LSCM/ABF++ backends may implement the same interface  
 
 ## First primitive bar (box)
 

@@ -61,6 +61,7 @@ export interface EdgeRecord {
   readonly halfEdge: HalfEdgeId;
   readonly isSeam: boolean;
   readonly creaseAngle?: number;
+  readonly creaseWeight?: number; // Catmull–Clark, 0 = smooth, 1 = sharp
 }
 
 export interface HalfEdgeRecord {

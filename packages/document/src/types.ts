@@ -195,11 +195,14 @@ export type DocumentLifecycle =
 export type AlphaMode = "opaque" | "mask" | "blend";
 export type ColorSpace = "srgb" | "linear";
 export type FilterMode = "nearest" | "linear";
+export type MipmapFilterMode = FilterMode | "none";
 export type WrapMode = "repeat" | "clamp" | "mirror";
 
 export interface TextureSampler {
   readonly magFilter: FilterMode;
   readonly minFilter: FilterMode;
+  /** Combined with `minFilter` when writing glTF `minFilter` enums. Omitted means unspecified. */
+  readonly mipmapFilter?: MipmapFilterMode;
   readonly wrapS: WrapMode;
   readonly wrapT: WrapMode;
 }
@@ -248,6 +251,8 @@ export interface TextureData {
   readonly height?: number;
   /** Base64-encoded tightly packed RGBA8 pixels (`width * height * 4`). */
   readonly pixelsBase64?: string;
+  /** Original encoded image bytes (PNG/JPEG/WebP). Prefer this over decoding on import. */
+  readonly encodedBytesBase64?: string;
   readonly metadata: Record<string, unknown>;
 }
 
@@ -312,10 +317,22 @@ export interface VertexSkinData {
   readonly influences: readonly SkinInfluence[];
 }
 
+export interface InverseBindMatrix {
+  readonly boneId: BoneId;
+  /** Column-major 4×4 matrix, 16 finite numbers. */
+  readonly matrix: readonly number[];
+}
+
 export interface MeshSkinBinding {
   readonly skeletonId: SkeletonId;
   readonly maxInfluences: number;
   readonly vertices: readonly VertexSkinData[];
+  /**
+   * Authored inverse bind matrices keyed by bone.
+   * When omitted, evaluators use rest-pose inverses from the skeleton.
+   * When present (including identity entries), imported values are not recomputed.
+   */
+  readonly inverseBindMatrices?: readonly InverseBindMatrix[];
 }
 
 export interface ModelDocument {

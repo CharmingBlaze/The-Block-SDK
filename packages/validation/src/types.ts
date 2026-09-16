@@ -7,7 +7,8 @@ export type MeshIssueCode =
   | "NON_MANIFOLD_VERTEX"
   | "NON_FINITE_POSITION"
   | "DANGLING_HALF_EDGE"
-  | "INCONSISTENT_WINDING";
+  | "INCONSISTENT_WINDING"
+  | "INVALID_CREASE_WEIGHT";
 
 export interface MeshIssue {
   readonly code: MeshIssueCode;

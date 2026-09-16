@@ -10,6 +10,10 @@
       "entry": ["scripts/**/*.ts", "vitest.config.ts", "vitest.dist.config.ts", "eslint.config.js"],
       "project": ["scripts/**/*.ts", "vitest.config.ts", "vitest.dist.config.ts", "eslint.config.js"]
     },
+    "packages/formats": {
+      "entry": ["src/index.ts!", "src/node.ts!", "src/browser.ts!"],
+      "project": ["src/**/*.ts"]
+    },
     "packages/*": {
       "entry": ["src/index.ts!"],
       "project": ["src/**/*.ts"]

@@ -30,12 +30,38 @@ export {
 } from "./picking";
 export { applyPickSelection, clientToNdc, isClickNotDrag } from "./pick-selection";
 export {
+  clientToViewportPixel,
+  createFacePickingGeometry,
+  createFacePickingMaterial,
+  createObjectPickingMaterial,
+  decodePickId,
+  DefaultGpuPickingService,
+  encodePickId,
+  GPU_PICK_BACKGROUND_ID,
+  InMemoryGpuPickRegistry,
+  MAX_GPU_PICK_ID,
+  pickIdToUnitRgb,
+  softwarePickAtPixel,
+  type GpuPickDrawable,
+  type GpuPickRecord,
+  type GpuPickRegistry,
+  type GpuPickRequest,
+  type GpuPickingBackend,
+  type GpuPickingDiagnostics,
+  type GpuPickingReadback,
+  type GpuPickingService,
+  type GpuPointPickResult,
+  type PickingInvalidation,
+  type ViewportPixel,
+} from "./gpu-picking";
+export {
   createThreeViewport,
   type CreateThreeViewportOptions,
   type ThreeViewportCameraOptions,
   type ThreeViewportHandle,
   type ThreeViewportController,
   type ThreeViewportOptions,
+  type ThreeViewportPickingOptions,
 } from "./viewport";
 export {
   defaultSubElementTheme,
@@ -83,3 +109,24 @@ export {
   type SubElementDiagnostics,
   type ElementInteractionState,
 } from "./sub-element";
+export { applyCpuSkin } from "./skin";
+export {
+  createThreeSkeleton,
+  applyBoneRestTransform,
+  type ThreeSkeletonResources,
+} from "./rigging/create-skeleton";
+export {
+  createThreeSkinnedMesh,
+  writeSkinAttributes,
+  type ThreeSkinnedMeshResources,
+} from "./rigging/create-skinned-mesh";
+export { updateThreeSkeleton } from "./rigging/update-skeleton";
+export { disposeThreeSkeleton } from "./rigging/dispose-skeleton";
+export { createThreeAnimationClip } from "./animation/create-animation-clip";
+export { createThreeAnimationMixer, createAnimationPlayback } from "./animation/create-animation-mixer";
+export {
+  playThreeClip,
+  updateThreeAnimation,
+  type AnimationPlaybackHandle,
+} from "./animation/update-animation";
+export { disposeThreeAnimation } from "./animation/dispose-animation";

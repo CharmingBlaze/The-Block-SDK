@@ -81,9 +81,17 @@ THREE.BufferGeometry attached to THREE.Mesh
 
 ## 4. Raycasting & Picking System
 
-Canonical picking is **CPU `THREE.Raycaster`** against derived `BufferGeometry` (VP-003). Release 1.0 does **not** implement a GPU ID-buffer pass (`GPU-PICK-001` is deferred). Do not describe this as “GPU raycast.”
+Canonical picking is hybrid (VP-003 / GPU-PICK-001):
 
-Optional object-level acceleration implements `SpatialQueryBackend` (VP-005). `BruteForceSpatialQuery` is a host-replaceable stand-in, not `three-mesh-bvh`. A null spatial result means “no preference”; picking still uses the CPU raycaster. Hosts own backend lifetime unless `ownsSpatialQuery` is true. `PickRequestGate` drops stale pick generations.
+- **Click object/face:** GPU ID-buffer in `@modeling-kit/three-adapter` (`adapter.pickPoint` / `viewport.resolvePointPick`). Canonical `FaceId`s are allocated per face, not per render triangle. Gesture state lives in `PickSession` so pointer-down and pointer-up cannot mix CPU and GPU candidates.
+- **Surface XYZ:** GPU identity plus constrained CPU intersection of that face (`requireSurfacePoint` / knife / placement / measurement). Identity results never invent `{0,0,0}`.
+- **Hover, vertices, edges, x-ray, select-through, no WebGL:** CPU `THREE.Raycaster` (`adapter.pick`). GPU hover is not in 1.0.
+
+Do not describe CPU raycasting as “GPU raycast.” The ID-buffer pass is documented in [`GPU-ID-PICKING.md`](./GPU-ID-PICKING.md).
+
+Neutral contracts (`VisibilityPickingAdapter`, `PointPickRequest`, `applyPointPickToSelection`) live in `@modeling-kit/selection` and must not import Three.js.
+
+Optional object-level acceleration implements `SpatialQueryBackend` (VP-005). `BruteForceSpatialQuery` is a host-replaceable stand-in, not `three-mesh-bvh`. A null spatial result means “no preference”; CPU picking still uses the raycaster. Hosts own backend lifetime unless `ownsSpatialQuery` is true. `PickRequestGate` drops stale pick generations.
 
 Picking translates screen pointer coordinates $(x, y)$ into canonical domain selections:
 

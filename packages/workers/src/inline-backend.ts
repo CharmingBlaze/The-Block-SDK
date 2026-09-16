@@ -26,16 +26,23 @@ export function createInlineBackend(): ComputeWorkerBackend {
             if (native.terminated) {
               return;
             }
-            try {
-              const result = runComputeTask(payload.task);
-              native.handlers?.onMessage({ id: payload.id, success: true, result });
-            } catch (err) {
-              native.handlers?.onMessage({
-                id: payload.id,
-                success: false,
-                error: err instanceof Error ? err.message : String(err),
+            void runComputeTask(payload.task)
+              .then((result) => {
+                if (native.terminated) {
+                  return;
+                }
+                native.handlers?.onMessage({ id: payload.id, success: true, result });
+              })
+              .catch((err: unknown) => {
+                if (native.terminated) {
+                  return;
+                }
+                native.handlers?.onMessage({
+                  id: payload.id,
+                  success: false,
+                  error: err instanceof Error ? err.message : String(err),
+                });
               });
-            }
           }, 0);
         },
         terminate(): void {

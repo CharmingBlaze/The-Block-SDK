@@ -2,8 +2,9 @@ import { deserializeMesh, serializeMesh, triangulateMesh } from "@modeling-kit/m
 import { validateMesh } from "@modeling-kit/validation";
 import { packUvs } from "@modeling-kit/uv";
 import type { TaskPayload } from "./types";
+import { runUnwrapUvTask } from "./unwrap-task";
 
-export function runComputeTask(task: TaskPayload, signal?: AbortSignal): unknown {
+export async function runComputeTask(task: TaskPayload, signal?: AbortSignal): Promise<unknown> {
   if (signal?.aborted) {
     throw new Error("cancelled");
   }
@@ -19,6 +20,9 @@ export function runComputeTask(task: TaskPayload, signal?: AbortSignal): unknown
   if (task.type === "validate") {
     const mesh = deserializeMesh(task.payload.serializedMesh);
     return validateMesh(mesh);
+  }
+  if (task.type === "unwrap-uv") {
+    return runUnwrapUvTask(task.payload.input, task.payload.options, signal);
   }
   throw new Error("Unknown task type");
 }

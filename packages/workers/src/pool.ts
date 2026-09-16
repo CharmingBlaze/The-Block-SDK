@@ -1,8 +1,9 @@
 import type { SerializedMesh, TriangulatedMesh } from "@modeling-kit/mesh";
-import type { PackUvsOptions } from "@modeling-kit/uv";
+import type { PackUvsOptions, UvUnwrapBackendInput, UvUnwrapBackendOptions, UvUnwrapBackendResult } from "@modeling-kit/uv";
 import type { MeshValidationResult } from "@modeling-kit/validation";
 import { defaultConcurrency, type ComputeBackend, type ComputeWorkerBackend, type ComputeWorkerSession } from "./backend";
 import { createInlineBackend } from "./inline-backend";
+import { collectTransferables } from "./transfer";
 import type { WorkerTaskRequest, WorkerTaskResponse } from "./types";
 
 type PendingFinish = (response: WorkerTaskResponse<unknown>) => void;
@@ -127,6 +128,30 @@ export class AsyncComputePool {
     );
   }
 
+  async unwrapUvAsync(
+    input: UvUnwrapBackendInput,
+    options: UvUnwrapBackendOptions = {},
+    signal?: AbortSignal,
+  ): Promise<UvUnwrapBackendResult> {
+    return this.requireSuccess(
+      this.dispatch<UvUnwrapBackendResult>({
+        id: `task-${++this.taskCounter}`,
+        task: {
+          type: "unwrap-uv",
+          payload: {
+            input: {
+              positions: new Float32Array(input.positions),
+              indices: new Uint32Array(input.indices),
+              ...(input.inputUvs ? { inputUvs: new Float32Array(input.inputUvs) } : {}),
+            },
+            options,
+          },
+        },
+        ...(signal ? { signal } : {}),
+      }),
+    );
+  }
+
   private pump(): void {
     if (this.disposed) {
       return;
@@ -182,7 +207,7 @@ export class AsyncComputePool {
   private startOnWorker(worker: ComputeWorkerSession, item: QueuedItem): void {
     this.busy.set(worker, item);
     const message = { id: item.id, task: item.request.task };
-    worker.postMessage(message);
+    worker.postMessage(message, collectTransferables(item.request.task));
   }
 
   private onWorkerMessage(worker: ComputeWorkerSession, data: unknown): void {

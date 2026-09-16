@@ -14,7 +14,7 @@ Status: `OPEN` · `PARTIAL` · `CLOSED` (behavior + tests). `CLOSED` does not me
 | 3 | Replace fan triangulation | PARTIAL | Derived `triangulateMesh` / `triangulateFaces` use projected ear clipping. Professional concave corpus, holes, and export/pick proof are not closed. |
 | 4 | Planned multi-edge bevel | OPEN | Sequential bevel and percentage offset remain. |
 | 5 | Central attribute propagation | OPEN | Operators still copy attributes independently; named UV channels, pins, seams, creases, slots, and weights are not one service. |
-| 6 | Object selection, edge rings, marquee, occlusion | PARTIAL | Object-domain mutations and ring walk are closed. Marquee has touch/center/contain + segment/polygon tests. True occlusion (depth buffer / ray) is missing; optional `depth` is only a frontmost-face hint. |
+| 6 | Object selection, edge rings, marquee, occlusion | PARTIAL | Object-domain mutations and ring walk are closed. Marquee has touch/center/contain + segment/polygon tests. Visible-surface GPU ID-buffer picking is implemented for clicks; box/lasso occlusion remains CPU/`xray`. |
 | 7 | Vertex/object pivots and oriented scaling | CLOSED | Vertex world points, mesh AABB bounds, `activeId`, `T R S R⁻¹ T⁻¹`. Multi-object vertex edits and selection-derived normals remain medium gaps. |
 | 8 | Paint undo across tiles | CLOSED | Stroke AABB capture; sparse tiles; no full-texture baseline. |
 | 9 | One animation schema | OPEN | Document `AnimationClipData` is canonical; legacy `KeyframeTrack` remains. `CUBICSPLINE` is rejected instead of silently lerping. |
@@ -57,7 +57,7 @@ Closed in the post-audit fix pass unless noted.
 | animation | CUBICSPLINE reject; legacy track validation | Single schema; document-clip validation; Hermite spline |
 | formats | Empty mesh skip; STL finite; data-loss strings | Texture/skin/anim export; attribute-aware weld; OBJ UVs |
 | workers | Inline + `/browser` + `/node`; host-owned factories; queue; result transfers; crash replace | Dedicated paint/IO jobs. Removed unsafe `defaultComputePool` singleton. |
-| three-adapter | — | BVH; demand render; context loss |
+| three-adapter | GPU ID-buffer object/face picking | BVH; demand render; GPU hover; InstancedMesh |
 | sdk | dist exports; pack:verify in CI | small 1.0 surface |
 
 ## Next work (original overlay leftovers)

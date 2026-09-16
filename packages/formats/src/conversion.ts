@@ -1,6 +1,9 @@
 /**
  * Interchange is always a derived dump of ModelDocument / HalfEdgeMesh.
  * Reports record data loss so hosts never treat glTF/OBJ/STL as a second kernel.
+ *
+ * Import uses format-native faces (OBJ loops, glTF TRIANGLES, STL triangles) and
+ * MeshBuilder directly. Do not route files through primitives' packed-cell IR.
  */
 export type InterchangeFormat = "gltf" | "glb" | "obj" | "stl" | "ppm";
 

@@ -140,7 +140,7 @@ const viewport = createThreeViewport({
   orbitControls: true,
   damping: true,
   autoResize: true,
-  picking: true,
+  picking: { refineSurfacePoint: true },
   resolvePickDomain: () => {
     if (loopCutActive && loopCut.phase === "hover") {
       return "edge";
@@ -158,12 +158,15 @@ const viewport = createThreeViewport({
       const mesh = editor.activeObject()?.mesh;
       if (loopCut.phase === "slide") {
         if (hit && mesh) {
-          loopCut.slideTo(mesh, viewport.toMeshLocal(hit));
+          const local = viewport.toMeshLocal(hit);
+          if (local) {
+            loopCut.slideTo(mesh, local);
+          }
         }
         commitLoopCut();
         return true;
       }
-      if (hit?.edgeId) {
+      if (hit && "edgeId" in hit && hit.edgeId) {
         loopCut.setHoverEdge(hit.edgeId);
         if (loopCut.beginSlide()) {
           if (loopCut.phase === "hover") {
@@ -191,6 +194,9 @@ const viewport = createThreeViewport({
     knifeObjectId = hit.objectId;
     focusHit(hit);
     const local = viewport.toMeshLocal(hit);
+    if (!local) {
+      return true;
+    }
     knife.addHit(local, snapOptions());
     showKnifeOverlay({ x: local[0], y: local[1], z: local[2] });
     statusHud();
@@ -204,13 +210,16 @@ const viewport = createThreeViewport({
       const mesh = editor.activeObject()?.mesh;
       if (loopCut.phase === "slide") {
         if (hit && mesh) {
-          loopCut.slideTo(mesh, viewport.toMeshLocal(hit));
+          const local = viewport.toMeshLocal(hit);
+          if (local) {
+            loopCut.slideTo(mesh, local);
+          }
         }
         showLoopCutOverlay();
         statusHud();
         return;
       }
-      loopCut.setHoverEdge(hit?.edgeId ?? null);
+      loopCut.setHoverEdge(hit && "edgeId" in hit ? (hit.edgeId ?? null) : null);
       showLoopCutOverlay();
       return;
     }
@@ -225,6 +234,10 @@ const viewport = createThreeViewport({
       focusHit(hit);
     }
     const local = viewport.toMeshLocal(hit);
+    if (!local) {
+      showKnifeOverlay();
+      return;
+    }
     showKnifeOverlay({ x: local[0], y: local[1], z: local[2] });
   },
 });

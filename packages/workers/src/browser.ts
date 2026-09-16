@@ -8,12 +8,14 @@ export type {
   TaskType,
   TriangulateTaskPayload,
   PackUvsTaskPayload,
+  UnwrapUvTaskPayload,
   ValidateTaskPayload,
   WorkerTaskRequest,
   WorkerTaskResponse,
   WorkerTaskSuccessResponse,
   WorkerTaskErrorResponse,
 } from "./types";
+export { WorkerPoolUnwrapBackend } from "./worker-unwrap-backend";
 export {
   createBrowserWorkerBackend,
   browserWorkerUrl,

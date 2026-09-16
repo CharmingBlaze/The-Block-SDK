@@ -5,10 +5,19 @@ import { describe, expect, it } from "vitest";
 import {
   SkeletonBuilder,
   assignRigidWeights,
+  collectRootBoneIds,
+  inverseBindMatchesRest,
   normalizeWeights,
+  normalizeWeightsWithReport,
   reparentBone,
+  resolveInverseBindMatrix,
+  skinFromBinding,
   skinPositions,
+  skeletonFromData,
+  skeletonToData,
   skinningFromEntries,
+  validateSkeletonData,
+  validateSkinBinding,
 } from "../src/index";
 
 describe("@modeling-kit/rigging", () => {
@@ -146,5 +155,57 @@ describe("@modeling-kit/rigging", () => {
     expect(posed.x).toBeCloseTo(rest[0]);
     expect(posed.y).toBeCloseTo(rest[1]);
     expect(posed.z).toBeCloseTo(rest[2]);
+  });
+
+  it("allows multiple roots, validates rest IBM, and uses authored identity IBMs", () => {
+    const ids = createSequenceIdFactory("forest");
+    const a = ids.bone();
+    const b = ids.bone();
+    const skeleton = new SkeletonBuilder(ids.skeleton(), "Forest")
+      .addBone({ id: a, name: "A" })
+      .addBone({
+        id: b,
+        name: "B",
+        restTransform: { ...identityTransform(), position: { x: 2, y: 0, z: 0 } },
+      })
+      .build();
+    expect(collectRootBoneIds(skeleton.bones).sort()).toEqual([a, b].sort());
+    expect(validateSkeletonData(skeletonToData(skeleton))).toEqual([]);
+    expect(inverseBindMatchesRest(skeleton, skeleton.bones.get(a)!.inverseBindMatrix, a)).toBe(true);
+    const data = skeletonToData(skeleton);
+    const roundtrip = skeletonFromData(data);
+    expect(roundtrip.rootBoneIds).toHaveLength(2);
+    const vertexId = ids.vertex();
+    const identitySkin = skinFromBinding({
+      skeletonId: skeleton.id,
+      maxInfluences: 4,
+      vertices: [{ vertexId, influences: [{ boneId: a, weight: 1 }] }],
+      inverseBindMatrices: [
+        { boneId: a, matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
+      ],
+    });
+    const ibm = resolveInverseBindMatrix(skeleton, identitySkin, a);
+    expect(ibm.elements[0]).toBe(1);
+    expect(ibm.elements[12]).toBe(0);
+    const missing = resolveInverseBindMatrix(skeleton, identitySkin, b);
+    expect(missing.elements).toEqual([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+    const issues = validateSkinBinding(skeleton, identitySkin);
+    expect(issues.some((item) => item.code === "IBM_MISSING_BONE")).toBe(false);
+    const extra = [ids.bone(), ids.bone(), ids.bone(), ids.bone()] as const;
+    const reported = normalizeWeightsWithReport(
+      [
+        { boneId: a, weight: 0.8 },
+        { boneId: a, weight: 0.2 },
+        { boneId: b, weight: 0 },
+        { boneId: extra[0], weight: 0.05 },
+        { boneId: extra[1], weight: 0.04 },
+        { boneId: extra[2], weight: 0.03 },
+        { boneId: extra[3], weight: 0.02 },
+      ],
+      4,
+    );
+    expect(reported.influences).toHaveLength(4);
+    expect(reported.dropped.some((item) => item.weight === 0 || item.weight === 0.02)).toBe(true);
+    expect(reported.influences.reduce((sum, item) => sum + item.weight, 0)).toBeCloseTo(1);
   });
 });

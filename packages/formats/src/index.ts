@@ -10,6 +10,14 @@ export {
   type GlbExportResult,
 } from "./gltf";
 export { importGltf, type GltfImportOptions, type GltfImportResult, type GltfImportSource, type GltfWeldMode } from "./gltf-import";
+export type { GltfDiagnostic, GltfDataLossCode } from "./gltf/diagnostics/gltf-diagnostic";
+export type {
+  ExternalResourceResolver,
+  GltfResourceLimits,
+  ResourceResolveContext,
+} from "./gltf/resources/resource-resolver";
+export { DEFAULT_GLTF_RESOURCE_LIMITS } from "./gltf/resources/resource-resolver";
+export { MemoryResourceResolver } from "./gltf/resources/memory-resource-resolver";
 export { exportImagePpm, importImagePpm, type ImageIoOptions } from "./image-io";
 export { throwIfAborted, type IoCancelOptions } from "./cancel";
 export {

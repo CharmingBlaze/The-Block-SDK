@@ -54,6 +54,12 @@ describe("ThreeViewportAdapter", () => {
     const hit = adapters[0]!.pick(0, 0, { domain: "face" });
     expect(hit?.objectId).toBe(cube.objectId);
     expect(hit?.faceId).toBe(cube.faceIds.posZ);
+    const derived = adapters[0]!.root.getObjectByName("Cube") as Mesh;
+    const mapping = derived.geometry.userData.mapping as {
+      renderVertexToVertex: readonly string[];
+      renderVertexToCorner: readonly string[];
+    };
+    expect(mapping.renderVertexToCorner).toHaveLength(mapping.renderVertexToVertex.length);
     const t0 = performance.now();
     for (const adapter of adapters) {
       adapter.pick(0, 0, { domain: "face" });

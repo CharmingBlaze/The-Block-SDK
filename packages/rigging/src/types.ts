@@ -31,6 +31,11 @@ export interface MeshSkinningData {
   readonly skeletonId: SkeletonId;
   readonly maxInfluences: number;
   readonly weights: ReadonlyMap<VertexId, readonly BoneWeight[]>;
+  /**
+   * When set, these authored matrices are used and missing bones fall back to identity
+   * (glTF omitted-IBM behavior). When omitted, rest-pose inverses on `Bone` are used.
+   */
+  readonly inverseBindMatrices?: ReadonlyMap<BoneId, Matrix4>;
 }
 
 export type PoseMap = ReadonlyMap<BoneId, TransformData>;

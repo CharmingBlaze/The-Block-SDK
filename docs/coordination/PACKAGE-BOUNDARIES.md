@@ -48,7 +48,7 @@ math
 | workers | mesh, uv, validation | OK; runtime-neutral entry has no `node:` / `process`; `/browser` and `/node` are explicit |
 | meshopt | core; `meshoptimizer` | Optional derived triangles only; not required by sdk |
 | rigging / animation | document/mesh | Preview; deferred 1.0 gate |
-| three-adapter | commands, core, document, mesh, scene, rigging; **peer three** | OK isolation |
+| three-adapter | commands, core, document, mesh, scene, selection, rigging; **peer three** | OK isolation |
 | sdk | headless facade; optional peer three-adapter for `./three` | ARCH-003 |
 
 ## Violations and drift

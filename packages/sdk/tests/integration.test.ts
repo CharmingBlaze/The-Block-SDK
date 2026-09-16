@@ -40,6 +40,16 @@ describe("@modeling-kit/sdk unified portal", () => {
     expect(ModelingKit.exportGlb).toBeDefined();
     expect(ModelingKit.importGltf).toBeDefined();
 
+    // Library recipes vs formats: catalog + convert on the SDK; packed-cell IR is not.
+    expect(ModelingKit.convertSimplicialComplex).toBeDefined();
+    expect(ModelingKit.generateLibraryPrimitive).toBeDefined();
+    expect(ModelingKit.PRIMITIVE_CATALOG).toBeDefined();
+    expect(ModelingKit.getPrimitiveCatalogEntry).toBeDefined();
+    expect(
+      (ModelingKit as Record<string, unknown>).facesFromFlatCells,
+    ).toBeUndefined();
+    expect((ModelingKit as Record<string, unknown>).MeshoptOptimizer).toBeUndefined();
+
     // Workers
     expect(ModelingKit.AsyncComputePool).toBeDefined();
     expect(ModelingKit.createInlineComputePool).toBeDefined();

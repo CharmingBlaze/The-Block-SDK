@@ -111,6 +111,20 @@ export function interpolateCornerAttributes(
   return result;
 }
 
+export function averageCornerAttributes(
+  corners: readonly CornerAttributes[],
+  policy: AttributePropagationPolicy,
+): CornerAttributes {
+  if (corners.length === 0) {
+    return {};
+  }
+  let acc = cloneCornerAttributes(corners[0]);
+  for (let i = 1; i < corners.length; i += 1) {
+    acc = interpolateCornerAttributes(acc, corners[i], 1 / (i + 1), policy);
+  }
+  return acc;
+}
+
 export function attributesToFaceOptions(corners: readonly CornerAttributes[]): {
   uvs?: [number, number][];
   normals?: [number, number, number][];

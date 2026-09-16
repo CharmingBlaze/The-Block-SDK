@@ -241,6 +241,7 @@ export function normalizeTexture(raw: unknown): TextureData {
       ...(typeof raw.width === "number" ? { width: raw.width } : {}),
       ...(typeof raw.height === "number" ? { height: raw.height } : {}),
       ...(typeof raw.pixelsBase64 === "string" ? { pixelsBase64: raw.pixelsBase64 } : {}),
+      ...(typeof raw.encodedBytesBase64 === "string" ? { encodedBytesBase64: raw.encodedBytesBase64 } : {}),
     },
   );
 }
@@ -280,6 +281,7 @@ function withOptionalTextureFields(
     ...(overrides.width !== undefined ? { width: overrides.width } : {}),
     ...(overrides.height !== undefined ? { height: overrides.height } : {}),
     ...(overrides.pixelsBase64 !== undefined ? { pixelsBase64: overrides.pixelsBase64 } : {}),
+    ...(overrides.encodedBytesBase64 !== undefined ? { encodedBytesBase64: overrides.encodedBytesBase64 } : {}),
     ...(overrides.samplerId !== undefined ? { samplerId: overrides.samplerId } : {}),
     ...(overrides.sourceKind !== undefined ? { sourceKind: overrides.sourceKind } : {}),
     ...(overrides.usage !== undefined ? { usage: overrides.usage } : {}),
@@ -336,11 +338,13 @@ function parseSampler(raw: unknown, pixelArt: boolean): TextureSampler {
   if (!isRecord(raw)) {
     return defaultTextureSampler(pixelArt);
   }
+  const mipmapFilter = parseMipmap(raw.mipmapFilter);
   return {
     magFilter: parseFilter(raw.magFilter, pixelArt ? "nearest" : "linear"),
     minFilter: parseFilter(raw.minFilter, pixelArt ? "nearest" : "linear"),
     wrapS: parseWrap(raw.wrapS),
     wrapT: parseWrap(raw.wrapT),
+    ...(mipmapFilter !== undefined ? { mipmapFilter } : {}),
   };
 }
 
@@ -350,6 +354,13 @@ function parseFilter(value: unknown, fallback: FilterMode): FilterMode {
 
 function parseWrap(value: unknown): WrapMode {
   return value === "clamp" || value === "mirror" || value === "repeat" ? value : "repeat";
+}
+
+function parseMipmap(value: unknown): import("./types").MipmapFilterMode | undefined {
+  if (value === "nearest" || value === "linear" || value === "none") {
+    return value;
+  }
+  return undefined;
 }
 
 function parseAlpha(value: unknown): AlphaMode {

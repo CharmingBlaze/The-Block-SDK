@@ -78,6 +78,16 @@ export function validateMesh(mesh: HalfEdgeMesh): MeshValidationResult {
         }
       }
     }
+
+    const crease = edge.creaseWeight;
+    if (crease !== undefined && (!Number.isFinite(crease) || crease < 0 || crease > 1)) {
+      errors.push({
+        code: "INVALID_CREASE_WEIGHT",
+        message: `Edge ${eId} has invalid crease weight ${crease}; expected a finite value in [0, 1]`,
+        elementIds: [eId],
+        recoverable: true,
+      });
+    }
   }
 
   // 3. Check faces: degeneacy and vertex counts

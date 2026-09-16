@@ -30,13 +30,33 @@ Current behavior after the explicit-face-recipe hardening. Commands: `pnpm exec 
 
 ## Remaining limitations
 
-- OBJ/glTF importers are not yet routed through `GeometrySourceData`; they already use format-native triangle/face metadata.
+- Formats stay on their own importers. That is intentional: OBJ n-gons and glTF triangle primitives are not packed `cellSize` buffers, so they must not go through `facesFromFlatCells`.
 - Automatic triangle-to-quad reconstruction is **not** part of import. If added, it must be `reconstructQuads(mesh, options)`.
 - Library conversion defaults to skipping degenerate source cells with warnings (annulus/poles). Canonical generators do not rely on that path.
 - Open path extrusion strokes a polygon outline instead of calling `geometry-extrude.extrudePolyline` (broken in 0.2.1).
 - Earcut corpus self-intersection / non-finite cases in `@modeling-kit/mesh` are separate from this primitive work.
 
-## Compatibility
+## Hardening status (2026-09-16)
+
+| Item | Result |
+| --- | --- |
+| Files changed | Explicit face IR (`packages/primitives/src/source/`), library convert (no index-count guessing), catalog registry, quad-sphere/UV-sphere/capsule winding, Three.js `RenderMapping.renderVertexToCorner`, path stroke for profile walls |
+| Tests added | `topology-canonical.test.ts` (cube/quadSphere/mixed/icosphere/converter contract), library converter regressions, adapter picking |
+| Behavior corrected | Face size never inferred from index count; library cells stay triangles; UV sphere/capsule poles are real triangles with outward winding; degenerate library cells warn instead of inventing topology |
+| Public compatibility | `convertSimplicialComplex` + `ConvertedPrimitive` mappings on `@modeling-kit/sdk`. `facesFromFlatCells` / `GeometrySourceData` stay inside primitives. Formats keep native importers. `spawn.sphere` remains UV sphere. Additive: `PRIMITIVE_CATALOG`, `renderVertexToCorner` |
+| Remaining limitations | Formats keep native importers (not library cell IR); no silent `reconstructQuads`; library skip-degenerate default |
+| Verification | See commands below |
+
+```text
+pnpm typecheck           # packages passed
+pnpm examples:typecheck  # apps passed
+pnpm lint                # eslint . exit 0
+pnpm test                # 66 files, 507 tests
+pnpm build               # packages/* tsup passed
+pnpm arch:check          # 455 modules, no violations
+pnpm pack:verify         # 24 packages, 12 fixture imports
+```
+
 
 - `convertSimplicialComplex` now requires `cellSize` on the options object. Library recipes already passed it. Callers that omitted it must pass `cellSize: 3`.
 - `ConvertedPrimitive` adds `sourceFaceToCanonicalFaceIds` and `warnings`.

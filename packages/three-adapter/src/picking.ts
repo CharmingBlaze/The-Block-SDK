@@ -1,5 +1,6 @@
-import type { EdgeId, FaceId, ObjectId, VertexId } from "@modeling-kit/core";
+import type { EdgeId, FaceId, MeshId, ObjectId, VertexId } from "@modeling-kit/core";
 import type { HalfEdgeMesh } from "@modeling-kit/mesh";
+import type { PointPickSource } from "@modeling-kit/selection";
 import { Vector2, Vector3, type Camera, type Intersection } from "three";
 import type { RenderMapping } from "./geometry";
 
@@ -18,8 +19,11 @@ export interface PickResult {
   readonly faceId?: FaceId;
   readonly vertexId?: VertexId;
   readonly edgeId?: EdgeId;
+  readonly meshId?: MeshId;
+  readonly triangleIndex?: number;
   readonly point: { x: number; y: number; z: number };
   readonly distance: number;
+  readonly source?: PointPickSource;
 }
 
 export function resolveFaceId(

@@ -18,7 +18,7 @@ Status is not complete until `docs/verification/RELEASE-1.0-EVIDENCE.md` marks r
 | **M11** AI/docs/examples CI | 13 | AI-001, DX-001 | later |
 | **M12** Perf/lifecycle release gate | 14 | LIFE-*, PERF-001, full `pnpm test && pnpm typecheck && pnpm build` | later |
 
-**Deferred from 1.0:** RIG-001, ANIM-001, BOOL-001, GPU-PICK-001 (see spec §5.12).
+**Deferred from 1.0:** RIG-001, ANIM-001, BOOL-001. GPU-PICK-001 click path is in 1.0; GPU hover / transparency / InstancedMesh / GPU skinning remain 1.1 (see spec §5.12).
 
 ## Integration gate after M1
 

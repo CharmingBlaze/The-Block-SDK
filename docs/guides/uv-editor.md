@@ -2,7 +2,7 @@
 
 Headless UV editing lives in `@modeling-kit/uv`. Hosts draw with `UVViewData`; they do not put DOM or Three.js in this package.
 
-Seam-based LSCM / ABF unwrap is **not** implemented. `projectUvs({ projection: "smart" })` is a **per-face planar projection**: each face is mapped onto the tangent/bitangent frame of that face’s geometric normal, then optionally normalized into `[0,1]`. Adjacent faces do not share a least-squares conformal chart. Use `planar`, `box`, `cylindrical`, or `spherical` when you want a single shared projection for a selection.
+Seam-based LSCM / ABF unwrap is **not** implemented. **Automatic chart unwrap** (`automaticUnwrap`) uses xatlas via watlas to chart and pack meshes. `projectUvs({ projection: "smart" })` is a **per-face planar projection**: each face is mapped onto the tangent/bitangent frame of that face’s geometric normal, then optionally normalized into `[0,1]`. Adjacent faces do not share a least-squares conformal chart. Use `planar`, `box`, `cylindrical`, or `spherical` when you want a single shared projection for a selection. Use `automaticUnwrap` for arbitrary connected geometry.
 
 ## Two machines
 

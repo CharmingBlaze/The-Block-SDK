@@ -15,6 +15,7 @@ import type {
   AnimationTargetKind,
   AnimationTrackData,
   BoneData,
+  InverseBindMatrix,
   MeshSkinBinding,
   SkeletonData,
   SkinInfluence,
@@ -97,10 +98,12 @@ export function normalizeSkin(raw: unknown): MeshSkinBinding | undefined {
     return undefined;
   }
   const verticesRaw = Array.isArray(raw.vertices) ? raw.vertices : [];
+  const ibmRaw = Array.isArray(raw.inverseBindMatrices) ? raw.inverseBindMatrices : undefined;
   return {
     skeletonId: raw.skeletonId as SkeletonId,
     maxInfluences: typeof raw.maxInfluences === "number" ? raw.maxInfluences : 4,
     vertices: verticesRaw.map((item) => normalizeVertexSkin(item)),
+    ...(ibmRaw ? { inverseBindMatrices: ibmRaw.map((item) => normalizeIbm(item)) } : {}),
   };
 }
 
@@ -160,6 +163,19 @@ function normalizeVertexSkin(raw: unknown): VertexSkinData {
     vertexId: raw.vertexId as VertexId,
     influences: influencesRaw.map((item) => normalizeInfluence(item)),
   };
+}
+
+function normalizeIbm(raw: unknown): InverseBindMatrix {
+  if (!isRecord(raw) || typeof raw.boneId !== "string") {
+    throw new SchemaError("Inverse bind matrix must have boneId");
+  }
+  const matrix = Array.isArray(raw.matrix)
+    ? raw.matrix.filter((n): n is number => typeof n === "number" && Number.isFinite(n))
+    : [];
+  if (matrix.length !== 16) {
+    throw new SchemaError("Inverse bind matrix must contain 16 finite numbers");
+  }
+  return { boneId: raw.boneId as BoneId, matrix };
 }
 
 function normalizeInfluence(raw: unknown): SkinInfluence {

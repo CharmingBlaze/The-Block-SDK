@@ -1,5 +1,4 @@
 export { MeshoptOptimizer, derivedFromTriangulated, optimizeDerivedTriangles } from "./service";
-export { MeshoptJob } from "./job";
 export { DEFAULT_MESHOPT_LIMITS, resolveLimits } from "./limits";
 export type { MeshoptLimits } from "./limits";
 export type {

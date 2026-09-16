@@ -249,14 +249,18 @@ document.getElementById("btn-redo")?.addEventListener("click", () => {
   refreshUi();
 });
 document.getElementById("btn-gltf")?.addEventListener("click", () => {
-  const json = exportGltf(session.document, session.meshes);
-  download("scratch-host.gltf", new Blob([JSON.stringify(json, null, 2)], { type: "model/gltf+json" }));
+  void (async () => {
+    const json = await exportGltf(session.document, session.meshes);
+    download("scratch-host.gltf", new Blob([JSON.stringify(json, null, 2)], { type: "model/gltf+json" }));
+  })();
 });
 document.getElementById("btn-glb")?.addEventListener("click", () => {
-  const bytes = exportGlb(session.document, session.meshes);
-  const glb = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(glb).set(bytes);
-  download("scratch-host.glb", new Blob([glb], { type: "model/gltf-binary" }));
+  void (async () => {
+    const bytes = await exportGlb(session.document, session.meshes);
+    const glb = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(glb).set(bytes);
+    download("scratch-host.glb", new Blob([glb], { type: "model/gltf-binary" }));
+  })();
 });
 
 const input = createInputEngine();

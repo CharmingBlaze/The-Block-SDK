@@ -102,9 +102,11 @@ export function splitEdge(
     const second = mesh.edges.get(e1);
     if (first) {
       first.creaseAngle = sourceEdge.creaseAngle;
+      first.creaseWeight = sourceEdge.creaseWeight;
     }
     if (second) {
       second.creaseAngle = sourceEdge.creaseAngle;
+      second.creaseWeight = sourceEdge.creaseWeight;
     }
   }
 

@@ -92,6 +92,7 @@ describe("mesh operations", () => {
     })!;
     mesh.edges.get(edgeId)!.isSeam = true;
     mesh.edges.get(edgeId)!.creaseAngle = 0.5;
+    mesh.edges.get(edgeId)!.creaseWeight = 0.5;
     const weights = new Map<VertexId, readonly { boneId: string; weight: number }[]>([
       [a, [{ boneId: "bone-a", weight: 1 }]],
       [b, [{ boneId: "bone-b", weight: 1 }]],
@@ -104,6 +105,7 @@ describe("mesh operations", () => {
     ]);
     expect(mesh.edges.get(result.firstEdgeId)?.isSeam).toBe(true);
     expect(mesh.edges.get(result.secondEdgeId)?.creaseAngle).toBe(0.5);
+    expect(mesh.edges.get(result.secondEdgeId)?.creaseWeight).toBe(0.5);
     expect(result.interpolatedSkinWeights.reduce((s, w) => s + w.weight, 0)).toBeCloseTo(1);
     expect(mesh.faces.size).toBe(2);
     assertManifold(mesh, false);

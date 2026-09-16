@@ -2,7 +2,7 @@
 
 A framework-agnostic TypeScript SDK for polygonal 3D modeling on web and desktop.
 
-The modeling engine is **headless**: it runs in Node.js with no DOM or WebGL. Hosts own UI, cameras, and widgets. An optional [Three.js adapter](packages/three-adapter) derives a viewport, CPU picking, and overlays from the canonical document. There is **no** Minecraft, Blockbench, or other game-format pipeline.
+The modeling engine is **headless**: it runs in Node.js with no DOM or WebGL. Hosts own UI, cameras, and widgets. An optional [Three.js adapter](packages/three-adapter) derives a viewport, hybrid picking (GPU ID-buffer on click, CPU raycast for hover/vertices/edges), and overlays from the canonical document. There is **no** Minecraft, Blockbench, or other game-format pipeline.
 
 Persistent edits go through commands. Topology lives on the mesh kernel. `THREE.BufferGeometry` is derived only.
 
@@ -14,6 +14,12 @@ Persistent edits go through commands. Topology lives on the mesh kernel. `THREE.
 pnpm install
 pnpm run build
 pnpm test
+```
+
+From npm, after a release tag has been published (`docs/guides/publishing.md`):
+
+```bash
+pnpm add @modeling-kit/sdk
 ```
 
 ### Fluent modeling (recommended)
@@ -77,7 +83,7 @@ viewport.dispose();
 editor.dispose();
 ```
 
-`createThreeViewport` creates the renderer, perspective camera, hemisphere + 3-point studio lights, ground grid, damped OrbitControls, resize handling, and adapter sync. Left-click raycasts through `adapter.pick` into session selection (`onSelect` is optional). Right-drag orbits; middle-drag dollies. Hosts that already use `@modeling-kit/input` should pass `picking: false` and call `adapter.pick` from `select.pick`.
+`createThreeViewport` creates the renderer, perspective camera, hemisphere + 3-point studio lights, ground grid, damped OrbitControls, resize handling, and adapter sync. Completed left-clicks use GPU ID-buffer picking via `adapter.pickPoint` (CPU `Raycaster` fallback). Pointer-move hover stays on `adapter.pick`. Right-drag orbits; middle-drag dollies. Hosts that already use `@modeling-kit/input` should pass `picking: false` and call `adapter.pickPoint` / `adapter.pick` from `select.pick`.
 
 ### AI / agent tools
 
@@ -242,6 +248,7 @@ Host UI / agent
 | Doc | Contents |
 | --- | --- |
 | [Getting started](docs/guides/getting-started.md) | Session + commands + adapter, dispose, workers |
+| [Publishing](docs/guides/publishing.md) | Changesets, `v*` tags, npm |
 | [UV editor](docs/guides/uv-editor.md) | Headless UV session, projections, lifecycle machines |
 | [Paint and images](docs/guides/paint-image.md) | Tiles, layers, strokes, 3D paint |
 | [Materials](docs/guides/materials.md) | PBR/unlit, slots, texture sets |

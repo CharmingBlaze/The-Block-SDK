@@ -4,8 +4,8 @@
 **Specification:** `docs/architecture/modeling-operator-specification.md`  
 **Baseline command:** `pnpm check:release` — typecheck, examples:typecheck, lint, `pnpm test` **56 files / 410 tests**, build, `pnpm test:dist`, `pnpm arch:check` (376 modules), `pnpm pack:verify` (23 packages, 11 fixture imports). Worker Node spawn recorded 2026-09-16.  
 **Repo:** working tree on `main` at `https://github.com/CharmingBlaze/The-Block-SDK.git`.  
-**Release gate status:** Worker boundaries, packed-tarball verification, CI `check:release`, and MIT metadata are in this branch. Remaining before npm 1.0: tagged release workflow. Rigging/animation stay preview (`RIG-001` / `ANIM-001`).  
-**Rule:** `VERIFIED` requires named tests plus a recorded passing command. Non-deferred requirement rows are `VERIFIED`. Out of 1.0 scope: RIG-001, ANIM-001, BOOL-001, GPU-PICK-001, LSCM/ABF.
+**Release gate status:** Worker boundaries, packed-tarball verification, CI `check:release`, MIT metadata, and tag-triggered npm publish (`.github/workflows/release.yml`) are in this branch. First public version stays `0.1.0` until `v0.1.0` is pushed with `NPM_TOKEN` set. Rigging/animation stay preview (`RIG-001` / `ANIM-001`).  
+**Rule:** `VERIFIED` requires named tests plus a recorded passing command. Non-deferred requirement rows are `VERIFIED`. Out of 1.0 scope: RIG-001, ANIM-001, BOOL-001, LSCM/ABF. GPU-PICK-001 **click** is in 1.0; GPU hover/transparency/InstancedMesh/GPU skinning are 1.1.
 
 Owner: Cursor unless a task ID assigns implementation to Antigravity.
 
@@ -128,7 +128,7 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 | -------------- | ------ | -------------- | ----- | -------- | ----- | ------- | ------- |
 | VP-001 | VERIFIED | Incremental overlay/state sync; selection/hover skip topology rebuild | lifecycle.test.ts hover-patch; adapter.test.ts materials skip geometry | `topologyRebuilds` unchanged on hover | Cursor | | |
 | VP-002 | VERIFIED | Four adapters per session; ortho overlay sizing | adapter.test.ts; sub-element.test.ts | Independent dispose | Cursor | | |
-| VP-003 | VERIFIED | CPU `THREE.Raycaster` `adapter.pick` | adapter.test.ts face pick | GPU ID-buffer is deferred `GPU-PICK-001` | Cursor | | |
+| VP-003 | VERIFIED | Hybrid: CPU `Raycaster` (`adapter.pick`) + GPU ID-buffer (`adapter.pickPoint`) | adapter.test.ts; gpu-picking-object.test.ts; gpu-picking-face.test.ts; gpu-picking-lifecycle.test.ts | See `docs/architecture/GPU-ID-PICKING.md` | Cursor | | |
 | VP-004 | VERIFIED | `SubElementVisualizer` theme, overlays, dispose | sub-element.test.ts (11) | Edit-mode overlays; remount diagnostics | Cursor | | |
 | VP-005 | VERIFIED | `SpatialQueryBackend` + `BruteForceSpatialQuery` (no three-mesh-bvh) | `packages/three-adapter/tests/spatial-query.test.ts` | 292 tests; typecheck | Cursor | | |
 
@@ -168,7 +168,7 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 | DX-001 docs/examples | VERIFIED | architecture docs; `docs/guides/getting-started.md`; `pnpm examples:typecheck` in CI | `.github/workflows/ci.yml` | CI runs examples typecheck | Cursor | | |
 | RIG-001 / ANIM-001 | DEFERRED | packages exist with small tests | rigging.test.ts (3), animation.test.ts (3) | Preview only; not 1.0 gate | Cursor | | |
 | BOOL-001 | DEFERRED | not in 1.0 | — | Manifold boolean backend is 1.1 | Cursor | | |
-| GPU-PICK-001 | DEFERRED | CPU `THREE.Raycaster` only | adapter.test.ts | GPU ID-buffer picking is optional 1.1 | Cursor | | |
+| GPU-PICK-001 | VERIFIED (click path only) | identity/surface results, PickSession, canonical FaceId, CPU refinement, host options | pick-result/session/refinement; gpu-picking-*.test.ts; `pnpm test:webgl` | Node software rasterizer is unit-only. Real WebGL passed locally/CI job `webgl-smoke`. Full `pnpm check:release` still fails independently (formats tests, rigging typecheck). GPU hover is 1.1. | Cursor | | |
 
 ---
 
@@ -180,7 +180,7 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 | `docs/roadmap.md` | Phase 9 complete / 1.0 RC | Foundational delete ops, selection topology, capability API missing |
 | `docs/coordination/SDK-VERIFICATION.md` | Materials/UV/paint/adapter VERIFIED | Tests exist but gates (typecheck/build) not recorded; coverage thin |
 | `docs/architecture/uv-image-paint-sdk-roadmap.md` | Exhaustive `[x]` | Same overclaim |
-| README | “GPU raycast picking” | `THREE.Raycaster` CPU |
+| README | “GPU raycast picking” | Hybrid: GPU ID-buffer on click (`pickPoint`); CPU `Raycaster` for hover/vertices/edges |
 
 ---
 

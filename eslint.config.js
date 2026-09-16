@@ -14,6 +14,8 @@ export default tseslint.config(
       "**/vitest.config.ts",
       "**/vitest.dist.config.ts",
       "**/tsup.config.ts",
+      "playwright.config.ts",
+      "tests/webgl/**",
     ],
   },
   js.configs.recommended,

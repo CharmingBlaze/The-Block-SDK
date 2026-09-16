@@ -14,6 +14,9 @@ export function classifyEdge(mesh: HalfEdgeMesh, edgeId: EdgeId): EdgeRole {
   if (!f1 || !f2) {
     return "boundary";
   }
+  if (edge.creaseWeight !== undefined && edge.creaseWeight > 0) {
+    return "crease";
+  }
   if (edge.creaseAngle !== undefined && edge.creaseAngle > 0) {
     return "crease";
   }

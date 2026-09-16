@@ -1,22 +1,12 @@
-import { brand, type EdgeId, type MeshId, type ObjectId, type VertexId } from "@modeling-kit/core";
+import type { MeshId, ObjectId } from "@modeling-kit/core";
 import type { ModelingSession } from "@modeling-kit/commands";
-import { getEffectiveVisibility, isMeshLikeNode, type SceneNode } from "@modeling-kit/document";
-import {
-  BufferGeometry,
-  Group,
-  Mesh,
-  Object3D,
-  Raycaster,
-  Vector2,
-  Vector3,
-  type Camera,
-  type Material,
-  type Scene,
-} from "three";
-import { syncDerivedGeometry, type RenderMapping } from "./geometry";
-import { applyFaceMaterialGroups, disposeMaterials, materialsForRecord } from "./pbr";
-import { applyCpuSkin } from "./skin";
-import { buildSelectionOverlay, disposeOverlayObject } from "./overlay";
+import type {
+  PointPickRequest,
+  PointPickResult,
+  PointPickSource,
+  VisibilityPickingAdapter,
+} from "@modeling-kit/selection";
+import { Group, Object3D, Raycaster, Vector2, type Camera, type Scene } from "three";
 import {
   MeshVisualDirtyFlag,
   MeshVisualScheduler,
@@ -26,64 +16,42 @@ import {
   MeshVisualLifecycleMachine,
   type DeepPartial,
   type OverlayMeshSource,
+  type SubElementDiagnostics,
   type SubElementDisplayOptions,
   type SubElementHover,
   type SubElementVisualTheme,
 } from "./sub-element";
-import type { SubElementDiagnostics } from "./sub-element/diagnostics";
+import type { PickResult, PickingOptions } from "./picking";
+import { pickWithCpuRaycaster } from "./cpu-pick";
+import { pickPointHybrid, type PickFailureReason } from "./hybrid-pick";
+import { collectPickDrawables } from "./pick-drawables";
+import { refineGpuFaceHit } from "./canonical-face-refinement";
+import { clientToNdc } from "./pick-selection";
 import {
-  pickEdgeOnFace,
-  pickVertexOnFace,
-  resolveFaceId,
-  type PickDomain,
-  type PickResult,
-  type PickingOptions,
-} from "./picking";
+  type SharedGeometry,
+  type ThreeViewportAdapterOptions,
+  type TrackedObject,
+  type ViewportRenderer,
+} from "./adapter-types";
+import { asWebGLRenderer, DefaultGpuPickingService, type GpuPickingReadback } from "./gpu-picking";
 import { SceneDirtyFlag, type SceneMirrorLifecycle } from "./scene-sync";
 import type { SpatialQueryBackend } from "./spatial-query";
+import { clearLegacyOverlay, syncOverlays, type OverlaySyncContext } from "./adapter-overlay";
+import {
+  applyTrackedNames,
+  applyTrackedTransforms,
+  applyTrackedVisibility,
+  disposeTracked,
+  rebuildSceneGraph,
+  syncMaterialsOnly,
+  syncMeshesById,
+  type SceneMirrorContext,
+} from "./adapter-scene-sync";
+import { bindAdapterSessionEvents } from "./adapter-session-events";
 
-export interface ViewportRenderer {
-  setSize(width: number, height: number, updateStyle?: boolean): void;
-  setPixelRatio(value: number): void;
-}
+export type { SharedGeometry, ThreeViewportAdapterOptions, TrackedObject, ViewportRenderer } from "./adapter-types";
 
-export interface ThreeViewportAdapterOptions {
-  readonly session: ModelingSession;
-  readonly scene: Scene;
-  readonly camera: Camera;
-  readonly renderer: ViewportRenderer;
-  readonly viewportId?: string;
-  readonly autoFlush?: boolean;
-  /** Optional object-level accelerator. Canonical picking remains CPU `Raycaster`. */
-  readonly spatialQuery?: SpatialQueryBackend;
-  /** When true, `dispose()` also disposes the provided spatial backend. Default false. */
-  readonly ownsSpatialQuery?: boolean;
-  readonly subElement?: {
-    readonly theme?: DeepPartial<SubElementVisualTheme>;
-    readonly display?: DeepPartial<SubElementDisplayOptions>;
-  };
-}
-
-interface TrackedObject {
-  object: Object3D;
-  geometry?: BufferGeometry;
-  material?: Material | Material[];
-  mapping?: RenderMapping;
-  meshRevision?: number;
-  materialKey?: string;
-  poseKey?: string;
-}
-
-interface SharedGeometry {
-  geometry: BufferGeometry;
-  mapping: RenderMapping;
-  revision: number;
-  topologyRevision: number;
-  uvRevision: number;
-  refs: number;
-}
-
-export class ThreeViewportAdapter {
+export class ThreeViewportAdapter implements VisibilityPickingAdapter {
   readonly root = new Group();
   private readonly session: ModelingSession;
   private readonly scene: Scene;
@@ -114,6 +82,11 @@ export class ThreeViewportAdapter {
   private readonly raycaster = new Raycaster();
   private spatialQuery: SpatialQueryBackend | undefined;
   private ownsSpatialQuery: boolean;
+  private readonly gpuPickingMode: GpuPickingReadback | "off";
+  private readonly gpuPicking: DefaultGpuPickingService | undefined;
+  lastPickSource: PointPickSource | "unavailable" = "cpu-raycast";
+  lastPickFailure: PickFailureReason | undefined;
+  private sceneGeneration = 0;
 
   constructor(options: ThreeViewportAdapterOptions) {
     this.session = options.session;
@@ -124,6 +97,20 @@ export class ThreeViewportAdapter {
     this.autoFlush = options.autoFlush !== false;
     this.spatialQuery = options.spatialQuery;
     this.ownsSpatialQuery = options.ownsSpatialQuery === true;
+    const webgl = asWebGLRenderer(this.renderer);
+    this.gpuPickingMode = options.gpuPicking ?? "webgl";
+    this.gpuPicking =
+      this.gpuPickingMode === "off"
+        ? undefined
+        : new DefaultGpuPickingService({
+            camera: this.camera,
+            getDrawables: () => collectPickDrawables(this.tracked, this.session, this.camera, this.root),
+            ...(this.gpuPickingMode === "software"
+              ? { readback: "software" as const }
+              : webgl
+                ? { renderer: webgl, readback: "webgl" as const }
+                : { readback: "webgl" as const }),
+          });
     this.scheduler = new MeshVisualScheduler({
       flushMesh: (_meshId, flags) => {
         if (this.disposed) {
@@ -159,72 +146,18 @@ export class ThreeViewportAdapter {
     }
     this.scene.add(this.root);
     this.unsubscribers.push(
-      this.session.events.on("document:changed", (change) => {
-        if (this.syncing) {
-          return;
-        }
-        if (change.kind === "transform" && change.objectIds && change.objectIds.length > 0) {
-          this.markDirty(SceneDirtyFlag.Transforms);
-          this.syncTransforms(change.objectIds);
-          return;
-        }
-        if (change.kind === "visibility" && change.objectIds && change.objectIds.length > 0) {
-          this.markDirty(SceneDirtyFlag.Visibility);
-          this.syncVisibility(change.objectIds);
-          return;
-        }
-        if (change.kind === "name" && change.objectIds && change.objectIds.length > 0) {
-          this.syncNames(change.objectIds);
-          return;
-        }
-        if (change.aspect === "material" || change.kind === "materials") {
-          this.markDirty(SceneDirtyFlag.Materials);
-          this.syncMaterialsOnly();
-          return;
-        }
-        if (change.aspect === "texture") {
-          this.markDirty(SceneDirtyFlag.Textures);
-          this.flushOrSchedule();
-          return;
-        }
-        this.markDirty(SceneDirtyFlag.Hierarchy);
-        this.flushOrSchedule();
-      }),
-      this.session.events.on("mesh:changed", (change) => {
-        if (this.syncing) {
-          return;
-        }
-        if (change.meshIds.length > 0) {
-          this.syncMeshesById(change.meshIds);
-          const flags =
-            change.kind === "uvs" || change.kind === "seams"
-              ? MeshVisualDirtyFlag.UVs
-              : change.kind === "positions"
-                ? MeshVisualDirtyFlag.Positions | MeshVisualDirtyFlag.Normals
-                : change.kind === "materials"
-                  ? MeshVisualDirtyFlag.Materials
-                  : MeshVisualDirtyFlag.Topology | MeshVisualDirtyFlag.Positions | MeshVisualDirtyFlag.Normals;
-          for (const meshId of change.meshIds) {
-            this.scheduler.invalidate(meshId, flags);
-          }
-          this.flushVisuals();
-          return;
-        }
-        this.sync();
-      }),
-      this.session.events.on("selection:changed", () => {
-        if (!this.syncing) {
-          this.scheduler.invalidate(
-            "*",
-            MeshVisualDirtyFlag.VertexStates | MeshVisualDirtyFlag.EdgeStates | MeshVisualDirtyFlag.FaceStates,
-          );
-          this.flushVisuals();
-        }
-      }),
-      this.session.events.on("animation:time-changed", () => {
-        if (!this.syncing) {
-          this.sync();
-        }
+      ...bindAdapterSessionEvents(this.session, {
+        scheduler: this.scheduler,
+        isSyncing: () => this.syncing,
+        markDirty: (flags) => this.markDirty(flags),
+        syncTransforms: (objectIds) => this.syncTransforms(objectIds),
+        syncVisibility: (objectIds) => this.syncVisibility(objectIds),
+        syncNames: (objectIds) => this.syncNames(objectIds),
+        syncMaterialsOnly: () => this.syncMaterialsOnly(),
+        flushOrSchedule: () => this.flushOrSchedule(),
+        syncMeshesById: (meshIds) => this.syncMeshesById(meshIds),
+        flushVisuals: () => this.flushVisuals(),
+        sync: () => this.sync(),
       }),
     );
     this.mounted = true;
@@ -248,6 +181,7 @@ export class ThreeViewportAdapter {
       }, 0),
       runtimeTextures: 0,
       runtimeGeometries: this.geometries.size,
+      gpuPicking: this.gpuPicking?.diagnostics(),
       objectUrls: 0,
       workers: 0,
       scheduledJobs: this.scheduler.pendingCount,
@@ -301,13 +235,6 @@ export class ThreeViewportAdapter {
     return generation === this.jobGeneration && !this.disposed;
   }
 
-  private flushOrSchedule(): void {
-    if (this.autoFlush) {
-      this.flushPending();
-      return;
-    }
-  }
-
   sync(): void {
     this.assertAlive();
     if (this.syncing) {
@@ -315,56 +242,12 @@ export class ThreeViewportAdapter {
     }
     this.syncing = true;
     try {
-      const live = new Set<ObjectId>();
-      this.syncNode(this.session.document.scene.rootNodeId, this.root, live);
-      for (const [id, tracked] of this.tracked) {
-        if (!live.has(id)) {
-          this.disposeTracked(tracked);
-          this.tracked.delete(id);
-        }
-      }
+      rebuildSceneGraph(this.sceneMirror(), this.root);
+      this.sceneGeneration += 1;
       this.syncOverlays("full");
+      this.gpuPicking?.invalidate("scene");
     } finally {
       this.syncing = false;
-    }
-  }
-
-  private syncTransforms(objectIds: readonly ObjectId[]): void {
-    this.assertAlive();
-    for (const id of objectIds) {
-      const node = this.session.document.scene.nodes.get(id);
-      const tracked = this.tracked.get(id);
-      if (!node || !tracked) {
-        this.sync();
-        return;
-      }
-      applyLocalTransform(tracked.object, resolveDisplayTransform(this.session, node));
-    }
-    this.syncOverlays("view");
-  }
-
-  private syncVisibility(objectIds: readonly ObjectId[]): void {
-    this.assertAlive();
-    for (const id of objectIds) {
-      const node = this.session.document.scene.nodes.get(id);
-      const tracked = this.tracked.get(id);
-      if (!node || !tracked) {
-        this.sync();
-        return;
-      }
-      tracked.object.visible = getEffectiveVisibility(this.session.document, id);
-    }
-  }
-
-  private syncNames(objectIds: readonly ObjectId[]): void {
-    this.assertAlive();
-    for (const id of objectIds) {
-      const node = this.session.document.scene.nodes.get(id);
-      const tracked = this.tracked.get(id);
-      if (!node || !tracked) {
-        return;
-      }
-      tracked.object.name = node.name;
     }
   }
 
@@ -373,6 +256,8 @@ export class ThreeViewportAdapter {
     this.viewport = { width, height, pixelRatio };
     this.renderer.setPixelRatio(pixelRatio);
     this.renderer.setSize(width, height, false);
+    this.gpuPicking?.resize(width, height);
+    this.gpuPicking?.invalidate("resize");
     this.syncOverlays("view");
   }
 
@@ -468,151 +353,76 @@ export class ThreeViewportAdapter {
 
   pick(ndcX: number, ndcY: number, options?: Partial<PickingOptions>): PickResult | null {
     this.assertAlive();
-    const requestId = this.pickGate.next();
-    if (!this.pickGate.isCurrent(requestId) || this.disposed) {
-      return null;
-    }
-    const domain: PickDomain = options?.domain ?? "face";
-    const pixelHitRadius = options?.pixelHitRadius ?? 10;
-    this.root.updateMatrixWorld(true);
-    this.raycaster.setFromCamera(new Vector2(ndcX, ndcY), this.camera);
-    const hits = this.raycaster.intersectObject(this.root, true).filter((hit) => {
-      if (hit.object.userData.isOverlay && !hit.object.userData.overlayPick) {
-        return false;
-      }
-      if (options?.frontFacingOnly && hit.face) {
-        return hit.face.normal.dot(this.raycaster.ray.direction) < 0;
-      }
-      return true;
-    });
-    const preferredObjectId = this.spatialQuery?.raycast({
-      origin: {
-        x: this.raycaster.ray.origin.x,
-        y: this.raycaster.ray.origin.y,
-        z: this.raycaster.ray.origin.z,
-      },
-      direction: {
-        x: this.raycaster.ray.direction.x,
-        y: this.raycaster.ray.direction.y,
-        z: this.raycaster.ray.direction.z,
-      },
-    })?.objectId;
-    if (preferredObjectId) {
-      hits.sort((left, right) => {
-        const leftMatch = left.object.userData.objectId === preferredObjectId ? 0 : 1;
-        const rightMatch = right.object.userData.objectId === preferredObjectId ? 0 : 1;
-        return leftMatch - rightMatch;
-      });
-    }
-    const overlayResolved = (() => {
-      for (const hit of hits) {
-        const resolved = this.visualizer.resolveOverlayPick(hit.object, hit.instanceId);
-        if (resolved && resolved.domain === domain) {
-          return { hit, resolved };
-        }
-      }
-      return undefined;
-    })();
-    if (overlayResolved?.resolved) {
-      const objectId = this.objectIdFromOverlay(overlayResolved.hit.object);
-      if (objectId) {
-        return {
-          domain,
-          objectId,
-          elementId: overlayResolved.resolved.elementId,
-          ...(overlayResolved.resolved.domain === "vertex"
-            ? { vertexId: overlayResolved.resolved.elementId as VertexId }
-            : {}),
-          ...(overlayResolved.resolved.domain === "edge"
-            ? { edgeId: overlayResolved.resolved.elementId as EdgeId }
-            : {}),
-          point: {
-            x: overlayResolved.hit.point.x,
-            y: overlayResolved.hit.point.y,
-            z: overlayResolved.hit.point.z,
-          },
-          distance: overlayResolved.hit.distance,
-        };
-      }
-    }
-    const hit = hits.find((item) => !item.object.userData.overlayPick);
-    if (!hit) {
-      return null;
-    }
-    const objectId = hit.object.userData.objectId as ObjectId | undefined;
-    const meshId = hit.object.userData.meshId as MeshId | undefined;
-    if (!objectId) {
-      return null;
-    }
-    const tracked = this.tracked.get(objectId);
-    const mapping = tracked?.mapping;
-    const faceId = mapping ? resolveFaceId(hit, mapping) : undefined;
-    const kernel = meshId ? this.session.meshes.get(meshId) : undefined;
-    const localToWorld = (local: Vector3): Vector3 =>
-      local.clone().applyMatrix4(hit.object.matrixWorld);
-    const ndc = new Vector2(ndcX, ndcY);
-    const point = {
-      x: hit.point.x,
-      y: hit.point.y,
-      z: hit.point.z,
-    };
+    return pickWithCpuRaycaster({
+      disposed: this.disposed,
+      pickGate: this.pickGate,
+      root: this.root,
+      camera: this.camera,
+      raycaster: this.raycaster,
+      spatialQuery: this.spatialQuery,
+      visualizer: this.visualizer,
+      tracked: this.tracked,
+      session: this.session,
+      viewport: this.viewport,
+    }, ndcX, ndcY, options);
+  }
 
-    if (domain === "object") {
-      return { domain, objectId, elementId: objectId, point, distance: hit.distance };
-    }
-    if (!faceId || !kernel) {
-      return { domain: "object", objectId, elementId: objectId, point, distance: hit.distance };
-    }
-    if (domain === "vertex") {
-      const vertexId = pickVertexOnFace(
-        kernel,
-        faceId,
-        hit.point,
-        localToWorld,
-        this.camera,
-        ndc,
-        this.viewport,
-        pixelHitRadius,
-      );
-      return {
-        domain: "vertex",
-        objectId,
-        elementId: vertexId ?? faceId,
-        faceId,
-        ...(vertexId ? { vertexId } : {}),
-        point,
-        distance: hit.distance,
-      };
-    }
-    if (domain === "edge") {
-      const edgeId = pickEdgeOnFace(
-        kernel,
-        faceId,
-        hit.point,
-        localToWorld,
-        this.camera,
-        ndc,
-        this.viewport,
-        pixelHitRadius,
-      );
-      return {
-        domain: "edge",
-        objectId,
-        elementId: edgeId ?? faceId,
-        faceId,
-        ...(edgeId ? { edgeId } : {}),
-        point,
-        distance: hit.distance,
-      };
-    }
-    return {
-      domain: "face",
-      objectId,
-      elementId: faceId,
-      faceId,
-      point,
-      distance: hit.distance,
+  pickingRevisions(): { scene: number; camera: number } {
+    return { scene: this.sceneGeneration, camera: this.cameraRevision() };
+  }
+
+  async pickPoint(request: PointPickRequest): Promise<PointPickResult | undefined> {
+    this.assertAlive();
+    const context = {
+      gpuPickingMode: this.gpuPickingMode,
+      gpuPicking: this.gpuPicking,
+      renderer: this.renderer,
+      viewport: this.viewport,
+      lastPickSource: this.lastPickSource,
+      lastPickFailure: this.lastPickFailure,
+      pick: (ndcX: number, ndcY: number, options?: Partial<PickingOptions>) => this.pick(ndcX, ndcY, options),
+      refineIdentity: (identity: PointPickResult, pickRequest: PointPickRequest) => {
+        if (identity.kind !== "identity") {
+          return undefined;
+        }
+        const object = this.tracked.get(identity.objectId)?.object;
+        if (!object) {
+          return undefined;
+        }
+        const viewport = pickRequest.viewport ?? {
+          x: 0,
+          y: 0,
+          width: pickRequest.canvasRect.width,
+          height: pickRequest.canvasRect.height,
+        };
+        const ndcRect = {
+          left: pickRequest.canvasRect.left + viewport.x,
+          top: pickRequest.canvasRect.top + viewport.y,
+          width: viewport.width,
+          height: viewport.height,
+        };
+        const ndc = clientToNdc(pickRequest.clientX, pickRequest.clientY, ndcRect);
+        this.raycaster.setFromCamera(new Vector2(ndc.x, ndc.y), this.camera);
+        const origin = this.raycaster.ray.origin;
+        const direction = this.raycaster.ray.direction;
+        const outcome = refineGpuFaceHit({
+          session: this.session,
+          object,
+          objectId: identity.objectId,
+          ...(identity.meshId ? { meshId: identity.meshId } : {}),
+          ...(identity.faceId ? { faceId: identity.faceId } : {}),
+          worldRayOrigin: { x: origin.x, y: origin.y, z: origin.z },
+          worldRayDirection: { x: direction.x, y: direction.y, z: direction.z },
+          backfaceMode: pickRequest.backfaceMode ?? (pickRequest.domain === "object" ? "front-and-back" : "front-only"),
+          domain: pickRequest.domain === "object" ? "object" : "face",
+        });
+        return outcome.ok ? outcome.hit : undefined;
+      },
     };
+    const result = await pickPointHybrid(context, request);
+    this.lastPickSource = context.lastPickSource;
+    this.lastPickFailure = context.lastPickFailure;
+    return result;
   }
 
   dispose(): void {
@@ -624,10 +434,10 @@ export class ThreeViewportAdapter {
     }
     this.unsubscribers.length = 0;
     for (const tracked of this.tracked.values()) {
-      this.disposeTracked(tracked);
+      disposeTracked(this.sceneMirror(), tracked);
     }
     this.tracked.clear();
-    this.clearLegacyOverlay();
+    clearLegacyOverlay(this.overlayContext());
     this.scheduler.dispose();
     this.visualizer.dispose();
     this.scene.remove(this.root);
@@ -635,6 +445,7 @@ export class ThreeViewportAdapter {
     this.pickGate.invalidate();
     this.hoverStore.dispose();
     this.lifecycle.dispose();
+    this.gpuPicking?.dispose();
     if (this.ownsSpatialQuery) {
       this.spatialQuery?.dispose();
     }
@@ -656,6 +467,68 @@ export class ThreeViewportAdapter {
     this.ownsSpatialQuery = owns;
   }
 
+  private sceneMirror(): SceneMirrorContext {
+    return {
+      session: this.session,
+      tracked: this.tracked,
+      geometries: this.geometries,
+    };
+  }
+
+  private overlayContext(): OverlaySyncContext {
+    return {
+      overlaySources: this.overlaySources,
+      overlayObjects: this.overlayObjects,
+      tracked: this.tracked,
+      session: this.session,
+      visualizer: this.visualizer,
+      camera: this.camera,
+      viewport: this.viewport,
+    };
+  }
+
+  private flushOrSchedule(): void {
+    if (this.autoFlush) {
+      this.flushPending();
+    }
+  }
+
+  private syncTransforms(objectIds: readonly ObjectId[]): void {
+    this.assertAlive();
+    if (applyTrackedTransforms(this.sceneMirror(), objectIds) === "rebuild") {
+      this.sync();
+      return;
+    }
+    this.gpuPicking?.invalidate("transform");
+    this.syncOverlays("view");
+  }
+
+  private syncVisibility(objectIds: readonly ObjectId[]): void {
+    this.assertAlive();
+    if (applyTrackedVisibility(this.sceneMirror(), objectIds) === "rebuild") {
+      this.sync();
+      return;
+    }
+    this.gpuPicking?.invalidate("visibility");
+    this.sceneGeneration += 1;
+  }
+
+  private syncNames(objectIds: readonly ObjectId[]): void {
+    this.assertAlive();
+    applyTrackedNames(this.sceneMirror(), objectIds);
+  }
+
+  private syncMaterialsOnly(): void {
+    this.assertAlive();
+    syncMaterialsOnly(this.sceneMirror());
+  }
+
+  private syncMeshesById(meshIds: readonly string[]): void {
+    syncMeshesById(this.sceneMirror(), meshIds);
+    this.sceneGeneration += 1;
+    this.gpuPicking?.invalidate("geometry");
+  }
+
   private flushVisuals(): void {
     if (this.inViewFrame) {
       return;
@@ -663,274 +536,20 @@ export class ThreeViewportAdapter {
     this.scheduler.flushNow();
   }
 
-  private syncNode(id: ObjectId, parent: Object3D, live: Set<ObjectId>): void {
-    const node = this.session.document.scene.nodes.get(id);
-    if (!node) {
-      return;
-    }
-    live.add(id);
-    const object = this.ensureObject(node);
-    if (object.parent !== parent) {
-      parent.add(object);
-    }
-    applyLocalTransform(object, resolveDisplayTransform(this.session, node));
-    if (isMeshLikeNode(node) && node.payloadRef) {
-      this.syncMesh(node, object as Mesh);
-    }
-    for (const childId of node.childIds) {
-      this.syncNode(childId, object, live);
-    }
-  }
-
-  private ensureObject(node: SceneNode): Object3D {
-    const existing = this.tracked.get(node.id);
-    if (existing) {
-      return existing.object;
-    }
-    const object = isMeshLikeNode(node) ? new Mesh() : new Group();
-    object.name = node.name;
-    object.userData.objectId = node.id;
-    if (isMeshLikeNode(node) && node.payloadRef) {
-      object.userData.meshId = brand<string, "MeshId">(node.payloadRef);
-    }
-    if (node.type === "bone" && node.payloadRef) {
-      object.userData.boneId = node.payloadRef;
-    }
-    if (object instanceof Mesh) {
-      this.tracked.set(node.id, { object });
-    } else {
-      this.tracked.set(node.id, { object });
-    }
-    return object;
-  }
-
-  private syncMesh(node: SceneNode, object: Mesh): void {
-    const meshId = brand<string, "MeshId">(node.payloadRef!);
-    const kernel = this.session.meshes.get(meshId);
-    const tracked = this.tracked.get(node.id);
-    if (!kernel || !tracked) {
-      return;
-    }
-    object.userData.meshId = meshId;
-    const record = this.session.document.meshes.get(meshId);
-    const materialKey = record
-      ? `${this.session.document.materials.revision}:${record.materialIds.join(",")}`
-      : "";
-    const poseKey = `${this.session.animationTime}:${this.session.poseLocals.size}`;
-    let handle = this.geometries.get(meshId);
-    if (!handle) {
-      const next = syncDerivedGeometry(kernel);
-      handle = {
-        geometry: next.geometry,
-        mapping: next.mapping,
-        revision: kernel.revision,
-        topologyRevision: kernel.topologyRevision,
-        uvRevision: kernel.uvRevision,
-        refs: 0,
-      };
-      this.geometries.set(meshId, handle);
-    } else if (handle.revision !== kernel.revision) {
-      const next = syncDerivedGeometry(kernel, { geometry: handle.geometry, mapping: handle.mapping });
-      if (!next.reused) {
-        handle.geometry.dispose();
-      }
-      handle.geometry = next.geometry;
-      handle.mapping = next.mapping;
-      handle.revision = kernel.revision;
-      handle.topologyRevision = kernel.topologyRevision;
-      handle.uvRevision = kernel.uvRevision;
-    }
-    if (tracked.geometry !== handle.geometry) {
-      if (tracked.geometry) {
-        this.releaseGeometry(tracked.object.userData.meshId as MeshId | undefined, tracked.geometry);
-      }
-      handle.refs += 1;
-      object.geometry = handle.geometry;
-      tracked.geometry = handle.geometry;
-      tracked.mapping = handle.mapping;
-    }
-    tracked.meshRevision = kernel.revision;
-    if (record && tracked.geometry && tracked.mapping) {
-      applyFaceMaterialGroups(tracked.geometry, kernel, tracked.mapping);
-      if (tracked.materialKey !== materialKey) {
-        const nextMaterials = materialsForRecord(this.session.document, record);
-        disposeMaterials(tracked.material);
-        object.material = nextMaterials.length === 1 ? nextMaterials[0]! : nextMaterials;
-        tracked.material = object.material;
-        tracked.materialKey = materialKey;
-      }
-      if (this.session.poseLocals.size > 0 && tracked.poseKey !== poseKey) {
-        applyCpuSkin(this.session, record, kernel, tracked.geometry, tracked.mapping);
-      }
-      tracked.poseKey = poseKey;
-    }
-  }
-
-  private syncMaterialsOnly(): void {
-    this.assertAlive();
-    for (const [objectId, tracked] of this.tracked) {
-      if (!(tracked.object instanceof Mesh)) {
-        continue;
-      }
-      const node = this.session.document.scene.nodes.get(objectId);
-      if (!node || !isMeshLikeNode(node) || !node.payloadRef) {
-        continue;
-      }
-      const meshId = brand<string, "MeshId">(node.payloadRef);
-      const kernel = this.session.meshes.get(meshId);
-      const record = this.session.document.meshes.get(meshId);
-      if (!kernel || !record || !tracked.geometry || !tracked.mapping) {
-        continue;
-      }
-      const materialKey = `${this.session.document.materials.revision}:${record.materialIds.join(",")}`;
-      applyFaceMaterialGroups(tracked.geometry, kernel, tracked.mapping);
-      if (tracked.materialKey !== materialKey) {
-        const nextMaterials = materialsForRecord(this.session.document, record);
-        disposeMaterials(tracked.material);
-        tracked.object.material = nextMaterials.length === 1 ? nextMaterials[0]! : nextMaterials;
-        tracked.material = tracked.object.material;
-        tracked.materialKey = materialKey;
-      }
-    }
-  }
-
-  private releaseGeometry(meshId: MeshId | undefined, geometry: BufferGeometry): void {
-    if (!meshId) {
-      geometry.dispose();
-      return;
-    }
-    const handle = this.geometries.get(meshId);
-    if (!handle || handle.geometry !== geometry) {
-      geometry.dispose();
-      return;
-    }
-    handle.refs = Math.max(0, handle.refs - 1);
-    if (handle.refs === 0) {
-      handle.geometry.dispose();
-      this.geometries.delete(meshId);
-    }
-  }
-
-  private syncMeshesById(meshIds: readonly string[]): void {
-    const wanted = new Set(meshIds);
-    for (const [objectId, tracked] of this.tracked) {
-      const meshId = tracked.object.userData.meshId as MeshId | undefined;
-      if (!meshId || !wanted.has(meshId) || !(tracked.object instanceof Mesh)) {
-        continue;
-      }
-      const node = this.session.document.scene.nodes.get(objectId);
-      if (node) {
-        this.syncMesh(node, tracked.object);
-      }
-    }
-  }
-
-  private objectIdFromOverlay(object: Object3D): ObjectId | undefined {
-    let current: Object3D | null = object;
-    while (current) {
-      const id = current.userData.objectId as ObjectId | undefined;
-      if (id) {
-        return id;
-      }
-      current = current.parent;
-    }
-    return undefined;
-  }
-
-  private collectOverlaySources(): OverlayMeshSource[] {
-    let count = 0;
-    for (const [objectId, tracked] of this.tracked) {
-      if (!tracked.geometry || !tracked.mapping || !(tracked.object instanceof Mesh)) {
-        continue;
-      }
-      const meshId = tracked.object.userData.meshId as MeshId | undefined;
-      const kernel = meshId ? this.session.meshes.get(meshId) : undefined;
-      if (!kernel) {
-        continue;
-      }
-      const existing = this.overlaySources[count];
-      if (existing) {
-        (existing as { objectId: ObjectId }).objectId = objectId;
-        (existing as { object: Object3D }).object = tracked.object;
-        (existing as { kernel: typeof kernel }).kernel = kernel;
-        (existing as { geometry: BufferGeometry }).geometry = tracked.geometry;
-        (existing as { mapping: RenderMapping }).mapping = tracked.mapping;
-      } else {
-        this.overlaySources[count] = {
-          objectId,
-          object: tracked.object,
-          kernel,
-          geometry: tracked.geometry,
-          mapping: tracked.mapping,
-        };
-      }
-      count += 1;
-    }
-    this.overlaySources.length = count;
-    return this.overlaySources;
-  }
-
   private syncOverlays(mode: "full" | "state" | "view" = "full"): void {
     this.assertAlive();
-    if (!this.visualizer.getDisplay().enabled) {
-      this.syncLegacyOverlays();
-      return;
-    }
-    this.visualizer.sync(this.collectOverlaySources(), this.session.selection, {
-      camera: this.camera,
-      width: this.viewport.width,
-      height: this.viewport.height,
-    }, mode);
+    syncOverlays(this.overlayContext(), mode);
   }
 
-  private syncLegacyOverlays(): void {
-    this.clearLegacyOverlay();
-    const selected = this.session.selection;
-    const domain = selected.domain;
-    if (domain !== "face" && domain !== "edge" && domain !== "vertex" && domain !== "object") {
-      return;
+  private cameraRevision(): number {
+    const elements = this.camera.matrixWorld.elements;
+    const projection = this.camera.projectionMatrix.elements;
+    let hash = (this.viewport.width * 397) ^ this.viewport.height ^ (this.viewport.pixelRatio * 1000);
+    for (let i = 0; i < 16; i += 1) {
+      hash = (hash * 31 + Math.round((elements[i] ?? 0) * 1e4)) | 0;
+      hash = (hash * 31 + Math.round((projection[i] ?? 0) * 1e4)) | 0;
     }
-    if (domain !== "object" && selected.elementIds.length === 0) {
-      return;
-    }
-    for (const objectId of selected.objectIds) {
-      const tracked = this.tracked.get(objectId);
-      if (!tracked?.geometry || !tracked.mapping || !(tracked.object instanceof Mesh)) {
-        continue;
-      }
-      const meshId = tracked.object.userData.meshId as MeshId | undefined;
-      const kernel = meshId ? this.session.meshes.get(meshId) : undefined;
-      if (!kernel) {
-        continue;
-      }
-      const overlay = buildSelectionOverlay({
-        domain,
-        elementIds: selected.elementIds,
-        kernel,
-        geometry: tracked.geometry,
-        mapping: tracked.mapping,
-      });
-      if (!overlay) {
-        continue;
-      }
-      tracked.object.add(overlay);
-      this.overlayObjects.push(overlay);
-    }
-  }
-
-  private clearLegacyOverlay(): void {
-    for (const object of this.overlayObjects) {
-      disposeOverlayObject(object);
-    }
-    this.overlayObjects.length = 0;
-  }
-
-  private disposeTracked(tracked: TrackedObject): void {
-    tracked.object.removeFromParent();
-    if (tracked.geometry) {
-      this.releaseGeometry(tracked.object.userData.meshId as MeshId | undefined, tracked.geometry);
-    }
-    disposeMaterials(tracked.material);
+    return hash;
   }
 
   private assertAlive(): void {
@@ -940,32 +559,4 @@ export class ThreeViewportAdapter {
   }
 }
 
-function resolveDisplayTransform(
-  session: ModelingSession,
-  node: SceneNode,
-): SceneNode["localTransform"] {
-  if (node.type === "bone" && node.payloadRef) {
-    const posed = session.poseLocals.get(brand<string, "BoneId">(node.payloadRef));
-    if (posed) {
-      return posed;
-    }
-  }
-  const objectPose = session.objectPoseLocals.get(node.id);
-  if (objectPose) {
-    return objectPose;
-  }
-  return node.localTransform;
-}
-
-function applyLocalTransform(object: Object3D, transform: SceneNode["localTransform"]): void {
-  object.position.set(transform.position.x, transform.position.y, transform.position.z);
-  object.quaternion.set(
-    transform.rotation.x,
-    transform.rotation.y,
-    transform.rotation.z,
-    transform.rotation.w,
-  );
-  object.scale.set(transform.scale.x, transform.scale.y, transform.scale.z);
-}
-
-export type { PickDomain, PickResult, PickingOptions };
+export type { PickDomain, PickResult, PickingOptions } from "./picking";

@@ -43,6 +43,7 @@ import {
 import { SetTransformsCommand } from "./set-transforms";
 import { PaintStrokeCommand } from "./paint-stroke";
 import { SessionCapabilities } from "./capabilities";
+import { unwrapSessionMesh, type SessionAutomaticUnwrapParams } from "./session-unwrap";
 
 export class ModelingSession {
   readonly document: ModelDocument;
@@ -98,6 +99,11 @@ export class ModelingSession {
   redo(): void {
     this.assertOpen();
     this.history.redo(this.context());
+  }
+
+  async automaticUnwrap(params: SessionAutomaticUnwrapParams): Promise<import("@modeling-kit/uv").AutomaticUvUnwrapResult> {
+    this.assertOpen();
+    return unwrapSessionMesh(this, params);
   }
 
   get canUndo(): boolean {

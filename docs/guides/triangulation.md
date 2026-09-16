@@ -46,3 +46,5 @@ Suspicious Earcut output is `status: "failed"` with zero triangles. A simple no-
 ## Performance
 
 Earcut is one typed-array pass. No WASM, workers, or result cache. Degenerate input fails closed; it does not mutate the kernel.
+
+Earcut is not a file importer. glTF/OBJ/STL enter through `@modeling-kit/formats`. `triangulateMesh` may then dump n-gons to triangles for render or export.

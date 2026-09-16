@@ -46,6 +46,7 @@ export { ConnectVerticesCommand, type ConnectVerticesParams } from "./connect-ve
 export { MergeVerticesCommand, type MergeVerticesParams } from "./merge-vertices";
 export { TriangulateFacesCommand, type TriangulateFacesParams } from "./triangulate-faces";
 export { SetCornerUvsCommand, type SetCornerUvsParams, type CornerUvSnapshot } from "./set-corner-uvs";
+export { AutomaticUnwrapCommand, type AutomaticUnwrapCommandParams } from "./automatic-unwrap";
 export { ProjectUvCommand, type ProjectUvMode, type ProjectUvParams } from "./project-uv";
 export { AssignMaterialSlotCommand, type AssignMaterialSlotParams } from "./assign-material-slot";
 export {
@@ -57,11 +58,13 @@ export {
 export { UpdateMaterialCommand, type UpdateMaterialParams } from "./update-material";
 export { canExecute, type CapabilityDecision, type CapabilityContext } from "./capabilities";
 export { ModelingSession, createModelingSession } from "./session";
+export { unwrapSessionMesh, type SessionAutomaticUnwrapParams } from "./session-unwrap";
 export { CreateMaterialCommand, type CreateMaterialParams } from "./create-material";
 export { AssignMaterialCommand, type AssignMaterialParams } from "./assign-material";
 export { ProjectUvsCommand, type ProjectUvsParams } from "./project-uvs";
 export { PackUvsCommand, type PackUvsParams } from "./pack-uvs";
 export { SetSeamsCommand, type SetSeamsParams } from "./set-seams";
+export { SetEdgeCreasesCommand, type SetEdgeCreasesParams } from "./set-edge-creases";
 export { CreateClipCommand, type CreateClipParams } from "./create-clip";
 export { SetKeyframeCommand, type SetKeyframeParams } from "./set-keyframe";
 export {

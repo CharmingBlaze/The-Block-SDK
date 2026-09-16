@@ -134,7 +134,17 @@ export function getEditorToolDefinitions(): readonly EditorToolDefinition[] {
       properties: {
         offset: { type: "number" },
         segments: { type: "integer" },
+        miterMode: { type: "string", enum: ["sharp", "clip"] },
+        overlapMode: { type: "string", enum: ["clamp", "error"] },
+        allowClipFallback: { type: "boolean" },
+        miterLimit: { type: "number" },
       },
+    }),
+    tool("set_edge_creases", "Set normalized Catmull-Clark crease weights on selected edges.", {
+      type: "object",
+      additionalProperties: false,
+      required: ["weight"],
+      properties: { weight: { type: "number" } },
     }),
     tool("subdivide_faces", "Linear-subdivide the selected faces (or all faces).", {
       type: "object",
@@ -280,10 +290,20 @@ export function executeEditorTool(
       case "inset_faces":
         requireActive(editor).inset(requireNumber(parsed, "distance"));
         return success(editor, name);
-      case "bevel_edges":
+      case "bevel_edges": {
+        const miterMode = optionalString(parsed, "miterMode");
+        const overlapMode = optionalString(parsed, "overlapMode");
         requireActive(editor).bevel(requireNumber(parsed, "offset"), {
           ...(hasNumber(parsed, "segments") ? { segments: parsed.segments as number } : {}),
+          ...(miterMode === "sharp" || miterMode === "clip" ? { miterMode } : {}),
+          ...(overlapMode === "clamp" || overlapMode === "error" ? { overlapMode } : {}),
+          ...(parsed.allowClipFallback === true ? { allowClipFallback: true } : {}),
+          ...(hasNumber(parsed, "miterLimit") ? { miterLimit: parsed.miterLimit as number } : {}),
         });
+        return success(editor, name);
+      }
+      case "set_edge_creases":
+        requireActive(editor).setCrease(requireNumber(parsed, "weight"));
         return success(editor, name);
       case "subdivide_faces":
         requireActive(editor).subdivide(hasNumber(parsed, "cuts") ? (parsed.cuts as number) : 1);

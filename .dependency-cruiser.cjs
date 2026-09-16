@@ -96,6 +96,18 @@ module.exports = {
       to: { path: "(^|/)node_modules/three(/|$)|^three$|^packages/three-adapter/" },
     },
     {
+      name: "gltf-transform-only-in-formats",
+      comment:
+        "@gltf-transform/* is the formats interchange backend. Headless canonical packages and the Three.js adapter must not import it.",
+      severity: "error",
+      from: {
+        path: "^packages/(core|math|document|mesh|meshopt|validation|scene|selection|history|materials|uv|paint|primitives|transform|snapping|input|tools|commands|workers|rigging|animation|sdk|three-adapter)/",
+      },
+      to: {
+        path: "(^|/)node_modules/@gltf-transform/|^@gltf-transform/",
+      },
+    },
+    {
       name: "input-main-headless",
       comment:
         "The main @modeling-kit/input entry must stay headless. DOM event types belong in src/dom.ts.",

@@ -1,0 +1,24 @@
+{
+  "name": "@modeling-kit/webgl-smoke",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:smoke": "vite --host 127.0.0.1 --port 4179 --strictPort",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview --host 127.0.0.1 --port 4179 --strictPort"
+  },
+  "dependencies": {
+    "@modeling-kit/core": "workspace:*",
+    "@modeling-kit/mesh": "workspace:*",
+    "@modeling-kit/three-adapter": "workspace:*",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/three": "^0.180.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.14"
+  }
+}

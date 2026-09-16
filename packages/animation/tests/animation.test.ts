@@ -1,7 +1,7 @@
 import { createSequenceIdFactory } from "@modeling-kit/core";
 import { createAnimationClipData } from "@modeling-kit/document";
 import { describe, expect, it } from "vitest";
-import { AnimationPlayer, animationClipToDocumentClip, AnimationClipBuilder, evaluateClip, evaluateDocumentClip, interpolateNumbers, sampleTrack, wrapTime } from "../src/index";
+import { AnimationPlayer, animationClipToDocumentClip, AnimationClipBuilder, evaluateClip, evaluateDocumentClip, interpolateNumbers, interpolateRotation, sampleTrack, validateClip, wrapTime } from "../src/index";
 
 describe("@modeling-kit/animation", () => {
   it("interpolates linear keys at the midpoint", () => {
@@ -129,5 +129,53 @@ describe("@modeling-kit/animation", () => {
         0.5,
       ),
     ).toThrow(/sorted/);
+  });
+
+  it("slerp rotations, evaluates visibility, and rejects wrong component counts", () => {
+    const ids = createSequenceIdFactory("eval");
+    const q = interpolateRotation(
+      [
+        { time: 0, value: [0, 0, 0, 1] },
+        { time: 1, value: [0, 0, 1, 0] },
+      ],
+      0.5,
+      "linear",
+    );
+    expect(Math.hypot(q.x, q.y, q.z, q.w)).toBeCloseTo(1);
+    const objectId = ids.object();
+    const clip = createAnimationClipData(ids.animation(), "Vis", {
+      duration: 1,
+      tracks: [
+        {
+          id: "vis",
+          targetKind: "object",
+          targetId: objectId,
+          channel: "visibility",
+          interpolation: "constant",
+          keys: [
+            { time: 0, value: [1] },
+            { time: 1, value: [0] },
+          ],
+        },
+      ],
+    });
+    expect(evaluateDocumentClip(clip, 0).visibility.get(objectId)).toBe(true);
+    expect(evaluateDocumentClip(clip, 1).visibility.get(objectId)).toBe(false);
+    expect(() =>
+      validateClip(
+        createAnimationClipData(ids.animation(), "Bad", {
+          tracks: [
+            {
+              id: "pos",
+              targetKind: "object",
+              targetId: objectId,
+              channel: "position",
+              interpolation: "linear",
+              keys: [{ time: 0, value: [0, 0] }],
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/exactly 3/);
   });
 });

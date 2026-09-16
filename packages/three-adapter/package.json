@@ -22,12 +22,15 @@
     "three": "^0.180.0"
   },
   "dependencies": {
+    "@modeling-kit/animation": "workspace:*",
     "@modeling-kit/commands": "workspace:*",
     "@modeling-kit/core": "workspace:*",
     "@modeling-kit/document": "workspace:*",
+    "@modeling-kit/math": "workspace:*",
     "@modeling-kit/mesh": "workspace:*",
+    "@modeling-kit/rigging": "workspace:*",
     "@modeling-kit/scene": "workspace:*",
-    "@modeling-kit/rigging": "workspace:*"
+    "@modeling-kit/selection": "workspace:*"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

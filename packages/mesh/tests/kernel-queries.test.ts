@@ -62,6 +62,7 @@ describe("MESH-003 attributes", () => {
     const edge = mesh.edges.get(edgeId)!;
     edge.isSeam = true;
     edge.creaseAngle = 0.5;
+    edge.creaseWeight = 0.5;
     const restored = deserializeMesh(serializeMesh(mesh));
     const corners = restored.getFaceCorners(faceId).map((id) => restored.corners.get(id)!);
     expect(corners[0]?.uv).toEqual([0, 0]);
@@ -69,6 +70,7 @@ describe("MESH-003 attributes", () => {
     expect(restored.faces.get(faceId)?.materialSlot).toBe(2);
     expect(restored.edges.get(edgeId)?.isSeam).toBe(true);
     expect(restored.edges.get(edgeId)?.creaseAngle).toBe(0.5);
+    expect(restored.edges.get(edgeId)?.creaseWeight).toBe(0.5);
   });
 });
 

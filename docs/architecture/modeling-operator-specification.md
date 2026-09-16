@@ -202,7 +202,7 @@ Document `PrimitiveType` strings must match `@modeling-kit/primitives` (no paral
 | -- | ----------- | ---------- |
 | VP-001 | Incremental sync from document events | Selection/hover does not rebuild topology buffers |
 | VP-002 | Perspective and orthographic; multiple adapters per session | |
-| VP-003 | Canonical picking via CPU `Raycaster` (not GPU ID buffer unless implemented) | Docs and APIs must not say “GPU raycast” unless an ID-buffer pass exists |
+| VP-003 | Canonical picking: CPU `Raycaster` plus optional GPU ID-buffer | GPU pass lives in `three-adapter`; headless selection stays renderer-neutral. Docs must not call CPU picking “GPU raycast.” |
 | VP-004 | Vertex/edge/face overlays; theme; dispose | |
 | VP-005 | Spatial acceleration optional behind `SpatialQueryBackend` | No three-mesh-bvh in core |
 
@@ -247,7 +247,7 @@ Paint: 2D stroke machine; 3D maps host hits to UV/pixels without storing GPU obj
 | ANIM-001 | Full clip editor, NLA, animation events, glTF animation completeness | 1.1 |
 | MESH-OP-CC-ADV | Crease-weight Catmull–Clark production feature set | 1.1 if 1.0 only ships basic levels |
 | BOOL-001 | Boolean backend (Manifold adapter) | 1.1 |
-| GPU-PICK-001 | GPU ID-buffer picking | Optional 1.1 |
+| GPU-PICK-001 | GPU ID-buffer picking | **1.0** object/face click, canonical FaceId, surface refinement, one result per gesture, CPU fallback, empty-click, backface config, host options, real-WebGL smoke. **1.1:** GPU hover, alpha/clipping, InstancedMesh, GPU skinning, R32UI, lasso readback |
 | FMT-FBX | FBX | Never required for 1.0 |
 
 Existing `@modeling-kit/rigging` and `@modeling-kit/animation` packages may remain as **preview** APIs. They are not Release 1.0 completion gates unless a requirement above is `VERIFIED`.

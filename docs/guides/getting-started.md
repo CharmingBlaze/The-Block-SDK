@@ -4,6 +4,14 @@
 
 Public packages are MIT-licensed. There is no Minecraft, `.bbmodel`, or game-format support. Native JSON is the canonical persistence format.
 
+After a git tag such as `v0.1.0` has been published:
+
+```bash
+pnpm add @modeling-kit/sdk
+```
+
+See [Publishing](publishing.md) for the tag workflow.
+
 ## Fluent editor (recommended)
 
 ```ts
@@ -89,6 +97,20 @@ Heavy triangulation, UV packing, and mesh validation can run on `@modeling-kit/w
 - `@modeling-kit/workers/browser` — `createBrowserComputePool()`
 - `@modeling-kit/workers/node` — `createNodeComputePool()`
 
+## Libraries vs formats
+
+Everything editable lives in `HalfEdgeMesh` / native JSON. Other packages only ingest or dump:
+
+| Need | Call | Do not |
+| --- | --- | --- |
+| Canonical cube / UV sphere | `editor.spawn.cube()` / `spawn.sphere()` | Treat `primitive-geometry`’s cube as the same mesh |
+| Library recipe (`icosphere` from the catalog, profile wall) | `convertSimplicialComplex` / `generateLibraryPrimitive` / `generateProfileExtrude` with explicit `cellSize` | Infer triangles vs quads from buffer length |
+| glTF, OBJ, STL | `importGltf`, `importObj`, `importStlAscii` from `@modeling-kit/formats` | Run those files through `facesFromFlatCells` |
+| Viewport picking, UVs, meshopt | `triangulateMesh` maps (`triangleFaceIds`, `vertexIdMap`, `cornerIdMap`); GPU picks use those maps, never GPU indices as identities | Persist GPU indices |
+| Save | `session.saveNativeJson()` | Treat an exported glTF as the document |
+
+`PRIMITIVE_CATALOG` tells a host whether a public name is canonical or a library recipe. `apps/geometry-gallery` is the visual check of both.
+
 ## Next guides
 
 - UV editing (headless, one command per committed transform): [`uv-editor.md`](uv-editor.md)
@@ -100,4 +122,5 @@ Heavy triangulation, UV packing, and mesh validation can run on `@modeling-kit/w
 - Profile extrusion: [`profile-extrude.md`](profile-extrude.md)
 - Derived mesh optimization: [`meshopt.md`](meshopt.md)
 - Architecture and ownership: [`../architecture/sdk-architecture.md`](../architecture/sdk-architecture.md), [`../architecture/ownership.md`](../architecture/ownership.md)
+- GPU ID-buffer picking: [`../architecture/GPU-ID-PICKING.md`](../architecture/GPU-ID-PICKING.md)
 - 1.0 requirements: [`../architecture/modeling-operator-specification.md`](../architecture/modeling-operator-specification.md)

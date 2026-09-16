@@ -44,9 +44,13 @@ Tooling setup (Serena, Repomix, dependency-cruiser, Knip, fast-check) is Cursor-
 | R1-T016 | geometry-extrude profile adapter | VERIFIED | `@modeling-kit/primitives` (+ commands/tools) | `tasks/R1-T016.md` |
 | R1-T017 | meshoptimizer derived-triangle adapter | VERIFIED | `@modeling-kit/meshopt` | `tasks/R1-T017.md` |
 
+## Release
+
+Tag-triggered npm publish is in `.github/workflows/release.yml`. First public version is still `0.1.0` until `NPM_TOKEN` exists and `v0.1.0` is pushed. Guide: `docs/guides/publishing.md`.
+
 ## Backlog
 
-None in M3–M7. Next Cursor-owned work is M8–M12 (box/lasso, formats, UV/paint evidence, CI, perf/lifecycle). Do not start without a new packet.
+None in M3–M7. Next Cursor-owned product work is M8–M12 (box/lasso, formats, UV/paint evidence, CI, perf/lifecycle). Do not start without a new packet.
 
 ## Completed
 
@@ -60,7 +64,7 @@ None in M3–M7. Next Cursor-owned work is M8–M12 (box/lasso, formats, UV/pain
 - R1-T011 — 2026-09-15. Concave L-face inset (distance 0.05; large inset still inverts).
 - R1-T012 — 2026-09-15. Two connected cube edges bevel.
 - R1-T013 — 2026-09-16. `robust-predicates` behind `GeometryPredicates`. Focused tests 78 passed; math/mesh/selection/sdk typecheck passed.
-- R1-T014 — 2026-09-16. `primitive-geometry` behind `convertSimplicialComplex`. Library recipes convert to HalfEdgeMesh; catalog cube/uvSphere unchanged.
+- R1-T014 — 2026-09-16. `primitive-geometry` behind `convertSimplicialComplex`. Library recipes convert to HalfEdgeMesh; catalog cube/uvSphere unchanged. Packed-cell IR stays inside primitives; formats keep native importers.
 - R1-T015 — 2026-09-16. `earcut` behind `triangulatePolygonLoops`. Convex faces stay ear-clipped; holes/concave use Earcut with validation.
 - R1-T016 — 2026-09-16. `geometry-extrude` behind `generateProfileExtrude`. Catalog `wall` and `extrudeFaces` unchanged. Focused tests 26+ passed; primitives/commands/tools/sdk typecheck passed.
 - R1-T017 — 2026-09-16. `meshoptimizer` behind `optimizeDerivedTriangles` in `@modeling-kit/meshopt`. Half-edge kernel unchanged.

@@ -18,6 +18,8 @@ The half-edge mesh remains the editable source of truth. Library typed arrays ar
 
 Callers import `generateLibraryPrimitive` / `convertSimplicialComplex` from `@modeling-kit/primitives` (or `@modeling-kit/sdk`). They must not import `primitive-geometry` directly.
 
+`convertSimplicialComplex` is **not** the glTF/OBJ/STL path. Those files already declare faces or triangle primitives in `@modeling-kit/formats`. Packed `cells` + `cellSize` is only for recipe libraries (`primitive-geometry`, and `geometry-extrude` after XY→XZ remap). Hosts that need a file on disk use `importGltf` / `importObj` / `importStlAscii`, then native JSON for persistence.
+
 There is no lifecycle machine. Conversion is a pure function: invalid input throws `SchemaError` before a mesh is committed. `generateLibraryPrimitive` validates parameters first.
 
 ## What is converted
@@ -29,7 +31,7 @@ Excluded catalog entries:
 - Library `circle` (polyline, no faces)
 - Library `box` / modeling `cube` as the canonical 6-quad bar (`generateBox` stays the modeling primitive)
 
-Planar recipes are generated in XY and remapped onto the SDK XZ ground plane (`remapXyToXz`).
+Planar recipes are generated in XY and remapped onto the SDK XZ ground plane (`remapXyToXz`). Library `cells` are triangles unless the caller passes explicit `cellSize`. A buffer whose length is divisible by 12 is still parsed as triangles.
 
 ## Attributes, seams, and welding
 
@@ -41,18 +43,22 @@ Planar recipes are generated in XY and remapped onto the SDK XZ ground plane (`r
 
 ## Failure and performance
 
-- Non-finite values, bad index ranges, mismatched attribute lengths, zero faces, or failed `validateMesh` throw. No partial mesh is returned.
+- Non-finite positions, bad index ranges, mismatched attribute lengths, zero remaining faces, or failed `validateMesh` throw. No partial mesh is returned.
+- Repeated indices and zero-area cells in mixed library recipes are skipped with warnings; a fully degenerate buffer still throws.
+- Unusable (non-finite) normals/UVs are omitted and regenerated.
 - Cost is one typed-array generation plus a single convert. No per-frame library cost, no WASM, no result cache.
 
 ## Display, undo, and picking
 
-Use the existing Three.js adapter. `triangulateMesh` keeps `triangleFaceIds` and `vertexIdMap`. Serialization and `CreatePrimitiveCommand` / `CreateLibraryPrimitiveCommand` undo restore the stored kernel snapshot.
+Use the existing Three.js adapter. `triangulateMesh` keeps `triangleFaceIds`, `vertexIdMap`, and `cornerIdMap`. The adapter copies those into `RenderMapping` (including `renderVertexToCorner`). Serialization and `CreatePrimitiveCommand` / `CreateLibraryPrimitiveCommand` undo restore the stored kernel snapshot.
 
 Regenerated viewport geometry is disposed by `ThreeViewportAdapter` when the object is removed or the adapter is disposed.
 
 ## Public API
 
-Additive exports: `convertSimplicialComplex`, `generateLibraryPrimitive`, `validateLibraryParameters`, `LIBRARY_GEOMETRY_IDS`, `LIBRARY_DISPLAY_NAMES`, `isLibraryGeometryId`, `CreateLibraryPrimitiveCommand`, `editor.spawn.library(kind, params)`. Modeling generators (`generateBox`, `generateCylinder`, `spawn.cube`, `spawn.sphere` → `uvSphere`) are unchanged.
+Additive exports: `convertSimplicialComplex` (requires explicit `cellSize`), `ConvertedPrimitive` (`sourceFaceToCanonicalFaceIds`, `sourceIndexToVertex`, `warnings`), `generateLibraryPrimitive`, `validateLibraryParameters`, `resolveCellSize`, `PRIMITIVE_CATALOG`, `getPrimitiveCatalogEntry`, `LIBRARY_GEOMETRY_IDS`, `LIBRARY_DISPLAY_NAMES`, `isLibraryGeometryId`, `CreateLibraryPrimitiveCommand`, `editor.spawn.library(kind, params)`. Face-buffer expansion (`facesFromFlatCells`, `GeometrySourceData`) stays inside `@modeling-kit/primitives` and is not a host-facing SDK export.
+
+Modeling generators (`generateBox`, `generateQuadSphere`, `generateCylinder`, `spawn.cube`, `spawn.sphere` → `uvSphere`, `spawn.quadSphere`) are the canonical path.
 
 ## Module map
 

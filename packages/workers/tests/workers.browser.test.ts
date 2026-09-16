@@ -48,29 +48,36 @@ class FakeWorker implements BrowserWorkerLike {
     const payload = message as { id: string; task: TaskPayload };
     FakeWorker.running += 1;
     this.timer = setTimeout(() => {
-      this.timer = undefined;
-      FakeWorker.running -= 1;
+      void this.finishTask(payload);
+    }, this.delayMs);
+    this.timer.unref?.();
+  }
+
+  private async finishTask(payload: { id: string; task: TaskPayload }): Promise<void> {
+    this.timer = undefined;
+    FakeWorker.running -= 1;
+    if (this.terminated) {
+      return;
+    }
+    if (this.crash) {
+      for (const listener of this.errorListeners) {
+        listener({ message: "boom" });
+      }
+      return;
+    }
+    try {
+      const result = await runComputeTask(payload.task);
       if (this.terminated) {
         return;
       }
-      if (this.crash) {
-        for (const listener of this.errorListeners) {
-          listener({ message: "boom" });
-        }
-        return;
+      for (const listener of this.messageListeners) {
+        listener({ data: { id: payload.id, success: true, result } });
       }
-      try {
-        const result = runComputeTask(payload.task);
-        for (const listener of this.messageListeners) {
-          listener({ data: { id: payload.id, success: true, result } });
-        }
-      } catch (err) {
-        for (const listener of this.errorListeners) {
-          listener({ error: err });
-        }
+    } catch (err) {
+      for (const listener of this.errorListeners) {
+        listener({ error: err });
       }
-    }, this.delayMs);
-    this.timer.unref?.();
+    }
   }
 
   terminate(): void {
@@ -158,5 +165,23 @@ describe("@modeling-kit/workers/browser", () => {
     expect(result.valid).toBe(true);
     expect(spawned).toBeGreaterThanOrEqual(2);
     pool.dispose();
+  });
+
+  it("charts a cube through the browser worker unwrap-uv task", async () => {
+    const pool = createBrowserComputePool(poolOptions(FakeWorker as unknown as BrowserWorkerConstructor, 1));
+    const positions = new Float32Array([
+      -0.5, -0.5, 0.5, 0.5, -0.5, 0.5, 0.5, 0.5, 0.5, -0.5, 0.5, 0.5, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0.5, -0.5,
+      -0.5, 0.5, -0.5,
+    ]);
+    const indices = new Uint32Array([
+      0, 1, 2, 0, 2, 3, 5, 4, 7, 5, 7, 6, 3, 2, 6, 3, 6, 7, 4, 5, 1, 4, 1, 0, 1, 5, 6, 1, 6, 2, 4, 0, 3, 4, 3, 7,
+    ]);
+    try {
+      const result = await pool.unwrapUvAsync({ positions, indices }, { resolution: 64, padding: 1 });
+      expect(result.triangleCount).toBe(12);
+      expect(result.atlasWidth).toBeGreaterThan(0);
+    } finally {
+      pool.dispose();
+    }
   });
 });

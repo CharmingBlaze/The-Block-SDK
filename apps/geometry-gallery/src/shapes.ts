@@ -1,13 +1,85 @@
-import type { PrimitiveCreateParams } from "@modeling-kit/sdk";
-import { LIBRARY_DISPLAY_NAMES, LIBRARY_GEOMETRY_IDS, type LibraryGeometryId } from "@modeling-kit/sdk";
+import {
+  LIBRARY_DISPLAY_NAMES,
+  LIBRARY_GEOMETRY_IDS,
+  primitiveDisplayNames,
+  type LibraryGeometryId,
+  type PrimitiveCreateParams,
+  type PrimitiveType,
+} from "@modeling-kit/sdk";
 
-export const GALLERY_SHAPES: readonly LibraryGeometryId[] = LIBRARY_GEOMETRY_IDS;
+export type GalleryShape =
+  | { readonly id: string; readonly source: "canonical"; readonly type: PrimitiveType }
+  | { readonly id: string; readonly source: "library"; readonly type: LibraryGeometryId };
 
-export function galleryLabel(kind: LibraryGeometryId): string {
-  return LIBRARY_DISPLAY_NAMES[kind];
+const CANONICAL_TYPES: readonly PrimitiveType[] = [
+  "cube",
+  "plane",
+  "grid",
+  "quadSphere",
+  "uvSphere",
+  "torus",
+  "cylinder",
+  "cone",
+  "capsule",
+  "roundedCube",
+  "icosphere",
+];
+
+export const GALLERY_SHAPES: readonly GalleryShape[] = [
+  ...CANONICAL_TYPES.map(
+    (type): GalleryShape => ({ id: `canonical:${type}`, source: "canonical", type }),
+  ),
+  ...LIBRARY_GEOMETRY_IDS.map(
+    (type): GalleryShape => ({ id: `library:${type}`, source: "library", type }),
+  ),
+];
+
+export function galleryLabel(shape: GalleryShape): string {
+  if (shape.source === "canonical") {
+    return `${primitiveDisplayNames[shape.type]} (canonical)`;
+  }
+  return `${LIBRARY_DISPLAY_NAMES[shape.type]} (library)`;
 }
 
-export function paramsForLibraryShape(kind: LibraryGeometryId): PrimitiveCreateParams {
+export function paramsForShape(shape: GalleryShape): PrimitiveCreateParams {
+  if (shape.source === "library") {
+    return paramsForLibraryShape(shape.type);
+  }
+  return paramsForCanonicalShape(shape.type);
+}
+
+function paramsForCanonicalShape(type: PrimitiveType): PrimitiveCreateParams {
+  switch (type) {
+    case "cube":
+    case "box":
+      return { width: 1.2, height: 1.2, depth: 1.2, segmentsX: 2, segmentsY: 2, segmentsZ: 2 };
+    case "plane":
+      return { width: 1.6, depth: 1.2 };
+    case "grid":
+    case "rectangle":
+      return { width: 1.6, depth: 1.2, segmentsX: 4, segmentsZ: 3 };
+    case "quadSphere":
+      return { radius: 0.75, segments: 4 };
+    case "uvSphere":
+      return { radius: 0.75, widthSegments: 24, heightSegments: 16 };
+    case "torus":
+      return { radius: 0.7, tube: 0.22, radialSegments: 12, tubularSegments: 32 };
+    case "cylinder":
+      return { radius: 0.45, height: 1.4, radialSegments: 24, heightSegments: 2 };
+    case "cone":
+      return { radius: 0.55, height: 1.4, radialSegments: 24, heightSegments: 2 };
+    case "capsule":
+      return { radius: 0.35, height: 0.8, radialSegments: 16, capSegments: 8 };
+    case "roundedCube":
+      return { width: 1.2, height: 1.2, depth: 1.2, radius: 0.22, roundSegments: 4, edgeSegments: 2 };
+    case "icosphere":
+      return { radius: 0.75, subdivisions: 2 };
+    default:
+      return {};
+  }
+}
+
+function paramsForLibraryShape(kind: LibraryGeometryId): PrimitiveCreateParams {
   switch (kind) {
     case "quad":
       return { scale: 0.7 };

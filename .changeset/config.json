@@ -2,10 +2,49 @@
   "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "fixed": [],
+  "fixed": [
+    [
+      "@modeling-kit/animation",
+      "@modeling-kit/commands",
+      "@modeling-kit/core",
+      "@modeling-kit/document",
+      "@modeling-kit/formats",
+      "@modeling-kit/history",
+      "@modeling-kit/input",
+      "@modeling-kit/materials",
+      "@modeling-kit/math",
+      "@modeling-kit/mesh",
+      "@modeling-kit/meshopt",
+      "@modeling-kit/paint",
+      "@modeling-kit/primitives",
+      "@modeling-kit/rigging",
+      "@modeling-kit/scene",
+      "@modeling-kit/sdk",
+      "@modeling-kit/selection",
+      "@modeling-kit/snapping",
+      "@modeling-kit/three-adapter",
+      "@modeling-kit/tools",
+      "@modeling-kit/transform",
+      "@modeling-kit/uv",
+      "@modeling-kit/validation",
+      "@modeling-kit/workers"
+    ]
+  ],
   "linked": [],
-  "access": "restricted",
+  "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": [
+    "@modeling-kit/playground",
+    "@modeling-kit/example-react",
+    "@modeling-kit/example-vue",
+    "@modeling-kit/scratch-host",
+    "@modeling-kit/geometry-gallery",
+    "@modeling-kit/webgl-smoke"
+  ],
+  "bumpVersionsWithWorkspaceProtocolOnly": true,
+  "privatePackages": {
+    "version": false,
+    "tag": false
+  }
 }

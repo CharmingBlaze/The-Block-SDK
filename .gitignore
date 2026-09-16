@@ -11,3 +11,6 @@ repomix-output.*
 .serena/*.db
 .serena/*.db-journal
 .knip-cache
+playwright-report
+test-results
+blob-report
