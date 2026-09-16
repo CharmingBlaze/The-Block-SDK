@@ -50,7 +50,18 @@ Tag-triggered npm publish is in `.github/workflows/release.yml`. First public ve
 
 ## Backlog
 
-None in M3–M7. Next Cursor-owned product work is M8–M12 (box/lasso, formats, UV/paint evidence, CI, perf/lifecycle). Do not start without a new packet.
+The non-deferred 1.0 matrix is closed (`docs/verification/RELEASE-1.0-EVIDENCE.md`). Remaining product work is **1.1 / later**, not new 1.0 packets:
+
+- Boolean CSG (`BOOL-001`)
+- LSCM/ABF unwrap
+- GPU hover, `InstancedMesh` picking, GPU-skinned picking, advanced transparency
+- Rigging/animation **authoring** (IK, weight painting, NLA)
+- PLY codec
+- Optional triangle `three-mesh-bvh` spatial backend (object AABB BVH is in 1.0 as `BvhSpatialQuery`)
+
+Release remaining: add GitHub secret `NPM_TOKEN`, then `git tag v0.1.0 && git push origin v0.1.0`. Guide: `docs/guides/publishing.md`.
+
+Do not start a new Antigravity packet without a task file.
 
 ## Completed
 

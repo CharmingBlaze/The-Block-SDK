@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@modeling-kit/core": "workspace:*",
-    "@modeling-kit/math": "workspace:*",
     "@modeling-kit/mesh": "workspace:*",
     "@modeling-kit/input": "workspace:*",
     "@modeling-kit/snapping": "workspace:*"

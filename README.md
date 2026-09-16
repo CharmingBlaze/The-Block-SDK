@@ -8,6 +8,8 @@ Persistent edits go through commands. Topology lives on the mesh kernel. `THREE.
 
 ---
 
+**Requirements:** Node.js 22+, pnpm 11. Documentation index: [`docs/README.md`](docs/README.md).
+
 ## Quick start
 
 ```bash
@@ -109,7 +111,7 @@ if (result.ok) {
 editor.dispose();
 ```
 
-Tools: `spawn_primitive`, `select_components`, `extrude_faces`, `inset_faces`, `bevel_edges`, `subdivide_faces`, `catmull_clark`, `loop_cut`, `dissolve_edges`, `fill_boundary`, `knife_stroke`, `heal_mesh`, `weld_vertices`, `triangulate_faces`, `merge_vertices`, `connect_vertices`, `transform_selection`, `undo`, `redo`, `inspect_scene`, `save_scene` (native JSON in `data.json`).
+Tools: `spawn_primitive`, `select_components`, `extrude_faces`, `inset_faces`, `bevel_edges`, `set_edge_creases`, `subdivide_faces`, `catmull_clark`, `loop_cut`, `dissolve_edges`, `fill_boundary`, `knife_stroke`, `heal_mesh`, `weld_vertices`, `triangulate_faces`, `merge_vertices`, `connect_vertices`, `transform_selection`, `undo`, `redo`, `inspect_scene`, `save_scene` (native JSON in `data.json`). Full catalog: [`docs/guides/ai-tools.md`](docs/guides/ai-tools.md).
 
 ### Background compute
 
@@ -126,7 +128,7 @@ try {
 }
 ```
 
-Pools are host-owned. There is no process-wide shared pool. Jobs: triangulate, pack UVs, validate.
+Pools are host-owned. There is no process-wide shared pool. Jobs: triangulate, pack UVs, validate, unwrap UVs. See [`docs/guides/workers.md`](docs/guides/workers.md).
 
 ---
 
@@ -156,7 +158,7 @@ These are the subsystems a host or agent uses to build a modeling application. T
 
 | System | Package | What it does |
 | --- | --- | --- |
-| Primitives | `@modeling-kit/primitives` | Box/cube, plane, grid, disc, cylinder, cone, pyramid, UV sphere, icosphere, torus, capsule, ramp, stairs, arch, wall, column |
+| Primitives | `@modeling-kit/primitives` | Canonical MeshBuilder catalog (box, plane, cylinder, UV sphere, …) plus library recipes via `convertSimplicialComplex` |
 | Operators | `@modeling-kit/mesh` | Extrude, inset, bevel, subdivide, Catmull–Clark, loop cut, dissolve, collapse, fill, knife, weld/merge, connect, split/cut, bridge, duplicate/join, triangles-to-quads, reverse winding |
 | Commands | `@modeling-kit/commands` | Every persistent edit is a command; `ModelingSession.execute` |
 | History | `@modeling-kit/history` | Undo/redo, merge, drag coalescing, transactions, exact topology snapshots |
@@ -178,7 +180,7 @@ These are the subsystems a host or agent uses to build a modeling application. T
 | System | Package | What it does |
 | --- | --- | --- |
 | Materials | `@modeling-kit/materials` | PBR and unlit, slots, texture bindings |
-| UV | `@modeling-kit/uv` | Planar/box/cylindrical/spherical, seams, islands, shelf pack, UV editor session |
+| UV | `@modeling-kit/uv` | Planar/box/cylindrical/spherical, automatic chart unwrap (xatlas), seams, islands, shelf pack, UV editor session |
 | Images + paint | `@modeling-kit/paint` | Tiled RGBA, layers, dabs/lines/eraser, flood fill, UV-to-pixel 3D paint |
 | Textures | `@modeling-kit/document` + commands | Create, bind, undoable texture sets |
 
@@ -187,7 +189,7 @@ These are the subsystems a host or agent uses to build a modeling application. T
 | System | Package | What it does |
 | --- | --- | --- |
 | Three.js adapter | `@modeling-kit/three-adapter` | Derived GPU view; incremental sync; GPU ID-buffer object/face click picking; CPU `Raycaster` for hover/vertices/edges and fallback; selection/hover/knife overlays; `createThreeViewport()` |
-| Spatial query | `@modeling-kit/three-adapter` | Brute-force backend (no BVH yet) |
+| Spatial query | `@modeling-kit/three-adapter` | Optional revision-aware AABB BVH (`BvhSpatialQuery`); brute-force fallback. Triangle `three-mesh-bvh` is not required |
 
 The adapter never owns the editable mesh. Dispose the viewport, then the editor/session.
 
@@ -196,7 +198,7 @@ The adapter never owns the editable mesh. Dispose the viewport, then the editor/
 | System | Package | What it does |
 | --- | --- | --- |
 | Native JSON | `@modeling-kit/document` | Canonical persistence (`session.saveNativeJson()` / `ModelingSession.loadNativeJson`) |
-| Open formats | `@modeling-kit/formats` | glTF/GLB (triangulated geometry, hierarchy, PBR factors); OBJ; ASCII STL; PPM images |
+| Open formats | `@modeling-kit/formats` | glTF/GLB (triangulated geometry, hierarchy, PBR, skins, clips, textures); OBJ; ASCII STL; PPM images. PLY is allowed by policy, not implemented |
 | Workers | `@modeling-kit/workers` | Host-owned pools: inline, `/browser` (`Worker`), `/node` (`worker_threads`) |
 | Derived meshopt | `@modeling-kit/meshopt` | Optional vertex-cache reorder and LOD on triangulated render/export buffers |
 
@@ -208,20 +210,20 @@ The adapter never owns the editable mesh. Dispose the viewport, then the editor/
 | Viewport SDK | `@modeling-kit/sdk/three` or `@modeling-kit/three-adapter` | Optional Three.js |
 | AI tools | `@modeling-kit/sdk/ai` | OpenAI-style function schemas + `executeEditorTool` |
 
-### Preview (packages exist, not 1.0 product)
+### Preview authoring (data is implemented)
 
 | System | Package | Status |
 | --- | --- | --- |
-| Rigging | `@modeling-kit/rigging` | Bones, inverse bind, linear blend skinning (`RIG-001`) |
-| Animation | `@modeling-kit/animation` | Document clips and sampling (`ANIM-001`) |
+| Rigging | `@modeling-kit/rigging` | Canonical skeletons, IBMs, LBS evaluation. IK / weight painting are preview (`RIG-001`) |
+| Animation | `@modeling-kit/animation` | Canonical clips, sampling, glTF TRS import/export. NLA / layers are preview (`ANIM-001`) |
 
 ### Not in this SDK
 
-Boolean CSG, LSCM/ABF unwrap, paint/IO worker jobs, GPU hover, `THREE.InstancedMesh` picking, GPU-skinned picking, game/Minecraft/`.bbmodel` formats, and a DCC application UI (hosts own cameras, panels, and widgets). Object/face GPU ID-buffer **click** picking is in `@modeling-kit/three-adapter`; see [`docs/architecture/GPU-ID-PICKING.md`](docs/architecture/GPU-ID-PICKING.md).
+Boolean CSG, LSCM/ABF unwrap, paint/IO worker jobs, GPU hover, `THREE.InstancedMesh` picking, GPU-skinned picking, a PLY codec, game/Minecraft/`.bbmodel` formats, and a DCC application UI (hosts own cameras, panels, and widgets). Object/face GPU ID-buffer **click** picking is in `@modeling-kit/three-adapter`; see [`docs/architecture/GPU-ID-PICKING.md`](docs/architecture/GPU-ID-PICKING.md). Rigging/animation **authoring** (IK, weight painting, NLA) is preview; canonical skeleton/skin/clip data and glTF skins/animations are implemented.
 
 ### Host examples
 
-`apps/playground`, `apps/example-react`, `apps/example-vue`, `apps/scratch-host`, `apps/geometry-gallery`.
+`apps/playground`, `apps/example-react`, `apps/example-vue`, `apps/scratch-host`, `apps/geometry-gallery`, `apps/webgl-smoke`. See [`docs/guides/examples.md`](docs/guides/examples.md).
 
 ---
 
@@ -245,22 +247,24 @@ Host UI / agent
 
 ## Documentation
 
+Full index: [`docs/README.md`](docs/README.md).
+
 | Doc | Contents |
 | --- | --- |
-| [Getting started](docs/guides/getting-started.md) | Session + commands + adapter, dispose, workers |
+| [Getting started](docs/guides/getting-started.md) | Install, fluent editor, session, viewport, workers |
+| [Fluent editor](docs/guides/fluent-editor.md) | `createEditor()`, spawn, tags, operators |
+| [Viewport](docs/guides/viewport.md) | `createThreeViewport`, GPU click picking |
+| [Formats](docs/guides/formats.md) | Native JSON, glTF/GLB, OBJ, STL, PPM |
+| [AI tools](docs/guides/ai-tools.md) | Agent function schemas + executor |
+| [Selection / transform](docs/guides/selection-transform.md) | Domains, gestures, snap query |
+| [Workers](docs/guides/workers.md) | Inline / browser / Node pools |
+| [Examples](docs/guides/examples.md) | Playground, React, Vue, gallery |
 | [Publishing](docs/guides/publishing.md) | Changesets, `v*` tags, npm |
-| [UV editor](docs/guides/uv-editor.md) | Headless UV session, projections, lifecycle machines |
+| [Contributing](docs/guides/contributing.md) | Tests, clean-room, architecture rules |
+| [UV editor](docs/guides/uv-editor.md) | Headless UV session, projections, unwrap |
 | [Paint and images](docs/guides/paint-image.md) | Tiles, layers, strokes, 3D paint |
 | [Materials](docs/guides/materials.md) | PBR/unlit, slots, texture sets |
-| [Geometry predicates](docs/guides/geometry-predicates.md) | Robust `orient2d`/`orient3d` vs `GeometryTolerance` |
 | [SDK architecture](docs/architecture/sdk-architecture.md) | Package graph, workers, ownership |
-| [Ownership](docs/architecture/ownership.md) | Who owns document, session, GPU objects |
-| [Mesh kernel](docs/architecture/mesh-kernel.md) | Half-edge invariants |
-| [Document model](docs/architecture/document-model.md) | Schema and scene |
-| [Commands](docs/architecture/command-system.md) | Undo model |
-| [Input](docs/architecture/input.md) | Headless keymaps vs DOM |
-| [Interactive tools](docs/architecture/interactive-tools.md) | Preview vs commit |
-| [Three.js adapter](docs/architecture/three-adapter.md) | Sync and picking |
 | [Operator specification](docs/architecture/modeling-operator-specification.md) | 1.0 requirement IDs |
 | [Release evidence](docs/verification/RELEASE-1.0-EVIDENCE.md) | Tests and recorded gates |
 | [Clean-room rules](docs/research/clean-room-rules.md) | No GPL / no game formats |
@@ -277,6 +281,7 @@ packages/
   ├── document/         # Canonical document, serialization
   ├── scene/            # Hierarchy and DAG cycle rejection
   ├── validation/       # Topological and geometric validator
+  ├── primitives/       # Catalog generators + library recipe conversion
   ├── selection/        # Object/face/edge/vertex selection
   ├── history/          # Undo/redo and transactions
   ├── transform/        # Pivots, spaces, transform gestures
@@ -284,10 +289,11 @@ packages/
   ├── tools/            # Interactive topology tools
   ├── materials/        # PBR / unlit, slots, bindings
   ├── uv/               # Projections, seams, packing, UV editor
-  ├── rigging/          # Preview skeletons and skinning
-  ├── animation/        # Preview clips and sampling
+  ├── rigging/          # Canonical skeletons and skinning (preview authoring)
+  ├── animation/        # Canonical clips and sampling (preview authoring)
   ├── paint/            # RGBA tiles, rasterizer, flood fill
   ├── formats/          # glTF 2.0, OBJ, STL, PPM
+  ├── meshopt/          # Optional derived-triangle reorder / LOD
   ├── workers/          # Inline / browser / Node compute pools
   ├── commands/         # Commands, ModelingSession, fluent editor
   ├── input/            # Headless input; optional ./dom
@@ -295,10 +301,12 @@ packages/
   └── sdk/              # Facade; ./three and ./ai optional
 ```
 
+24 publishable packages under `packages/`. Host apps under `apps/` stay private.
+
 ---
 
 ## License & provenance
 
 MIT. Clean-room implementation. No GPL code from Blockbench or similar products.
 
-See `docs/research/clean-room-rules.md` and `docs/research/provenance-log.md`.
+See `docs/research/clean-room-rules.md` and `docs/research/provenance-log.md`. How to develop: [`CONTRIBUTING.md`](CONTRIBUTING.md).

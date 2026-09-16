@@ -16,6 +16,7 @@ Do not create a second competing master specification. Trackers may link here; t
 | Document | Answers |
 | -------- | ------- |
 | This specification | What must exist, how it behaves, requirement IDs, acceptance criteria, explicit deferrals |
+| `docs/README.md` | Host-facing documentation index |
 | `docs/verification/RELEASE-1.0-EVIDENCE.md` | Status, files, tests, commands, blockers |
 | `docs/coordination/*` | Current milestone, task board, API freeze, review checklist |
 | `docs/architecture/interactive-tools.md` | Tool session machines, preview vs command commit, disposal |

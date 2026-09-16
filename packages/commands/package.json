@@ -28,7 +28,6 @@
     "@modeling-kit/rigging": "workspace:*",
     "@modeling-kit/animation": "workspace:*",
     "@modeling-kit/transform": "workspace:*",
-    "@modeling-kit/snapping": "workspace:*",
     "@modeling-kit/paint": "workspace:*",
     "@modeling-kit/primitives": "workspace:*",
     "@modeling-kit/validation": "workspace:*"

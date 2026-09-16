@@ -761,4 +761,57 @@ describe("create cube, extrude, undo, redo", () => {
     expect(() => session.execute(new CreatePrimitiveCommand("cube"))).toThrow(/disposed/);
     session.dispose();
   });
+
+  it("does not mark history saved unless saveNativeJson({ markSaved: true })", () => {
+    const session = createModelingSession(createSequenceIdFactory("save-dirty"));
+    expect(session.isDirty).toBe(false);
+    session.execute(new CreatePrimitiveCommand("cube", { width: 1, height: 1, depth: 1 }));
+    expect(session.isDirty).toBe(true);
+    session.serializeNativeJson();
+    expect(session.isDirty).toBe(true);
+    session.saveNativeJson();
+    expect(session.isDirty).toBe(true);
+    session.saveNativeJson({ markSaved: true });
+    expect(session.isDirty).toBe(false);
+  });
+
+  it("resetSessionDocument is non-undoable and rejects use after dispose", () => {
+    const session = createModelingSession(createSequenceIdFactory("reset-doc"));
+    session.execute(new CreatePrimitiveCommand("cube", { width: 1, height: 1, depth: 1 }));
+    expect(session.meshes.size).toBe(1);
+    session.resetSessionDocument();
+    expect(session.meshes.size).toBe(0);
+    expect(session.history.canUndo).toBe(false);
+    session.dispose();
+    expect(() => session.resetSessionDocument()).toThrow(/disposed/);
+    expect(() => session.clearScene()).toThrow(/disposed/);
+  });
+
+  it("rejects every public mutator after dispose", () => {
+    const session = createModelingSession(createSequenceIdFactory("post-dispose"));
+    const cube = session.execute(new CreatePrimitiveCommand("cube", { width: 1, height: 1, depth: 1 }));
+    const textureId = session.execute(new CreateTextureCommand({ width: 4, height: 4 }));
+    session.dispose();
+    const disposed = /disposed/;
+    expect(() => session.execute(new CreatePrimitiveCommand("cube"))).toThrow(disposed);
+    expect(() => session.undo()).toThrow(disposed);
+    expect(() => session.redo()).toThrow(disposed);
+    expect(() => session.beginTransform()).toThrow(disposed);
+    expect(() => session.updateTransform({ translation: { x: 1, y: 0, z: 0 } })).toThrow(disposed);
+    expect(() => session.commitTransform()).toThrow(disposed);
+    expect(() => session.cancelTransform()).toThrow(disposed);
+    expect(() => session.beginPaintStroke(textureId)).toThrow(disposed);
+    expect(() => session.dabPaintStroke(0, 0, { size: 1, color: [0, 0, 0, 255] })).toThrow(disposed);
+    expect(() =>
+      session.strokePaintTo(0, 0, 1, 1, { size: 1, color: [0, 0, 0, 255] }),
+    ).toThrow(disposed);
+    expect(() => session.commitPaintStroke()).toThrow(disposed);
+    expect(() => session.cancelPaintStroke()).toThrow(disposed);
+    expect(() => session.applyClip({} as never, 0)).toThrow(disposed);
+    expect(() => session.serializeNativeJson()).toThrow(disposed);
+    expect(() => session.saveNativeJson()).toThrow(disposed);
+    expect(() => session.markSaved()).toThrow(disposed);
+    expect(() => session.resetSessionDocument()).toThrow(disposed);
+    void cube;
+  });
 });

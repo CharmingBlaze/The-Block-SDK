@@ -14,7 +14,7 @@ Architectural invariants:
 1. **Zero UI/Renderer Coupling:** No DOM types, Canvas, WebGL contexts, or Three.js objects exist in the document or scene graph.
 2. **Deterministic Serialization:** Plain JSON serialization with ordered entity maps and explicit schema versioning.
 3. **Immutability and Revisioning:** Document mutations increment revision numbers, producing granular change sets (`DocumentChangeSet`) consumed by adapters and UI frameworks.
-4. **Separation of Concerns:** Transient UI state (tool modes, selection sets, gizmo drag previews, view cameras) resides exclusively in `EditorSession`, never in `ModelDocument`.
+4. **Separation of Concerns:** Transient UI state (tool modes, selection sets, gizmo drag previews, view cameras) resides exclusively in `ModelingSession`, never in `ModelDocument`.
 
 ---
 

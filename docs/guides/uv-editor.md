@@ -58,3 +58,5 @@ editor.pointerUp([u1, v1]);
 ## Host draw loop
 
 Call `view.getViewData()` after dirty flushes (or pass `schedule: (flush) => { const id = requestAnimationFrame(flush); return () => cancelAnimationFrame(id); }`). Cancel that schedule from `dispose` — the adapter already invokes the returned cancel function.
+
+Automatic unwrap: [`../architecture/AUTOMATIC-UV-UNWRAP.md`](../architecture/AUTOMATIC-UV-UNWRAP.md). Index: [`../README.md`](../README.md).

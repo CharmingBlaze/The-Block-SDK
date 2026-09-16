@@ -26,6 +26,7 @@
       "@modeling-kit/commands": ["./packages/commands/src/index.ts"],
       "@modeling-kit/core": ["./packages/core/src/index.ts"],
       "@modeling-kit/document": ["./packages/document/src/index.ts"],
+      "@modeling-kit/formats": ["./packages/formats/src/index.ts"],
       "@modeling-kit/formats/node": ["./packages/formats/src/node.ts"],
       "@modeling-kit/formats/browser": ["./packages/formats/src/browser.ts"],
       "@modeling-kit/history": ["./packages/history/src/index.ts"],

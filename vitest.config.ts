@@ -35,5 +35,6 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["packages/*/tests/**/*.test.ts", "scripts/**/*.test.ts"],
+    exclude: ["**/node_modules/**", "**/dist/**", "**/*.bench.test.ts"],
   },
 });

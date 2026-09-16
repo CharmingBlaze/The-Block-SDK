@@ -57,6 +57,7 @@ describe("BoundingBox and Ray", () => {
     expect(box.containsPoint({ x: 0, y: 1, z: 0.5 })).toBe(true);
     expect(box.containsPoint({ x: 10, y: 0, z: 0 })).toBe(false);
     expect(box.size().equals(new Vector3(3, 4, 1))).toBe(true);
+    expect(BoundingBox.fromMinMax({ x: 0, y: 0, z: 0 }, { x: 1, y: 1, z: 1 }).containsPoint({ x: 0.5, y: 0.5, z: 0.5 })).toBe(true);
   });
 
   it("intersects an AABB", () => {

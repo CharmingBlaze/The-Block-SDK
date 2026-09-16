@@ -1,6 +1,6 @@
 # glTF pipeline
 
-Canonical interchange is `@modeling-kit/formats` using **glTF Transform** (`@gltf-transform/core` + `@gltf-transform/extensions` only). Three.js `GLTFLoader` / `GLTFExporter` are not the headless SDK importer/exporter.
+Canonical interchange is `@modeling-kit/formats` using **glTF Transform** (`@gltf-transform/core` + `@gltf-transform/extensions` only). Three.js `GLTFLoader` / `GLTFExporter` are not the headless SDK importer/exporter. Host guide: [`../guides/formats.md`](../guides/formats.md).
 
 ## Boundary
 

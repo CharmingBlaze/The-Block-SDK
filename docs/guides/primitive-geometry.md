@@ -78,3 +78,5 @@ Checker-texture, wireframe, and flat/smooth shading for every supported primitiv
 ```bash
 pnpm --filter @modeling-kit/geometry-gallery dev
 ```
+
+See also: [Fluent editor](fluent-editor.md), [Formats](formats.md), [Examples](examples.md).

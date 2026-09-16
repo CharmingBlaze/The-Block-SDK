@@ -29,3 +29,5 @@ Knife strokes are capped at 4096 hits so a stuck pointer cannot grow unbounded. 
 ## Memory
 
 Do not clone the live mesh on pointer move for extrude/bevel. Overlay geometry is ephemeral arrays. `runTransactionalMeshOp` snapshots only inside kernel ops that may throw mid-mutate; that snapshot is stack-scoped and discarded after the call.
+
+Host gestures: [`../guides/selection-transform.md`](../guides/selection-transform.md). Knife overlay: [`../guides/viewport.md`](../guides/viewport.md).

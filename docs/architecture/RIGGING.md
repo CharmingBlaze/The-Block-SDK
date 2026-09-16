@@ -47,3 +47,5 @@ Do not treat IBMs as optional decoration.
 Default maximum influences is **4** (glTF compatible). `normalizeWeightsWithReport` is the only normalizer: drop non-positive weights, combine duplicates, sort deterministically, truncate, normalize, report dropped influences. Empty results throw unless `fallbackBoneId` is provided.
 
 Export to glTF reports `skin-influence-truncated` when a vertex had more than four influences.
+
+Host interchange: [`../guides/formats.md`](../guides/formats.md). Authoring (IK, weight painting) is out of 1.0.

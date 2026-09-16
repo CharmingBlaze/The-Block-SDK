@@ -34,3 +34,5 @@ Do not mutate `session.textures` pixels during a stroke; the engine never sees t
 The host supplies `SurfaceHit` `{ faceId, u, v }` (barycentric). `paintSurfaceHit` / `paintSurfaceHitOnStroke` map through `interpolateFaceUv` → `uvToPixel`. No Three.js types in the paint package.
 
 After each 3D dab, opaque texels dilate into transparent neighbors (`seamDilation`, default 2) so bilinear filtering does not sample empty gutter pixels across UV islands. Pass `seamDilation: 0` to skip. Dilation is recorded in the same stroke tile snapshots, so cancel restores the gutter.
+
+See also: [Materials](materials.md), [UV editor](uv-editor.md), [Viewport](viewport.md).

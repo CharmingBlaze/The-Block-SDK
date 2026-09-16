@@ -47,19 +47,21 @@ document  ← validation
   ↑
 mesh
   ↑
-scene  selection  materials  uv
-  ↑         ↑          ↑       ↑
-  └─────────┴──────────┴───────┘
+scene  selection  materials  uv  primitives
+  ↑         ↑          ↑       ↑       ↑
+  └─────────┴──────────┴───────┴───────┘
               commands
                  ↑
-        history  transform  snapping  primitives  tools  input
+        history  transform  snapping  tools  input
                  ↑
         rigging  animation  paint  formats  workers
                  ↑
            three-adapter
                  ↑
-        sdk (headless facade; `sdk/three` optional re-export)
+        sdk (headless facade; `sdk/three` and `sdk/ai` optional)
 ```
+
+`@modeling-kit/meshopt` is optional and sits beside this stack: it depends only on `core` plus `meshoptimizer`. It is not a required SDK dependency and must not mutate `HalfEdgeMesh`.
 
 `test-utils` may depend on any package but must not be published as a runtime requirement.
 
@@ -82,7 +84,7 @@ The full subsystem list is in the root `README.md`. See `docs/architecture/depen
 
 ## Workers
 
-`@modeling-kit/workers` stays runtime-neutral: no `node:` imports and no `process` global. Heavy jobs (triangulate, pack UVs, validate) run through `AsyncComputePool`.
+`@modeling-kit/workers` stays runtime-neutral: no `node:` imports and no `process` global. Heavy jobs (triangulate, pack UVs, validate, unwrap UVs) run through `AsyncComputePool`.
 
 | Import | Runtime |
 | --- | --- |
@@ -92,9 +94,9 @@ The full subsystem list is in the root `README.md`. See `docs/architecture/depen
 
 Bundlers that honor the `browser` export condition resolve `@modeling-kit/workers` to the browser worker. Node's `node` condition resolves to `worker_threads`. Hosts construct a pool with `createInlineComputePool`, `createBrowserComputePool`, or `createNodeComputePool` and call `dispose()` on unmount. There is no shared global pool.
 
-The headless `@modeling-kit/sdk` re-exports the runtime-neutral pool so browser example apps do not pull Node types. Paint, format IO, and GPU picking stay on the main thread until they have their own task types.
+The headless `@modeling-kit/sdk` re-exports the runtime-neutral pool so browser example apps do not pull Node types. Jobs: triangulate, pack UVs, validate, unwrap UVs. Paint, format IO, and GPU picking stay on the main thread until they have their own task types. Direct package imports (`@modeling-kit/mesh`, `@modeling-kit/commands`, `@modeling-kit/formats`) are the stable low-level path; `@modeling-kit/sdk` is the convenience facade. Export keys per package are frozen in `scripts/export-surface.snapshot.json`.
 
-`@modeling-kit/meshopt` is an optional derived-triangle adapter (vertex-cache reorder and LOD). It is not a required SDK dependency and must not mutate `HalfEdgeMesh`.
+Host-facing guides: [`docs/README.md`](../README.md).
 
 Input is documented in `docs/architecture/input.md`. Hosts bind DOM separately (`@modeling-kit/input/dom`); the adapter does not own keymaps.
 
@@ -106,6 +108,8 @@ Ownership of document, session, tools, and derived Three.js objects is in `docs/
 
 Previews must not append history. Commit or cancel is explicit.
 
+`ModelingSession.serializeNativeJson()` / `saveNativeJson()` write bytes. Returning JSON does not mean the host persisted them. Pass `{ markSaved: true }` or call `session.markSaved()` after a successful write. `resetSessionDocument()` (alias `clearScene()`) is a non-undoable document reset, not an edit command.
+
 ## Extension points
 
 Host or plugin code may register: commands, tools, primitives, node types, material models, importers/exporters, validators, custom document keys, custom animation tracks.
@@ -116,6 +120,6 @@ Internal mutation APIs stay unpublished.
 
 Measure before specializing. Targets (from the master plan): interactive transforms without full serialize; undo without cloning the whole document for small edits; incremental viewport sync; workers for packing, heavy geometry, and IO. Diagnostics counters live behind a debug flag.
 
-## Tooling (Phase 1)
+## Tooling
 
-pnpm workspaces, strict TypeScript, tsup (or equivalent) for libraries, Vite for apps, Vitest, ESLint, Prettier, Changesets. Playwright and Typedoc later. No publish without owner approval.
+pnpm workspaces, strict TypeScript, tsup for libraries, Vite for apps, Vitest, ESLint, Prettier, Changesets, dependency-cruiser (`pnpm arch:check`), Playwright WebGL smoke (`pnpm test:webgl`). Typedoc is not generated yet. No publish without the tag workflow in [`docs/guides/publishing.md`](../guides/publishing.md).

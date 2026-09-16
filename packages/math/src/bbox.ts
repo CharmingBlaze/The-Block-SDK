@@ -13,6 +13,10 @@ export class BoundingBox {
     );
   }
 
+  static fromMinMax(min: Vec3, max: Vec3): BoundingBox {
+    return new BoundingBox(Vector3.from(min), Vector3.from(max));
+  }
+
   static fromPoints(points: readonly Vec3[]): BoundingBox {
     let box = BoundingBox.empty();
     for (const point of points) {

@@ -1,6 +1,6 @@
 # Custom host picking
 
-`createThreeViewport({ picking: false })` does not attach pointer handlers. The host owns modifiers, click-versus-drag, pointer capture, and tool consumption. Low-level methods stay on the viewport handle.
+`createThreeViewport({ picking: false })` does not attach pointer handlers. The host owns modifiers, click-versus-drag, pointer capture, and tool consumption. Low-level methods stay on the viewport handle. Turnkey options: [`viewport.md`](viewport.md).
 
 ```ts
 import { createModelingSession, CreatePrimitiveCommand } from "@modeling-kit/sdk";

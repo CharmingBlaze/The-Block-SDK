@@ -148,6 +148,7 @@ export class ModelingSession {
   }
 
   updateTransform(delta: TransformDelta): void {
+    this.assertOpen();
     if (!this.gesture) {
       throw new Error("updateTransform requires beginTransform");
     }
@@ -155,6 +156,7 @@ export class ModelingSession {
   }
 
   commitTransform(): boolean {
+    this.assertOpen();
     if (!this.gesture) {
       return false;
     }
@@ -184,6 +186,7 @@ export class ModelingSession {
   }
 
   cancelTransform(): void {
+    this.assertOpen();
     if (!this.gesture) {
       return;
     }
@@ -196,6 +199,7 @@ export class ModelingSession {
   }
 
   beginPaintStroke(textureId: TextureId): void {
+    this.assertOpen();
     if (this.paintStroke) {
       throw new Error("A paint stroke is already active; commit or cancel it first");
     }
@@ -209,6 +213,7 @@ export class ModelingSession {
   }
 
   dabPaintStroke(x: number, y: number, options: BrushOptions): void {
+    this.assertOpen();
     if (!this.paintStroke) {
       throw new Error("dabPaintStroke requires beginPaintStroke");
     }
@@ -216,6 +221,7 @@ export class ModelingSession {
   }
 
   strokePaintTo(x0: number, y0: number, x1: number, y1: number, options: BrushOptions): void {
+    this.assertOpen();
     if (!this.paintStroke) {
       throw new Error("strokePaintTo requires beginPaintStroke");
     }
@@ -223,6 +229,7 @@ export class ModelingSession {
   }
 
   commitPaintStroke(): boolean {
+    this.assertOpen();
     if (!this.paintStroke) {
       return false;
     }
@@ -238,6 +245,7 @@ export class ModelingSession {
   }
 
   cancelPaintStroke(): void {
+    this.assertOpen();
     if (!this.paintStroke) {
       return;
     }
@@ -292,6 +300,7 @@ export class ModelingSession {
   }
 
   applyClip(clip: AnimationClipData, time: number, skeletonId?: SkeletonId): void {
+    this.assertOpen();
     const skeletonData = skeletonId
       ? this.document.skeletons.get(skeletonId)
       : [...this.document.skeletons.values()][0];
@@ -304,14 +313,36 @@ export class ModelingSession {
     this.events.emit("mesh:changed", { meshIds: [...this.meshes.keys()] });
   }
 
-  saveNativeJson(): string {
+  get isDirty(): boolean {
+    return this.history.isDirty;
+  }
+
+  markSaved(): void {
+    this.assertOpen();
+    this.history.markSaved();
+  }
+
+  serializeNativeJson(): string {
+    this.assertOpen();
     this.flushMeshes();
     this.flushTextures();
     return serializeDocument(this.document);
   }
 
-  /** Clears all scene nodes, meshes, textures, and selection in the current session. */
-  clearScene(): void {
+  saveNativeJson(options: { readonly markSaved?: boolean } = {}): string {
+    const json = this.serializeNativeJson();
+    if (options.markSaved === true) {
+      this.markSaved();
+    }
+    return json;
+  }
+
+  /**
+   * Non-undoable document reset. Clears scene nodes, meshes, textures, selection, and history.
+   * Hosts that need an undoable edit should delete selected objects through commands instead.
+   */
+  resetSessionDocument(): void {
+    this.assertOpen();
     if (this.gesture) {
       this.cancelTransform();
     }
@@ -327,6 +358,11 @@ export class ModelingSession {
     this.history.clear();
     this.events.emit("document:changed", { aspect: "scene" });
     this.events.emit("mesh:changed", { meshIds: [] });
+  }
+
+  /** @deprecated Use `resetSessionDocument`. This is a non-undoable reset, not an edit command. */
+  clearScene(): void {
+    this.resetSessionDocument();
   }
 
   static loadNativeJson(json: string, ids?: IdFactory): ModelingSession {

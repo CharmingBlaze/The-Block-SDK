@@ -11,7 +11,7 @@ import {
   type PickResult,
   type PickingOptions,
 } from "./picking";
-import type { SpatialQueryBackend } from "./spatial-query";
+import type { SpatialQueryBackend } from "./spatial-query/types";
 import type { SubElementVisualizer, PickRequestGate } from "./sub-element";
 
 export interface CpuPickContext {

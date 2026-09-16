@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { listPackageDirs, readManifest, repoRoot, type PackageManifest } from "./workspace.ts";
+import { listPackageDirs, readManifest, repoRoot, toPosix, type PackageManifest } from "./workspace.ts";
 
 export const RELEASE_TAG_PATTERN = /^v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/;
 
@@ -102,6 +102,62 @@ function sameNameSet(actual: readonly string[], expected: readonly string[]): bo
   return a.length === b.length && a.every((name, index) => name === b[index]);
 }
 
+function exportKeys(pkg: PackageManifest): string[] {
+  const exportsField = pkg.exports;
+  if (!exportsField || typeof exportsField === "string") {
+    return ["."];
+  }
+  return Object.keys(exportsField);
+}
+
+function typecheckSpecifier(pkg: PackageManifest, exportKey: string): string {
+  return exportKey === "." ? pkg.name : `${pkg.name}/${exportKey.replace(/^\.\//, "")}`;
+}
+
+function typecheckSourceRel(pkg: PackageManifest, exportKey: string): string {
+  const file = exportKey === "." ? "src/index.ts" : `src/${exportKey.replace(/^\.\//, "")}.ts`;
+  return toPosix(path.join(pkg.dir, file));
+}
+
+function readWorkspaceTypecheckPaths(): Record<string, readonly string[]> {
+  const file = path.join(repoRoot, "tsconfig.base.json");
+  const tsconfig = JSON.parse(fs.readFileSync(file, "utf8")) as {
+    compilerOptions?: { paths?: Record<string, readonly string[]> };
+  };
+  return tsconfig.compilerOptions?.paths ?? {};
+}
+
+function checkWorkspaceTypecheckPaths(issues: ReleaseIssue[]): void {
+  const paths = readWorkspaceTypecheckPaths();
+  for (const pkg of listPackageDirs().map(readManifest)) {
+    for (const key of exportKeys(pkg)) {
+      const specifier = typecheckSpecifier(pkg, key);
+      const expected = typecheckSourceRel(pkg, key);
+      const mapped = paths[specifier];
+      if (!mapped || mapped.length === 0) {
+        issues.push({
+          code: "typecheck-path",
+          message: `tsconfig.base.json paths must map ${specifier} to ./${expected} so typecheck works without dist`,
+        });
+        continue;
+      }
+      const actual = mapped[0]?.replace(/^\.\//, "");
+      if (actual !== expected) {
+        issues.push({
+          code: "typecheck-path",
+          message: `tsconfig.base.json paths[${JSON.stringify(specifier)}] must be ./${expected} (got ${JSON.stringify(mapped[0])})`,
+        });
+      }
+      if (!fs.existsSync(path.join(repoRoot, expected))) {
+        issues.push({
+          code: "typecheck-path",
+          message: `Mapped source ${expected} for ${specifier} does not exist`,
+        });
+      }
+    }
+  }
+}
+
 export function checkReleaseState(options: {
   readonly tag?: string | undefined;
   readonly requireTag?: boolean | undefined;
@@ -128,6 +184,8 @@ export function checkReleaseState(options: {
       });
     }
   }
+
+  checkWorkspaceTypecheckPaths(issues);
 
   const changeset = readChangesetConfig();
   if (changeset.access !== "public") {

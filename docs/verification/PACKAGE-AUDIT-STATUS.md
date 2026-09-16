@@ -29,7 +29,7 @@ Status: `OPEN` · `PARTIAL` · `CLOSED` (behavior + tests). `CLOSED` does not me
 | 2 Kernel correctness | Builder, concave triangulation, validator, attributes, corpus | PARTIAL — builder/triangulator started; validator, attributes, corpus open |
 | 3 Modeling behavior | Bevel, rings, marquee, snapping, pivots | PARTIAL — rings/pivots/oriented scale closed; bevel open; marquee/snapping professional gaps remain |
 | 4 Assets and animation | Materials, animation schema, skeleton, weights, data-loss reports | PARTIAL — skeleton/weights stricter; glTF reports texture/skin/clip loss; schema unification and texture export open |
-| 5 Runtime and distribution | Workers, BVH, WebGL tests, compiled exports, tarball proof | PARTIAL — dist exports, browser/Node workers, and `pack:verify` closed; BVH/WebGL still open |
+| 5 Runtime and distribution | Workers, BVH, WebGL tests, compiled exports, tarball proof | PARTIAL — dist exports, browser/Node workers, `pack:verify`, and first-party AABB BVH closed; WebGL integration tests still open |
 
 ## Package overlay
 
@@ -57,7 +57,7 @@ Closed in the post-audit fix pass unless noted.
 | animation | CUBICSPLINE reject; legacy track validation | Single schema; document-clip validation; Hermite spline |
 | formats | Empty mesh skip; STL finite; data-loss strings | Texture/skin/anim export; attribute-aware weld; OBJ UVs |
 | workers | Inline + `/browser` + `/node`; host-owned factories; queue; result transfers; crash replace | Dedicated paint/IO jobs. Removed unsafe `defaultComputePool` singleton. |
-| three-adapter | GPU ID-buffer object/face picking | BVH; demand render; GPU hover; InstancedMesh |
+| three-adapter | GPU ID-buffer object/face picking; revision-aware AABB BVH | Demand render; GPU hover; InstancedMesh; triangle `three-mesh-bvh` |
 | sdk | dist exports; pack:verify in CI | small 1.0 surface |
 
 ## Next work (original overlay leftovers)

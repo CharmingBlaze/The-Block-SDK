@@ -7,6 +7,35 @@ const GROUP_KEYS = ["top", "bottom", "front", "back", "sides", "caps"] as const;
 
 export type SemanticFaceTag = (typeof GROUP_KEYS)[number] | "all" | "left" | "right";
 
+export const SEMANTIC_FACE_TAGS: readonly SemanticFaceTag[] = [
+  ...GROUP_KEYS,
+  "all",
+  "left",
+  "right",
+];
+
+export function isSemanticFaceTag(value: string): value is SemanticFaceTag {
+  return (SEMANTIC_FACE_TAGS as readonly string[]).includes(value);
+}
+
+export function faceIdsForSemanticTag(
+  mesh: { readonly faces: ReadonlyMap<FaceId, unknown> },
+  groups: PrimitiveFaceGroups | undefined,
+  tag: SemanticFaceTag,
+): FaceId[] {
+  if (tag === "all") {
+    return [...mesh.faces.keys()];
+  }
+  if (tag === "left") {
+    return groups?.negX ? [groups.negX] : [];
+  }
+  if (tag === "right") {
+    return groups?.posX ? [groups.posX] : [];
+  }
+  const tagged = groups?.[tag];
+  return tagged ? [...tagged] : [];
+}
+
 export function serializeFaceGroups(groups: PrimitiveFaceGroups): Record<string, unknown> {
   return {
     top: [...groups.top],

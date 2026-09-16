@@ -27,3 +27,16 @@ export {
   type ConversionReport,
   type InterchangeFormat,
 } from "./conversion";
+export {
+  FORMAT_ASPECTS,
+  FORMAT_CAPABILITY_MATRIX,
+  FORMAT_FIDELITIES,
+  FORMAT_IDS,
+  formatAspectFidelity,
+  formatCapability,
+  type FormatAspect,
+  type FormatAspectCell,
+  type FormatCapabilityRow,
+  type FormatFidelity,
+  type FormatId,
+} from "./capability";

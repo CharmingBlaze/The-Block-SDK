@@ -124,7 +124,7 @@ Phase 9: Hardening & Release (Benchmarks, Workers, React/Vue Demos, 1.0)
 
 - [x] `ThreeViewportAdapter` maps session meshes to `THREE.Mesh` with triangulation + `FaceId` maps.
 - [x] Incremental sync from document/mesh events; multiple adapters per session.
-- [x] Raycast picking to object/face/edge/vertex using canonical IDs.
+- [x] Hybrid picking: GPU ID-buffer for object/face **click**; CPU `Raycaster` for hover/vertices/edges and fallback.
 - [x] Face selection overlay (selected faces only), plus edge lines, vertex points, and object wireframe.
 - [x] Outliner commands: `ReparentCommand`, `DuplicateObjectsCommand` (clones mesh kernels), `SetVisibilityCommand`, `GroupObjectsCommand`, `UngroupObjectsCommand`.
 - [x] Selection changes emit `selection:changed` so viewport overlays update without a manual `sync()`.
@@ -143,7 +143,7 @@ TransformControls are not built in; hosts may attach gizmos to the adapter root.
 
 1. `ThreeViewportAdapter` bridging `EditorSession` to a `THREE.Scene`.
 2. Incremental geometry and transform synchronization listening to document events.
-3. CPU `THREE.Raycaster` picking resolving clicked pixels back to canonical `ObjectId`, `FaceId`, `EdgeId`, or `VertexId` (not a GPU ID-buffer pass).
+3. Hybrid picking: GPU ID-buffer for object/face clicks (`adapter.pickPoint`); CPU `THREE.Raycaster` for hover, vertices, edges, and fallback. Canonical IDs only — never GPU indices.
 4. Selection overlays (face subset, edge lines, vertex points, object wire) and transform gizmo integration (host TransformControls + session transform protocol).
 5. Clean resource disposal (`adapter.dispose()`).
 
@@ -210,15 +210,18 @@ const reloaded = ModelingSession.loadNativeJson(json);
 - [x] Three.js `MeshStandardMaterial` sync from document materials
 - [ ] Conformal LSCM unwrap (deferred; projections + pack cover the batch path)
 
-### Phase 7: Rigging & Animation (COMPLETE)
+### Phase 7: Rigging & Animation (DATA COMPLETE; AUTHORING PREVIEW)
 
 **Target Packages:** `@modeling-kit/rigging`, `@modeling-kit/animation`, `@modeling-kit/commands`, `@modeling-kit/sdk`
+
+Canonical skeleton/skin/clip data, evaluation, and glTF skins/animations are implemented. Interactive **authoring** (IK, weight painting, NLA) is out of 1.0 (`RIG-001` / `ANIM-001` preview).
 
 - [x] Skeleton / bone hierarchy, rest pose, inverse bind, cycle-safe reparent
 - [x] Rigid and nearest-bone weights, normalize, validate, linear-blend skinning
 - [x] Animation clips, tracks, constant/linear/cubic interpolation, playback, reverse/scale time
 - [x] Commands: create skeleton, bind skin, create clip, set keyframe (undoable)
 - [x] CPU pose preview and linear blend skinning evaluation
+- [ ] IK, weight painting, NLA authoring (deferred)
 
 ### Phase 8: Painting & Open Formats (COMPLETE)
 
@@ -232,7 +235,7 @@ const reloaded = ModelingSession.loadNativeJson(json);
 - [x] Stereolithography (STL) ASCII export with facet normal generation
 - [x] glTF 2.0 JSON **export** from the scene graph (node TRS, children, mesh instances, TEXCOORD_0, PBR metallic-roughness factors, primitives split by material slot)
 - [x] glTF 2.0 **GLB** export/import (header + JSON chunk + BIN chunk; buffer 0 has no URI)
-- [x] glTF 2.0 JSON **import** (embedded buffers, scene TRS, welded kernel vertices, triangle faces, PBR materials). External buffer URIs, sparse accessors, skins, and textures are out of this importer.
+- [x] glTF 2.0 JSON **import** via glTF Transform (embedded buffers, scene TRS, welded kernel vertices, TRIANGLES, PBR, optional skins/animations/textures). External URIs need an `ExternalResourceResolver`. Sparse accessors and non-triangle primitives are skipped with diagnostics. PLY has no codec yet.
 - [x] Native JSON persists texture RGBA payloads (`pixelsBase64`) via session flush/hydrate.
 
 ### Phase 9: Hardening & Release (COMPLETE)
@@ -246,7 +249,9 @@ const reloaded = ModelingSession.loadNativeJson(json);
 - [x] Vite-powered Interactive 3D Playground application (`apps/playground`) demonstrating viewport rendering, procedural primitive creation, face extrusion, undo/redo, and glTF 2.0 export.
 - [x] React 18 integration example application (`apps/example-react`) with interactive viewport, state binding, and command execution.
 - [x] Vue 3 integration example application (`apps/example-vue`) with reactive stats, ThreeViewportAdapter lifecycle hooks, and extrusion workflow.
-- [x] Canonical primitives in `@modeling-kit/primitives` (box, plane, grid, disc, cylinder, cone, pyramid, UV sphere, icosphere, torus, capsule, ramp, stairs, arch, wall, column) with MeshBuilder topology, per-corner UVs, semantic groups, and validation.
-- [x] Monorepo strict typecheck (`tsc --noEmit`) passing cleanly with 0 errors across all 21 workspace library packages.
-- [x] All 21 packages and 3 applications successfully building for production with ESM and `.d.ts` declaration maps.
+- [x] Canonical primitives in `@modeling-kit/primitives` (box, plane, grid, disc, cylinder, cone, pyramid, UV sphere, icosphere, torus, capsule, ramp, stairs, arch, wall, column, plus catalog 2D/solid helpers) with MeshBuilder topology, per-corner UVs, semantic groups, and validation.
+- [x] Optional `@modeling-kit/meshopt` on derived triangles only.
+- [x] Playwright WebGL smoke (`pnpm test:webgl`) for GPU click picking.
+- [x] Monorepo strict typecheck (`tsc --noEmit`) passing across all 24 workspace library packages.
+- [x] All 24 packages and 6 applications building for production with ESM and `.d.ts` declaration maps.
 

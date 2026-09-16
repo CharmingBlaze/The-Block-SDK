@@ -4,11 +4,11 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 ## @modeling-kit/animation
 
-- Purpose: Clips and sampling (preview)
-- Layer: deferred
-- Version: 0.0.0
+- Purpose: Canonical clips, tracks, and renderer-neutral evaluation
+- Layer: editor
+- Version: 0.1.0
 - Public entry keys: .
-- Internal directories: (flat src)
+- Internal directories: packages/animation/src/compatibility, packages/animation/src/evaluation, packages/animation/src/model, packages/animation/src/playback, packages/animation/src/validation
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/document, @modeling-kit/math, @modeling-kit/rigging
 - Forbidden: three
 - Requirement ID prefixes: ANIM
@@ -18,10 +18,10 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Documented edits, session, fluent editor
 - Layer: editor
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
-- Internal directories: (flat src)
-- Workspace dependencies: @modeling-kit/animation, @modeling-kit/core, @modeling-kit/document, @modeling-kit/history, @modeling-kit/materials, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/paint, @modeling-kit/primitives, @modeling-kit/rigging, @modeling-kit/scene, @modeling-kit/selection, @modeling-kit/snapping, @modeling-kit/tools, @modeling-kit/transform, @modeling-kit/uv, @modeling-kit/validation
+- Internal directories: packages/commands/src/automatic-unwrap
+- Workspace dependencies: @modeling-kit/animation, @modeling-kit/core, @modeling-kit/document, @modeling-kit/history, @modeling-kit/materials, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/paint, @modeling-kit/primitives, @modeling-kit/rigging, @modeling-kit/scene, @modeling-kit/selection, @modeling-kit/tools, @modeling-kit/transform, @modeling-kit/uv, @modeling-kit/validation
 - Forbidden: three; DOM
 - Requirement ID prefixes: CMD
 - Tests: packages/commands/tests
@@ -30,7 +30,7 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Branded IDs, Result, events, lifecycle machines, dirty flags
 - Layer: foundation
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
 - Internal directories: (flat src)
 - Workspace dependencies: (none)
@@ -42,7 +42,7 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Canonical ModelDocument, hierarchy, serialization
 - Layer: document
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
 - Internal directories: (flat src)
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/math
@@ -52,12 +52,12 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 ## @modeling-kit/formats
 
-- Purpose: glTF/OBJ/STL/PLY interchange
+- Purpose: glTF/OBJ/STL interchange via glTF Transform (PLY allowed, not implemented)
 - Layer: io
-- Version: 0.0.0
-- Public entry keys: .
-- Internal directories: (flat src)
-- Workspace dependencies: @modeling-kit/core, @modeling-kit/document, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/scene
+- Version: 0.1.0
+- Public entry keys: ., ./browser, ./node
+- Internal directories: packages/formats/src/capability, packages/formats/src/gltf
+- Workspace dependencies: @modeling-kit/animation, @modeling-kit/core, @modeling-kit/document, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/rigging, @modeling-kit/scene
 - Forbidden: three
 - Requirement ID prefixes: FMT
 - Tests: packages/formats/tests
@@ -66,7 +66,7 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Undo/redo stacks and command manager
 - Layer: editor
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
 - Internal directories: (flat src)
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/document, @modeling-kit/mesh, @modeling-kit/selection
@@ -78,10 +78,10 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Headless actions/gestures; DOM bind is ./dom
 - Layer: interaction
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: ., ./dom
 - Internal directories: (flat src)
-- Workspace dependencies: @modeling-kit/core, @modeling-kit/math
+- Workspace dependencies: @modeling-kit/math
 - Forbidden: three (main entry)
 - Requirement ID prefixes: INP
 - Tests: packages/input/tests
@@ -90,7 +90,7 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Material definitions and slots
 - Layer: attributes
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
 - Internal directories: (flat src)
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/document, @modeling-kit/mesh
@@ -102,9 +102,9 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Headless vectors, matrices, and geometric helpers
 - Layer: foundation
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
-- Internal directories: (flat src)
+- Internal directories: packages/math/src/bvh
 - Workspace dependencies: (none)
 - Forbidden: three; DOM; other workspace packages
 - Requirement ID prefixes: MATH
@@ -116,7 +116,7 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 - Layer: kernel
 - Version: 0.1.0
 - Public entry keys: .
-- Internal directories: packages/mesh/src/internal, packages/mesh/src/operations
+- Internal directories: packages/mesh/src/internal, packages/mesh/src/operations, packages/mesh/src/triangulation
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/math
 - Forbidden: tools; commands; document; three; DOM
 - Requirement ID prefixes: MESH, MESH-OP
@@ -138,10 +138,10 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Image/paint revision helpers
 - Layer: attributes
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
 - Internal directories: (flat src)
-- Workspace dependencies: @modeling-kit/core, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/uv
+- Workspace dependencies: @modeling-kit/core, @modeling-kit/mesh, @modeling-kit/uv
 - Forbidden: three
 - Requirement ID prefixes: PAINT
 - Tests: packages/paint/tests
@@ -150,9 +150,9 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Procedural mesh generators (box, sphere, …)
 - Layer: kernel
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
-- Internal directories: (flat src)
+- Internal directories: packages/primitives/src/library, packages/primitives/src/profile-extrude, packages/primitives/src/source
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/mesh, @modeling-kit/validation
 - Forbidden: three; DOM
 - Requirement ID prefixes: PRIM
@@ -160,11 +160,11 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 ## @modeling-kit/rigging
 
-- Purpose: Skeletons and skin weights (preview)
-- Layer: deferred
-- Version: 0.0.0
+- Purpose: Canonical skeletons, skins, inverse binds, and weight validation
+- Layer: editor
+- Version: 0.1.0
 - Public entry keys: .
-- Internal directories: (flat src)
+- Internal directories: packages/rigging/src/evaluation, packages/rigging/src/skeleton, packages/rigging/src/skin
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/document, @modeling-kit/math, @modeling-kit/mesh
 - Forbidden: three
 - Requirement ID prefixes: RIG
@@ -174,7 +174,7 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Document scene helpers and re-exports
 - Layer: document
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
 - Internal directories: (flat src)
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/document, @modeling-kit/math
@@ -186,11 +186,11 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Host facade; currently pulls three-adapter (ARCH-003)
 - Layer: facade
-- Version: 0.0.0
-- Public entry keys: ., ./ai
+- Version: 0.1.0
+- Public entry keys: ., ./ai, ./three
 - Internal directories: (flat src)
 - Workspace dependencies: @modeling-kit/animation, @modeling-kit/commands, @modeling-kit/core, @modeling-kit/document, @modeling-kit/formats, @modeling-kit/history, @modeling-kit/input, @modeling-kit/materials, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/paint, @modeling-kit/primitives, @modeling-kit/rigging, @modeling-kit/scene, @modeling-kit/selection, @modeling-kit/snapping, @modeling-kit/three-adapter, @modeling-kit/tools, @modeling-kit/transform, @modeling-kit/uv, @modeling-kit/validation, @modeling-kit/workers
-- Peer dependencies: three
+- Peer dependencies: @modeling-kit/three-adapter, three
 - Forbidden: new runtime engines without provenance
 - Requirement ID prefixes: SDK, ARCH
 - Tests: packages/sdk/tests
@@ -199,10 +199,10 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Branded-ID selection and topology grow/shrink
 - Layer: editor
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
-- Internal directories: (flat src)
-- Workspace dependencies: @modeling-kit/core, @modeling-kit/mesh
+- Internal directories: packages/selection/src/picking
+- Workspace dependencies: @modeling-kit/core, @modeling-kit/math, @modeling-kit/mesh
 - Forbidden: three; DOM; commands
 - Requirement ID prefixes: SEL
 - Tests: packages/selection/tests
@@ -211,10 +211,10 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Snap queries and tolerances
 - Layer: editor
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
 - Internal directories: (flat src)
-- Workspace dependencies: @modeling-kit/math
+- Workspace dependencies: @modeling-kit/math, @modeling-kit/mesh
 - Forbidden: three
 - Requirement ID prefixes: SNAP
 - Tests: packages/snapping/tests
@@ -223,10 +223,10 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Derived Three.js viewport, picking, overlays
 - Layer: adapter
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
-- Internal directories: packages/three-adapter/src/overlays, packages/three-adapter/src/sub-element
-- Workspace dependencies: @modeling-kit/commands, @modeling-kit/core, @modeling-kit/document, @modeling-kit/mesh, @modeling-kit/rigging, @modeling-kit/scene
+- Internal directories: packages/three-adapter/src/animation, packages/three-adapter/src/gpu-picking, packages/three-adapter/src/overlays, packages/three-adapter/src/rigging, packages/three-adapter/src/spatial-query, packages/three-adapter/src/sub-element
+- Workspace dependencies: @modeling-kit/commands, @modeling-kit/core, @modeling-kit/document, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/rigging, @modeling-kit/selection
 - Peer dependencies: three
 - Forbidden: canonical mesh mutation
 - Requirement ID prefixes: VP, ARCH
@@ -236,10 +236,10 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Tool state machines and pointer claims
 - Layer: interaction
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
 - Internal directories: (flat src)
-- Workspace dependencies: @modeling-kit/core, @modeling-kit/input, @modeling-kit/math, @modeling-kit/mesh
+- Workspace dependencies: @modeling-kit/core, @modeling-kit/input, @modeling-kit/mesh, @modeling-kit/snapping
 - Forbidden: three
 - Requirement ID prefixes: TOOL
 - Tests: packages/tools/tests
@@ -248,7 +248,7 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: Object/component transforms and gizmos data
 - Layer: editor
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
 - Internal directories: (flat src)
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/document, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/scene, @modeling-kit/snapping
@@ -260,9 +260,9 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 
 - Purpose: UV islands and 2D editing helpers
 - Layer: attributes
-- Version: 0.0.0
+- Version: 0.1.0
 - Public entry keys: .
-- Internal directories: (flat src)
+- Internal directories: packages/uv/src/unwrap
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/math, @modeling-kit/mesh
 - Forbidden: three
 - Requirement ID prefixes: UV
@@ -285,10 +285,10 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 - Purpose: Async job boundaries for heavy mesh work
 - Layer: io
 - Version: 0.1.0
-- Public entry keys: packages/workers/src/index.ts
+- Public entry keys: ., ./browser, ./node
 - Internal directories: (flat src)
-- Workspace dependencies: @modeling-kit/core, @modeling-kit/mesh, @modeling-kit/uv, @modeling-kit/validation
-- Forbidden: three; DOM
+- Workspace dependencies: @modeling-kit/mesh, @modeling-kit/uv, @modeling-kit/validation
+- Forbidden: three; DOM in the runtime-neutral entry
 - Requirement ID prefixes: JOB
 - Tests: packages/workers/tests
 

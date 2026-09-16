@@ -53,6 +53,14 @@ describe("FluentEditor", () => {
     expect(editor.session.selection.elementIds).toHaveLength(1);
   });
 
+  it("unions multiple face tags in one selection", () => {
+    const editor = createEditor();
+    const cube = editor.spawn.cube({ size: 1 });
+    cube.select(["top", "bottom"]);
+    expect(editor.session.selection.elementIds).toHaveLength(2);
+    expect(cube.faceIdsForTags(["top", "bottom"])).toHaveLength(2);
+  });
+
   it("cuts a cube face with a fluent knife stroke", () => {
     const editor = createEditor();
     const cube = editor.spawn.cube({ size: 2 });

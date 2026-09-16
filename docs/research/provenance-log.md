@@ -75,7 +75,7 @@ All of the following are **root `devDependencies` only**. They must not appear o
 7. Browser/Node: Node test runner; no browser bundle impact.  
 8. Canonical model: unchanged.  
 9. Abstraction: tests import operators; production code does not import fast-check.  
-10. Tests: `packages/mesh/tests/split-edge.property.test.ts`.
+10. Tests: `packages/mesh/tests/properties/*.property.test.ts`.
 
 ### dependency-cruiser 18.3.0 (MIT)
 
@@ -253,6 +253,10 @@ Added as runtime dependencies of `@modeling-kit/formats` only. Conversion bounda
 8. Canonical model: unchanged. Transform `Document` is disposed after conversion; `ModelDocument` remains canonical.  
 9. Abstraction: public APIs are `importGltf` / `exportGltf` / `exportGlb` plus structured diagnostics. Transform types do not leak.  
 10. Tests: `packages/formats/tests/formats.test.ts`, `packages/formats/tests/gltf-roundtrip.test.ts`.
+
+## First-party AABB BVH (2026-09-16)
+
+Not a third-party install. `@modeling-kit/math` ships a median-split AABB BVH (`buildAabbBvh` / `raycastAabbBvh`). `@modeling-kit/three-adapter` wraps it as `BvhSpatialQuery` with revision-aware rebuild. `three-mesh-bvh` remains an uninstalled optional host backend (see `docs/architecture/dependency-policy.md`). No Blockbench code.
 
 ## Incident log
 

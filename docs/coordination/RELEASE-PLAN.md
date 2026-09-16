@@ -1,6 +1,6 @@
 # Release 1.0 milestone plan (priority order)
 
-Status is not complete until `docs/verification/RELEASE-1.0-EVIDENCE.md` marks requirements `VERIFIED`.
+**Status (2026-09-16):** Non-deferred 1.0 requirement rows are `VERIFIED` in `docs/verification/RELEASE-1.0-EVIDENCE.md`. This table is the historical work order, not a second tracker. Remaining before npm: `NPM_TOKEN` + `v0.1.0` tag. Host docs: `docs/README.md`.
 
 | Milestone | Work-order steps | Exit criteria | First tasks |
 | --------- | ---------------- | ------------- | ----------- |
@@ -12,11 +12,11 @@ Status is not complete until `docs/verification/RELEASE-1.0-EVIDENCE.md` marks r
 | **M5** Capabilities | 19 | EXT-002 | R1-T009 |
 | **M6** PrimitiveType unification + primitive evidence | 6 | PRIM-001–018 VERIFIED | R1-T010 |
 | **M7** Operator hardening | 3 | inset concave, bevel chains, loop-cut documented limits | R1-T011, R1-T012 |
-| **M8** Viewport naming + optional BVH interface | 7 | VP-003 docs; VP-005 only if approved | Cursor |
-| **M9** Materials/UV/paint evidence upgrade | 8–11 | Promote PARTIAL→VERIFIED with invariant tests; no new parallel systems | later |
-| **M10** Formats reports + STL import decision | 12 | FMT-001–004 | later |
-| **M11** AI/docs/examples CI | 13 | AI-001, DX-001 | later |
-| **M12** Perf/lifecycle release gate | 14 | LIFE-*, PERF-001, full `pnpm test && pnpm typecheck && pnpm build` | later |
+| **M8** Viewport naming + optional BVH interface | 7 | VP-003 docs; VP-005 only if approved | Done (GPU click in 1.0; first-party AABB BVH with revision-aware rebuild; `three-mesh-bvh` still optional) |
+| **M9** Materials/UV/paint evidence upgrade | 8–11 | Promote PARTIAL→VERIFIED with invariant tests; no new parallel systems | Done in evidence matrix |
+| **M10** Formats reports + STL import decision | 12 | FMT-001–004 | Done (ASCII STL import/export; reports on glTF) |
+| **M11** AI/docs/examples CI | 13 | AI-001, DX-001 | Done (AI tools + example typecheck in `check:release`) |
+| **M12** Perf/lifecycle release gate | 14 | LIFE-*, PERF-001, full `pnpm test && pnpm typecheck && pnpm build` | Done (`pnpm check:release`) |
 
 **Deferred from 1.0:** RIG-001, ANIM-001, BOOL-001. GPU-PICK-001 click path is in 1.0; GPU hover / transparency / InstancedMesh / GPU skinning remain 1.1 (see spec §5.12).
 

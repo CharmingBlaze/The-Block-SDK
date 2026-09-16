@@ -15,8 +15,8 @@ module.exports = {
     },
     {
       name: "no-intra-package-circular",
-      comment: "File-level cycles inside a package. Warn only; fix opportunistically.",
-      severity: "warn",
+      comment: "File-level cycles inside a package are release blockers; do not downgrade to warn.",
+      severity: "error",
       from: { path: "^packages/" },
       to: { circular: true, path: "^packages/" },
     },

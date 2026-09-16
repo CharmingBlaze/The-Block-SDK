@@ -1,11 +1,12 @@
 # Release 1.0 evidence matrix
 
-**Audit date:** 2026-09-16 (pipeline re-verified after release-readiness fixes)  
+**Audit date:** 2026-09-16  
+**Working tree:** audit-repair pass after `31f7257` (formats path, AI contract, session lifecycle, benchmarks split from `pnpm test`)  
 **Specification:** `docs/architecture/modeling-operator-specification.md`  
-**Baseline command:** `pnpm check:release` — typecheck, examples:typecheck, lint, `pnpm test` **56 files / 410 tests**, build, `pnpm test:dist`, `pnpm arch:check` (376 modules), `pnpm pack:verify` (23 packages, 11 fixture imports). Worker Node spawn recorded 2026-09-16.  
+**Baseline command:** Unified `pnpm check:release` **exit 0** (2026-09-16, ~113s). Inner `pnpm test` — **114 files / 690 tests** (wall-clock triangulation benches live in `pnpm test:bench`). `pnpm arch:check` — 742 modules, 2816 dependencies, 0 violations. `pnpm pack:verify` — 24 packages, 14 fixture imports. `pnpm release:check` — 24 packages at 0.1.0. Also recorded: `pnpm test:webgl` 1 passed. Clean typecheck maps `@modeling-kit/formats` in `tsconfig.base.json`; CI `clean-typecheck` still wipes `dist` first.  
 **Repo:** working tree on `main` at `https://github.com/CharmingBlaze/The-Block-SDK.git`.  
 **Release gate status:** Worker boundaries, packed-tarball verification, CI `check:release`, MIT metadata, and tag-triggered npm publish (`.github/workflows/release.yml`) are in this branch. First public version stays `0.1.0` until `v0.1.0` is pushed with `NPM_TOKEN` set. Rigging/animation stay preview (`RIG-001` / `ANIM-001`).  
-**Rule:** `VERIFIED` requires named tests plus a recorded passing command. Non-deferred requirement rows are `VERIFIED`. Out of 1.0 scope: RIG-001, ANIM-001, BOOL-001, LSCM/ABF. GPU-PICK-001 **click** is in 1.0; GPU hover/transparency/InstancedMesh/GPU skinning are 1.1.
+**Rule:** `VERIFIED` requires named tests plus a recorded passing command. Row-level `VERIFIED` marks below are historical requirement coverage; the **Baseline command** counts above are the ones recorded on this working tree. Out of 1.0 scope: RIG-001, ANIM-001, BOOL-001, LSCM/ABF. GPU-PICK-001 **click** is in 1.0; GPU hover/transparency/InstancedMesh/GPU skinning are 1.1.
 
 Owner: Cursor unless a task ID assigns implementation to Antigravity.
 
@@ -19,7 +20,7 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 | ARCH-002 | Headless packages without three/DOM | VERIFIED | sdk main entry has no three-adapter import; adapter isolated | `packages/sdk/tests/headless-entry.test.ts`; `pnpm arch:check` | Main `@modeling-kit/sdk` does not require `three` | Cursor | R1-T007 | |
 | ARCH-003 | Three isolated; sdk facade headless | VERIFIED | `@modeling-kit/sdk/three` optional re-export; hosts import adapter | headless-entry.test.ts + arch:check | Optional peers `three` / `three-adapter` | Cursor | R1-T007 | |
 | ARCH-004 | Branded IDs | VERIFIED | `packages/core/src/brand.ts` string brands | architecture.test.ts + core.test.ts | IDs are branded strings, not render indices | Cursor | | |
-| ARCH-005 | Approved dependencies | VERIFIED | `docs/architecture/dependency-policy.md` | architecture.test.ts forbidden-dep scan | No three-mesh-bvh/earcut/manifold in package manifests | Cursor | | |
+| ARCH-005 | Approved dependencies | VERIFIED | `docs/architecture/dependency-policy.md` | architecture.test.ts forbidden-dep scan | `earcut` / `robust-predicates` / `primitive-geometry` / `geometry-extrude` / `meshoptimizer` / `watlas` wrapped as documented; no `three-mesh-bvh` or `manifold` in manifests | Cursor | | |
 | ARCH-006 | Single canonical systems | VERIFIED | `ownership.md`; tools re-export kernel; kebab PrimitiveType aliases | primitives.test.ts aliases; tools weld wrapper | One `ModelDocument` scene; tools do not own topology | Cursor | | |
 | CORE-001 | Result, errors, ID factories | VERIFIED | `packages/core/src/{result,errors,ids}.ts` | `core.test.ts` | `pnpm test` 303; typecheck | Cursor | | |
 | CORE-002 | GeometryTolerance | VERIFIED | `createMeshOperationContext` + `defaultGeometryTolerance`; `trianglesToQuads` uses `ctx.tolerance.angleEpsilon` | operations.test.ts tolerance thread | `pnpm test` 340 | Cursor | | |
@@ -130,7 +131,7 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 | VP-002 | VERIFIED | Four adapters per session; ortho overlay sizing | adapter.test.ts; sub-element.test.ts | Independent dispose | Cursor | | |
 | VP-003 | VERIFIED | Hybrid: CPU `Raycaster` (`adapter.pick`) + GPU ID-buffer (`adapter.pickPoint`) | adapter.test.ts; gpu-picking-object.test.ts; gpu-picking-face.test.ts; gpu-picking-lifecycle.test.ts | See `docs/architecture/GPU-ID-PICKING.md` | Cursor | | |
 | VP-004 | VERIFIED | `SubElementVisualizer` theme, overlays, dispose | sub-element.test.ts (11) | Edit-mode overlays; remount diagnostics | Cursor | | |
-| VP-005 | VERIFIED | `SpatialQueryBackend` + `BruteForceSpatialQuery` (no three-mesh-bvh) | `packages/three-adapter/tests/spatial-query.test.ts` | 292 tests; typecheck | Cursor | | |
+| VP-005 | VERIFIED | `SpatialQueryBackend` + `BvhSpatialQuery` (revision-aware AABB; no three-mesh-bvh) | `packages/math/tests/bvh.test.ts`; `packages/three-adapter/tests/spatial-query.test.ts` | Adapter rebuilds on mount/transform, not pick/view | Cursor | | |
 
 ## Materials, textures, UV, images, paint
 
@@ -161,14 +162,14 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 | -------------- | ------ | -------------- | ----- | -------- | ----- | ------- | ------- |
 | LIFE-001 dispose/remount | VERIFIED | adapter, session, input, selection, paint, tools dispose idempotent | lifecycle.test.ts (16); commands session dispose; input dispose | Remount resource baseline; later execute throws | Cursor | | |
 | LIFE-002 workers/URLs | VERIFIED | `ObjectUrlRegistry` in core/adapter; `AsyncComputePool` cancels queued/in-flight work, unsubscribes, and terminates workers | lifecycle.test.ts; workers.test.ts; workers.browser.test.ts | Dispose is idempotent; abort/dispose do not hang; browser fake-worker crash replacement | Cursor | | |
-| PERF-001 benchmarks | VERIFIED | 10k + 100k verts triangulation; 1k nodes serialize | `packages/sdk/tests/benchmark.test.ts` | Isolated run 6 passed; 100k grid (`316×316` segments) triangulation under 15s (~8.4s isolated, ~20s wall in full suite including mesh build); four-viewport pick in adapter.test.ts | Cursor | | |
+| PERF-001 benchmarks | VERIFIED | Structural triangulation/serialize/history caps in `packages/sdk/tests/perf-regression.test.ts`; large 10k/100k samples in `packages/sdk/tests/triangulation.bench.test.ts` via `pnpm test:bench` | Isolated `pnpm test` 114/690; wall-clock asserts are not in the default gate | Cursor | | |
 | EXT-001 registries | VERIFIED | per-document `SceneNodeExtensionRegistry` | `packages/document/tests/document.test.ts` | Global Map removed | Cursor | R1-T008 | |
 | EXT-002 capabilities | VERIFIED | `session.capabilities.canExecute` + standalone `canExecute` | `packages/commands/tests/capabilities.test.ts` | 292 tests; typecheck | Cursor | R1-T009 | |
-| AI-001 tool schemas | VERIFIED | `getEditorToolDefinitions` / `executeEditorTool` including `save_scene` | ai-tools.test.ts (3) | Frozen name list; additionalProperties false; native JSON in `data.json` | Cursor | | |
+| AI-001 tool schemas | VERIFIED | `getEditorToolDefinitions` / `executeEditorTool` including `save_scene`; runtime JSON Schema subset | ai-tools.test.ts (7) | Invalid JSON/extra props/NaN/arity fail as `EditorToolFailure`; multi-tag union; merge coords; dispose-safe | Cursor | | |
 | DX-001 docs/examples | VERIFIED | architecture docs; `docs/guides/getting-started.md`; `pnpm examples:typecheck` in CI | `.github/workflows/ci.yml` | CI runs examples typecheck | Cursor | | |
 | RIG-001 / ANIM-001 | DEFERRED | packages exist with small tests | rigging.test.ts (3), animation.test.ts (3) | Preview only; not 1.0 gate | Cursor | | |
 | BOOL-001 | DEFERRED | not in 1.0 | — | Manifold boolean backend is 1.1 | Cursor | | |
-| GPU-PICK-001 | VERIFIED (click path only) | identity/surface results, PickSession, canonical FaceId, CPU refinement, host options | pick-result/session/refinement; gpu-picking-*.test.ts; `pnpm test:webgl` | Node software rasterizer is unit-only. Real WebGL passed locally/CI job `webgl-smoke`. Full `pnpm check:release` still fails independently (formats tests, rigging typecheck). GPU hover is 1.1. | Cursor | | |
+| GPU-PICK-001 | VERIFIED (click path only) | identity/surface results, PickSession, canonical FaceId, CPU refinement, host options | pick-result/session/refinement; gpu-picking-*.test.ts; `pnpm test:webgl` | Node software rasterizer is unit-only. Real WebGL: local `pnpm test:webgl` 1 passed (2026-09-16) and CI job `webgl-smoke`. Unified `pnpm check:release` exit 0 on this tree. GPU hover is 1.1. | Cursor | | |
 
 ---
 
@@ -184,9 +185,9 @@ Owner: Cursor unless a task ID assigns implementation to Antigravity.
 
 ---
 
-## Baseline evidence (this audit)
+## Original audit snapshot (`4ad9afc`)
 
-Verified from a **clean checkout** (no pre-existing `packages/*/dist`) on 2026-09-16:
+Do not use these counts as the current gate. They are the 2026-09-16 clean-checkout snapshot of the audited commit:
 
 ```text
 pnpm install --frozen-lockfile
@@ -199,9 +200,11 @@ pnpm check:release
 # pnpm arch:check         — no dependency violations (356 modules, 1471 dependencies)
 ```
 
-Release-readiness fixes applied in this pass:
+Release-readiness fixes already present at that snapshot:
 
 - Central workspace `paths` in `tsconfig.base.json` (replaces incomplete per-package path tables).
 - All publishable packages export compiled `dist/` (`files: ["dist"]`, version `0.1.0`, `license: MIT`).
 - Removed bogus `@modeling-kit/validation` CommonJS export (`index.cjs` was never built).
 - CI and `check:release` run the full gate sequence including `lint` and `examples:typecheck`.
+
+Current working-tree counts are in the header **Baseline command** and `docs/coordination/CURRENT-MILESTONE.md`.

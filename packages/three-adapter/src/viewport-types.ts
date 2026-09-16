@@ -65,6 +65,11 @@ export interface CreateThreeViewportOptions {
     readonly theme?: DeepPartial<SubElementVisualTheme>;
     readonly display?: DeepPartial<SubElementDisplayOptions>;
   };
+  /**
+   * Own a revision-aware AABB BVH when `spatialQuery` is omitted.
+   * Default true. See `ThreeViewportAdapterOptions.spatialAcceleration`.
+   */
+  readonly spatialAcceleration?: boolean;
 }
 
 export type ThreeViewportHandle = {

@@ -15,7 +15,7 @@ export const CONTEXT_PRESETS: Record<
       "packages/mesh/src/operations/split-edge.ts",
       "packages/mesh/src/internal/topology-mapping-builder.ts",
       "packages/mesh/tests/elements.test.ts",
-      "packages/mesh/tests/split-edge.property.test.ts",
+      "packages/mesh/tests/properties",
       "docs/coordination/CURRENT-MILESTONE.md",
       "docs/coordination/API-FREEZE.md",
       "tasks/R1-T001.md",

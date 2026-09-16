@@ -22,7 +22,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.dom.json"
   },
   "dependencies": {
-    "@modeling-kit/core": "workspace:*",
     "@modeling-kit/math": "workspace:*"
   },
   "main": "./dist/index.js",

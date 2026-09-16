@@ -198,6 +198,7 @@ export const discPrimitive: PrimitiveGenerator<DiscParameters> = {
   generate: generateDisc,
 };
 
+/** Catalog alias of `generateDisc` for the `circle` primitive name. */
 export const generateCircle = generateDisc;
 export const circlePrimitive: PrimitiveGenerator<DiscParameters> = {
   type: "circle",

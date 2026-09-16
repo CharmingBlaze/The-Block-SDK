@@ -16,7 +16,7 @@ This document is the Phase 1–10 record for agent-context tooling. It does not 
 | AI context packing | none | — | no | Repomix | Added `repomix.config.json` + `pnpm repo:context -- --preset <name>`. Output gitignored. |
 | Package-boundary enforcement | prose in `docs/architecture/dependency-policy.md` / `docs/coordination/PACKAGE-BOUNDARIES.md` | no machine gate | docs only | dependency-cruiser | Added `.dependency-cruiser.cjs` + `pnpm arch:check`. |
 | Dead-code detection | ESLint unused-vars (file-local) | `eslint.config.js` | partial | Knip | Added `knip.json` + `pnpm deadcode` (report-only, `--no-exit-code`). |
-| Property testing | Vitest example tests | `vitest.config.ts` | unit only | fast-check | Added root devDependency + `packages/mesh/tests/split-edge.property.test.ts`. |
+| Property testing | Vitest example tests | `vitest.config.ts` | unit only | fast-check | Added root devDependency + `packages/mesh/tests/properties/*.property.test.ts`. |
 | Public API tracking | none | — | no | generated index | `pnpm repo:api` → `generated/public-api-index.md`. Do not add api-extractor yet. |
 | Documentation generation | hand-written `docs/` | — | yes | TypeDoc | Do not add TypeDoc until public API freeze. |
 | Changed-package testing | none (no GitHub Actions) | — | no | helper script | `pnpm check:changed` lists packages from git; no commits yet so it reports the full workspace. |

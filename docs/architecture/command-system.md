@@ -21,11 +21,25 @@ Architectural guarantees:
 ## 2. Command Protocol
 
 ```ts
+import type { Emitter, EditorEvents, IdFactory, MeshId, TextureId } from "@modeling-kit/core";
+import type { ModelDocument } from "@modeling-kit/document";
+import type { HalfEdgeMesh } from "@modeling-kit/mesh";
+import type { SelectionManager } from "@modeling-kit/selection";
+
+export interface PixelBuffer {
+  readonly width: number;
+  readonly height: number;
+  readonly data: Uint8ClampedArray;
+}
+
 export interface CommandContext {
-  readonly session: EditorSession;
   readonly document: ModelDocument;
-  /** Emits granular changes for incremental viewport sync */
-  emitChange(change: DocumentChange): void;
+  readonly ids: IdFactory;
+  readonly selection: SelectionManager;
+  readonly meshes: Map<MeshId, HalfEdgeMesh>;
+  readonly textures: Map<TextureId, PixelBuffer>;
+  readonly events: Emitter<EditorEvents>;
+  syncMesh(meshId: MeshId): void;
 }
 
 export interface Command<TResult = unknown> {
@@ -35,9 +49,10 @@ export interface Command<TResult = unknown> {
   undo(context: CommandContext): void;
   redo?(context: CommandContext): TResult;
   mergeWith?(next: Command): Command | null;
-  serialize?(): SerializedCommand;
 }
 ```
+
+Hosts call `session.execute(command)`. They do not construct `CommandContext`. Host guide: [`../guides/fluent-editor.md`](../guides/fluent-editor.md).
 
 ---
 

@@ -1,0 +1,13 @@
+# Contributing
+
+This repository is a clean-room polygonal modeling SDK. Do not copy, translate, or transplant Blockbench or other GPL sources.
+
+Full workflow, commands, and package rules: [`docs/guides/contributing.md`](docs/guides/contributing.md).
+
+```bash
+pnpm install
+pnpm test
+pnpm typecheck
+```
+
+Documentation index: [`docs/README.md`](docs/README.md).

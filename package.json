@@ -9,7 +9,8 @@
     "build": "pnpm -r --filter \"./packages/*\" build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:properties": "vitest run packages/mesh/tests/split-edge.property.test.ts",
+    "test:properties": "vitest run packages/mesh/tests/properties",
+    "test:bench": "vitest run --config vitest.benchmark.config.ts",
     "typecheck": "pnpm -r --filter \"./packages/*\" typecheck",
     "examples:typecheck": "pnpm -r --filter \"./apps/*\" typecheck",
     "lint": "eslint .",
@@ -21,6 +22,7 @@
     "repo:context": "tsx scripts/generate-agent-context.ts",
     "arch:check": "depcruise packages --config .dependency-cruiser.cjs",
     "deadcode": "knip --no-exit-code",
+    "deadcode:gate": "knip --include dependencies,duplicates",
     "clean:dist": "tsx scripts/clean-dist.ts",
     "check:changed": "tsx scripts/check-changed-packages.ts",
     "check:agent": "tsx scripts/check-agent-task.ts",
@@ -32,7 +34,7 @@
     "version-packages": "changeset version",
     "release:check": "tsx scripts/verify-release-tag.ts",
     "release:publish": "pnpm -r --filter \"./packages/*\" publish --access public --no-git-checks",
-    "check:release": "pnpm typecheck && pnpm examples:typecheck && pnpm lint && pnpm test && pnpm build && pnpm test:dist && pnpm arch:check && pnpm pack:verify && pnpm release:check"
+    "check:release": "pnpm clean:dist && pnpm typecheck && pnpm examples:typecheck && pnpm lint && pnpm test && pnpm build && pnpm test:dist && pnpm arch:check && pnpm pack:verify && pnpm release:check && pnpm deadcode:gate"
   },
   "devDependencies": {
     "@changesets/cli": "3.0.3",

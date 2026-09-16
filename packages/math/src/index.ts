@@ -1,4 +1,17 @@
 export { BoundingBox } from "./bbox";
+export {
+  buildAabbBvh,
+  boxHitDistance,
+  BVH_MAX_LEAF_SIZE,
+  raycastAabbBvh,
+  unionPrimitiveBounds,
+  type BvhBranch,
+  type BvhLeaf,
+  type BvhLeafTester,
+  type BvhNode,
+  type BvhPrimitive,
+  type BvhRayHit,
+} from "./bvh";
 export { Euler, type EulerOrder } from "./euler";
 export { eulerFromQuaternion, Matrix4 } from "./mat4";
 export {

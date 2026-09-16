@@ -60,6 +60,16 @@ describe("release check against this repo", () => {
     expect(checkReleaseState({ requireTag: true }).issues.map((issue) => issue.code)).toContain("missing-tag");
   });
 
+  it("maps @modeling-kit/formats to source so clean typecheck does not need dist", () => {
+    const tsconfig = JSON.parse(readFileSync(path.join(repoRoot, "tsconfig.base.json"), "utf8")) as {
+      compilerOptions: { paths: Record<string, string[]> };
+    };
+    expect(tsconfig.compilerOptions.paths["@modeling-kit/formats"]).toEqual([
+      "./packages/formats/src/index.ts",
+    ]);
+    expect(checkReleaseState().issues.filter((issue) => issue.code === "typecheck-path")).toEqual([]);
+  });
+
   it("publishes only from a v* tag workflow", () => {
     const workflow = readFileSync(path.join(repoRoot, ".github/workflows/release.yml"), "utf8");
     expect(workflow).toMatch(/tags:\s*\n\s*-\s*"v\*"/);

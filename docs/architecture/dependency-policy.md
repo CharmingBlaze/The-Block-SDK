@@ -37,7 +37,7 @@ Do **not** make Three.js primitive geometries (`BoxGeometry`, etc.) canonical. D
 
 | Package | Adapter | Gate |
 | ------- | ------- | ---- |
-| `three-mesh-bvh` | optional peer of `three-adapter` as `SpatialQueryBackend` | Picking/lasso on large meshes; dirty levels, not rebuild every pointer move |
+| `three-mesh-bvh` | optional peer of `three-adapter` as `SpatialQueryBackend` | Triangle/mesh BVH still optional. Object-level AABB BVH ships as first-party `BvhSpatialQuery` with revision-aware rebuild |
 | `manifold-3d` | `@modeling-kit/booleans-manifold` as `BooleanBackend` | After kernel, selection, extrusion, undo, save/load (already passing) **and** a conversion-report design |
 | `@gltf-transform/core` + `@gltf-transform/extensions` | **canonical** glTF/GLB read/write inside `@modeling-kit/formats` | **Added 2026-09-16.** Transform documents are internal. Public APIs stay `importGltf` / `exportGltf` / `exportGlb`. Do not add `@gltf-transform/functions`, sharp, Draco, or KTX to the base package. See `docs/architecture/decisions/GLTF-TRANSFORM-BACKEND.md`. |
 | `comlink` | workers | If postMessage friction is measured |
@@ -67,7 +67,7 @@ New geometry/math/state/format libraries require, in `docs/research/provenance-l
 
 - `TriangulationBackend` — Earcut (or the current fan) for **derived** triangles; n-gons stay in the kernel  
 - `GeometryPredicates` — wrap `robust-predicates`  
-- `SpatialQueryBackend` — wrap `three-mesh-bvh` in the adapter  
+- `SpatialQueryBackend` — first-party `BvhSpatialQuery` (AABB, revision-aware) in the adapter; hosts may wrap `three-mesh-bvh`  
 - `BooleanBackend` — wrap Manifold; result includes warnings and discarded attributes  
 - `GltfBackend` — `@modeling-kit/formats` is the implementation; glTF Transform is the codec, not the editor document  
 - `MeshOptimizationBackend` — meshoptimizer on export triangles only  

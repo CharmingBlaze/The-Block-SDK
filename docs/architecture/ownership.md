@@ -27,3 +27,5 @@ DOM bindDom → InputPacket → InputEngine → Action/Gesture
 ## Conventions
 
 Internal math is right-handed, **Y up**, **-Z forward**, radians, quaternion rotations. `DocumentSettings.angleUnit` is `"degrees"` for UI display only. `units` / `unitsPerMeter` describe saved numbers; default is meter with `unitsPerMeter: 1`.
+
+Host-facing index: [`../README.md`](../README.md).

@@ -2,13 +2,16 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "ignoreWorkspaces": ["apps/*"],
   "ignore": ["generated/**", "docs/**", "tasks/**", "Plan.md"],
+  "ignoreDependencies": ["repomix"],
   "ignoreIssues": {
-    "packages/**/tests/**": ["unlisted"]
+    "packages/**/tests/**": ["unlisted"],
+    "packages/primitives/src/planar.ts": ["duplicates"],
+    "packages/sdk/package.json": ["optionalPeerDependencies"]
   },
   "workspaces": {
     ".": {
-      "entry": ["scripts/**/*.ts", "vitest.config.ts", "vitest.dist.config.ts", "eslint.config.js"],
-      "project": ["scripts/**/*.ts", "vitest.config.ts", "vitest.dist.config.ts", "eslint.config.js"]
+      "entry": ["scripts/**/*.ts", "vitest.config.ts", "vitest.dist.config.ts", "vitest.benchmark.config.ts", "eslint.config.js"],
+      "project": ["scripts/**/*.ts", "vitest.config.ts", "vitest.dist.config.ts", "vitest.benchmark.config.ts", "eslint.config.js"]
     },
     "packages/formats": {
       "entry": ["src/index.ts!", "src/node.ts!", "src/browser.ts!"],
@@ -23,7 +26,7 @@
       "project": ["src/**/*.ts"]
     },
     "packages/sdk": {
-      "entry": ["src/index.ts!", "src/ai.ts!"],
+      "entry": ["src/index.ts!", "src/ai.ts!", "src/three.ts!"],
       "project": ["src/**/*.ts"]
     },
     "packages/workers": {

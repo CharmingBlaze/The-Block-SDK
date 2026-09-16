@@ -35,7 +35,7 @@ import {
 } from "./adapter-types";
 import { asWebGLRenderer, DefaultGpuPickingService, type GpuPickingReadback } from "./gpu-picking";
 import { SceneDirtyFlag, type SceneMirrorLifecycle } from "./scene-sync";
-import type { SpatialQueryBackend } from "./spatial-query";
+import { createBvhSpatialQuery, syncSpatialQuery, type SpatialQueryBackend } from "./spatial-query";
 import { clearLegacyOverlay, syncOverlays, type OverlaySyncContext } from "./adapter-overlay";
 import {
   applyTrackedNames,
@@ -95,8 +95,16 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
     this.renderer = options.renderer;
     this.viewportId = options.viewportId ?? "viewport-default";
     this.autoFlush = options.autoFlush !== false;
-    this.spatialQuery = options.spatialQuery;
-    this.ownsSpatialQuery = options.ownsSpatialQuery === true;
+    if (options.spatialQuery) {
+      this.spatialQuery = options.spatialQuery;
+      this.ownsSpatialQuery = options.ownsSpatialQuery === true;
+    } else if (options.spatialAcceleration !== false) {
+      this.spatialQuery = createBvhSpatialQuery();
+      this.ownsSpatialQuery = true;
+    } else {
+      this.spatialQuery = undefined;
+      this.ownsSpatialQuery = false;
+    }
     const webgl = asWebGLRenderer(this.renderer);
     this.gpuPickingMode = options.gpuPicking ?? "webgl";
     this.gpuPicking =
@@ -244,6 +252,7 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
     try {
       rebuildSceneGraph(this.sceneMirror(), this.root);
       this.sceneGeneration += 1;
+      this.syncSpatialIndex();
       this.syncOverlays("full");
       this.gpuPicking?.invalidate("scene");
     } finally {
@@ -465,6 +474,7 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
     }
     this.spatialQuery = backend;
     this.ownsSpatialQuery = owns;
+    this.syncSpatialIndex();
   }
 
   private sceneMirror(): SceneMirrorContext {
@@ -499,6 +509,7 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
       this.sync();
       return;
     }
+    this.syncSpatialIndex();
     this.gpuPicking?.invalidate("transform");
     this.syncOverlays("view");
   }
@@ -509,6 +520,7 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
       this.sync();
       return;
     }
+    this.syncSpatialIndex();
     this.gpuPicking?.invalidate("visibility");
     this.sceneGeneration += 1;
   }
@@ -526,7 +538,12 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
   private syncMeshesById(meshIds: readonly string[]): void {
     syncMeshesById(this.sceneMirror(), meshIds);
     this.sceneGeneration += 1;
+    this.syncSpatialIndex();
     this.gpuPicking?.invalidate("geometry");
+  }
+
+  private syncSpatialIndex(): void {
+    syncSpatialQuery(this.spatialQuery, this.tracked);
   }
 
   private flushVisuals(): void {

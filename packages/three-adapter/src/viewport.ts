@@ -47,6 +47,7 @@ export function createThreeViewport(options: CreateThreeViewportOptions): ThreeV
     camera,
     renderer,
     gpuPicking: picking.gpuPicking === false ? "off" : "webgl",
+    ...(options.spatialAcceleration === false ? { spatialAcceleration: false } : {}),
     ...(options.subElement ? { subElement: options.subElement } : {}),
   });
   adapter.mount();

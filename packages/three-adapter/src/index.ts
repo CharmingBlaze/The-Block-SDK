@@ -4,9 +4,14 @@ export {
   type ViewportRenderer,
 } from "./adapter";
 export {
+  AabbTreeSpatialQuery,
   BruteForceSpatialQuery,
+  BvhSpatialQuery,
+  createBvhSpatialQuery,
+  type SpatialAabb,
   type SpatialHit,
   type SpatialQueryBackend,
+  type SpatialQueryPrimitive,
   type SpatialRay,
 } from "./spatial-query";
 export { SceneDirtyFlag, type SceneMirrorLifecycle } from "./scene-sync";

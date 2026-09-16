@@ -1,5 +1,9 @@
 export {
   ThreeViewportAdapter,
+  AabbTreeSpatialQuery,
+  BruteForceSpatialQuery,
+  BvhSpatialQuery,
+  createBvhSpatialQuery,
   createBufferGeometry,
   createThreeViewport,
   createKnifeOverlay,
@@ -39,4 +43,9 @@ export type {
   GpuPickingDiagnostics,
   GpuPickingReadback,
   ThreeViewportPickingOptions,
+  SpatialAabb,
+  SpatialHit,
+  SpatialQueryBackend,
+  SpatialQueryPrimitive,
+  SpatialRay,
 } from "@modeling-kit/three-adapter";

@@ -1,6 +1,6 @@
 # Package dependency and boundary report
 
-**Audit:** 2026-09-15  
+**Audit:** 2026-09-16  
 **Policy:** `docs/architecture/dependency-policy.md`  
 **Declared graph:** `docs/architecture/sdk-architecture.md`
 
@@ -11,9 +11,9 @@ math
   → core
     → document ← validation (validation also → mesh)
       → mesh
-        → scene, selection, materials, uv
+        → scene, selection, materials, uv, primitives
           → commands
-            → history, transform, snapping, primitives, tools, input
+            → history, transform, snapping, tools, input
               → rigging, animation, paint, formats, workers
                 → three-adapter
                   → sdk
@@ -30,10 +30,10 @@ math
 | core | none | OK |
 | math | (not re-read; no three) | OK |
 | document | core, math | OK |
-| mesh | core, math | OK |
+| mesh | core, math, earcut | OK; Earcut is the n-gon backend, not a second kernel |
 | validation | core, math, mesh | OK; policy diagram had validation under document — actual is mesh-facing |
 | scene | core, document, math | OK |
-| selection | core (only) | OK; T002 may depend on mesh |
+| selection | core, mesh | OK; topology grow/shrink needs the kernel |
 | history | core, document, mesh, selection | Heavier than “commands ↑ history” sketch |
 | materials | (document-facing) | OK if no three |
 | uv | mesh | OK |

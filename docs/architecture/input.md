@@ -23,4 +23,4 @@ Host tool code  →  ModelingSession / ThreeViewportAdapter.pick
 - `endFrame()` clears wheel, pointer deltas, and pressed/released flags. Held keys, held buttons, active pointers, and pen pressure (while the pen is active) remain.
 - `dispatch()` may set `capturePointer`. `bindDom` calls `setPointerCapture` only when that flag is true.
 
-Do not bind tools to raw `event.button`. Camera orbit may stay on the host (e.g. OrbitControls) in v1; do not put keymaps in `three-adapter`. Ownership of document vs session vs adapter is in `docs/architecture/ownership.md`.
+Do not bind tools to raw `event.button`. Camera orbit may stay on the host (e.g. OrbitControls) in v1; do not put keymaps in `three-adapter`. Ownership of document vs session vs adapter is in `docs/architecture/ownership.md`. Custom picking: [`../guides/custom-host-picking.md`](../guides/custom-host-picking.md).

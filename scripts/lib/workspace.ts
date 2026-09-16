@@ -127,7 +127,7 @@ export const PACKAGE_LAYERS: Record<
     forbidden: ["three"],
   },
   "@modeling-kit/formats": {
-    purpose: "glTF/OBJ/STL/PLY interchange via glTF Transform",
+    purpose: "glTF/OBJ/STL interchange via glTF Transform (PLY allowed, not implemented)",
     layer: "io",
     requirementPrefixes: ["FMT"],
     forbidden: ["three"],
@@ -202,6 +202,19 @@ export function readManifest(dir: string): PackageManifest {
   };
 }
 
+function resolveExportFile(pkgDir: string, importPath: string): string | undefined {
+  const distFile = path.join(pkgDir, importPath);
+  const base = path.basename(importPath).replace(/\.(js|mjs|cjs|d\.ts)$/i, "");
+  const srcFile = path.join(pkgDir, "src", `${base}.ts`);
+  if (fs.existsSync(srcFile)) {
+    return srcFile;
+  }
+  if (fs.existsSync(distFile)) {
+    return distFile;
+  }
+  return undefined;
+}
+
 export function exportEntryPaths(manifest: PackageManifest): string[] {
   const exportsField = manifest.exports;
   if (!exportsField) {
@@ -209,18 +222,22 @@ export function exportEntryPaths(manifest: PackageManifest): string[] {
     return fs.existsSync(fallback) ? [fallback] : [];
   }
   if (typeof exportsField === "string") {
-    return [path.join(manifest.dir, exportsField)];
+    const resolved = resolveExportFile(manifest.dir, exportsField);
+    return resolved ? [resolved] : [];
   }
   const files: string[] = [];
   for (const spec of Object.values(exportsField)) {
     if (spec && typeof spec === "object" && "import" in spec) {
       const importPath = (spec as { import?: string }).import;
       if (importPath) {
-        files.push(path.join(manifest.dir, importPath));
+        const resolved = resolveExportFile(manifest.dir, importPath);
+        if (resolved) {
+          files.push(resolved);
+        }
       }
     }
   }
-  return files.filter((file) => fs.existsSync(file));
+  return [...new Set(files)];
 }
 
 export function workspaceDeps(manifest: PackageManifest): string[] {

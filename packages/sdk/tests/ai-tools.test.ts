@@ -98,4 +98,75 @@ describe("editor AI tools", () => {
     }
     expect(result.error).toContain("Unknown editor tool");
   });
+
+  it("returns a structured failure for malformed JSON and extra properties", () => {
+    const editor = createEditor();
+    const invalidJson = executeEditorTool(editor, "inspect_scene", "{");
+    expect(invalidJson.ok).toBe(false);
+    if (!invalidJson.ok) {
+      expect(invalidJson.retryable).not.toBe(true);
+      expect(invalidJson.error.length).toBeGreaterThan(0);
+    }
+    const extra = executeEditorTool(editor, "inspect_scene", { nope: true });
+    expect(extra.ok).toBe(false);
+    if (!extra.ok) {
+      expect(extra.field).toBe("nope");
+      expect(extra.retryable).toBe(true);
+      expect(extra.code).toBe("invalid_argument");
+    }
+    const nan = executeEditorTool(editor, "spawn_primitive", { type: "cube", width: Number.NaN });
+    expect(nan.ok).toBe(false);
+    const infiniteKnife = executeEditorTool(editor, "knife_stroke", {
+      points: [
+        [0, 0, 0],
+        [1, Number.POSITIVE_INFINITY, 0],
+      ],
+    });
+    expect(infiniteKnife.ok).toBe(false);
+    const longPoint = executeEditorTool(editor, "knife_stroke", {
+      points: [
+        [0, 0, 0, 9],
+        [1, 0, 0],
+      ],
+    });
+    expect(longPoint.ok).toBe(false);
+    editor.dispose();
+  });
+
+  it("unions multiple face tags and rejects unknown tags", () => {
+    const editor = createEditor();
+    executeEditorTool(editor, "spawn_primitive", { type: "cube", width: 1, height: 1, depth: 1 });
+    const selected = executeEditorTool(editor, "select_components", {
+      domain: "face",
+      tags: ["top", "bottom"],
+    });
+    expect(selected.ok).toBe(true);
+    expect(selected.inspection.objects[0]?.selected?.count).toBe(2);
+    const unknown = executeEditorTool(editor, "select_components", {
+      domain: "face",
+      tags: ["ceiling"],
+    });
+    expect(unknown.ok).toBe(false);
+    editor.dispose();
+  });
+
+  it("requires coordinates for custom and cursor merge targets", () => {
+    const editor = createEditor();
+    executeEditorTool(editor, "spawn_primitive", { type: "cube", width: 1, height: 1, depth: 1 });
+    executeEditorTool(editor, "select_components", { domain: "vertex" });
+    const missing = executeEditorTool(editor, "merge_vertices", { target: "custom" });
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) {
+      expect(missing.field).toBe("position");
+      expect(missing.retryable).toBe(true);
+    }
+    editor.dispose();
+  });
+
+  it("does not throw after the editor is disposed", () => {
+    const editor = createEditor();
+    editor.dispose();
+    const result = executeEditorTool(editor, "inspect_scene", {});
+    expect(result.ok).toBe(true);
+  });
 });

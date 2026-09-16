@@ -28,7 +28,7 @@ function classify(file: string): string {
   if (file.includes(".property.test.ts")) {
     return "property";
   }
-  if (file.includes("benchmark")) {
+  if (file.includes(".bench.test.ts") || file.includes("benchmark")) {
     return "benchmark";
   }
   if (file.includes("integration")) {

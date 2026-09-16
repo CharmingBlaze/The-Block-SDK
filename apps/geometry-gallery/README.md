@@ -5,3 +5,5 @@ Checker-texture fixture for library primitives (`generateLibraryPrimitive`). Sho
 ```bash
 pnpm --filter @modeling-kit/geometry-gallery dev
 ```
+
+Canonical vs library ingest: [`docs/guides/primitive-geometry.md`](../../docs/guides/primitive-geometry.md). Other hosts: [`docs/guides/examples.md`](../../docs/guides/examples.md).

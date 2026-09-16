@@ -7,6 +7,8 @@ import {
   type VecDelta,
 } from "@modeling-kit/commands";
 import type { SceneInspectionResult } from "@modeling-kit/commands";
+import type { MergeVertexTarget } from "@modeling-kit/mesh";
+import { assertValidToolArgs, ToolArgumentError } from "./ai-schema";
 
 export interface JsonSchemaObject {
   readonly type: "object";
@@ -36,6 +38,9 @@ export type EditorToolFailure = {
   readonly tool: string;
   readonly error: string;
   readonly inspection: SceneInspectionResult;
+  readonly code?: string;
+  readonly field?: string;
+  readonly retryable?: boolean;
 };
 
 export type EditorToolResult = EditorToolSuccess | EditorToolFailure;
@@ -75,14 +80,27 @@ const PRIMITIVE_TYPES: readonly PrimitiveType[] = [
   "icosahedron",
 ];
 
-function tool(name: string, description: string, parameters: JsonSchemaObject): EditorToolDefinition {
-  return { type: "function", function: { name, description, parameters } };
-}
+const FACE_TAGS = ["top", "bottom", "front", "back", "sides", "caps", "all", "left", "right"] as const;
+const MERGE_TARGETS: readonly MergeVertexTarget[] = [
+  "center",
+  "active",
+  "first",
+  "last",
+  "cursor",
+  "custom",
+];
 
-/** OpenAI-style function schemas for plugging `@modeling-kit` into an agent. */
-export function getEditorToolDefinitions(): readonly EditorToolDefinition[] {
-  return [
-    tool("spawn_primitive", "Create a polygonal primitive and select the new object.", {
+const VEC3 = {
+  type: "array",
+  items: { type: "number" },
+  minItems: 3,
+  maxItems: 3,
+} as const;
+
+const TOOLS: Record<string, { description: string; parameters: JsonSchemaObject }> = {
+  spawn_primitive: {
+    description: "Create a polygonal primitive and select the new object.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       required: ["type"],
@@ -104,30 +122,42 @@ export function getEditorToolDefinitions(): readonly EditorToolDefinition[] {
         radialSegments: { type: "integer" },
         tubularSegments: { type: "integer" },
       },
-    }),
-    tool("select_components", "Select an object or tagged faces (top, bottom, sides, front, back, caps).", {
+    },
+  },
+  select_components: {
+    description: "Select an object or tagged faces (top, bottom, sides, front, back, caps).",
+    parameters: {
       type: "object",
       additionalProperties: false,
       properties: {
         objectId: { type: "string" },
         domain: { type: "string", enum: ["object", "face", "edge", "vertex"] },
-        tags: { type: "array", items: { type: "string" } },
+        tags: { type: "array", items: { type: "string", enum: [...FACE_TAGS] } },
         elementIds: { type: "array", items: { type: "string" } },
       },
-    }),
-    tool("extrude_faces", "Extrude the currently selected faces along their normals.", {
+    },
+  },
+  extrude_faces: {
+    description: "Extrude the currently selected faces along their normals.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       required: ["distance"],
       properties: { distance: { type: "number" } },
-    }),
-    tool("inset_faces", "Inset the currently selected faces.", {
+    },
+  },
+  inset_faces: {
+    description: "Inset the currently selected faces.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       required: ["distance"],
       properties: { distance: { type: "number" } },
-    }),
-    tool("bevel_edges", "Bevel the currently selected edges.", {
+    },
+  },
+  bevel_edges: {
+    description: "Bevel the currently selected edges.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       required: ["offset"],
@@ -139,24 +169,36 @@ export function getEditorToolDefinitions(): readonly EditorToolDefinition[] {
         allowClipFallback: { type: "boolean" },
         miterLimit: { type: "number" },
       },
-    }),
-    tool("set_edge_creases", "Set normalized Catmull-Clark crease weights on selected edges.", {
+    },
+  },
+  set_edge_creases: {
+    description: "Set normalized Catmull-Clark crease weights on selected edges.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       required: ["weight"],
       properties: { weight: { type: "number" } },
-    }),
-    tool("subdivide_faces", "Linear-subdivide the selected faces (or all faces).", {
+    },
+  },
+  subdivide_faces: {
+    description: "Linear-subdivide the selected faces (or all faces).",
+    parameters: {
       type: "object",
       additionalProperties: false,
       properties: { cuts: { type: "integer" } },
-    }),
-    tool("catmull_clark", "Catmull-Clark subdivide the active mesh.", {
+    },
+  },
+  catmull_clark: {
+    description: "Catmull-Clark subdivide the active mesh.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       properties: { iterations: { type: "integer" } },
-    }),
-    tool("loop_cut", "Cut a quad edge loop starting from the selected edge (Blender-style).", {
+    },
+  },
+  loop_cut: {
+    description: "Cut a quad edge loop starting from the selected edge (Blender-style).",
+    parameters: {
       type: "object",
       additionalProperties: false,
       properties: {
@@ -164,57 +206,67 @@ export function getEditorToolDefinitions(): readonly EditorToolDefinition[] {
         cuts: { type: "integer" },
         startEdgeId: { type: "string" },
       },
-    }),
-    tool("dissolve_edges", "Dissolve the currently selected edges into n-gons.", {
-      type: "object",
-      additionalProperties: false,
-      properties: {},
-    }),
-    tool("fill_boundary", "Cap the selected or mesh boundary loop.", {
+    },
+  },
+  dissolve_edges: {
+    description: "Dissolve the currently selected edges into n-gons.",
+    parameters: { type: "object", additionalProperties: false, properties: {} },
+  },
+  fill_boundary: {
+    description: "Cap the selected or mesh boundary loop.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       properties: { method: { type: "string", enum: ["ngon", "fan", "triangulate"] } },
-    }),
-    tool("knife_stroke", "Cut the active mesh along world-space snap points.", {
+    },
+  },
+  knife_stroke: {
+    description: "Cut the active mesh along world-space snap points.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       required: ["points"],
       properties: {
-        points: {
-          type: "array",
-          items: { type: "array", items: { type: "number" }, minItems: 3, maxItems: 3 },
-        },
+        points: { type: "array", minItems: 2, items: VEC3 },
         snapRadius: { type: "number" },
       },
-    }),
-    tool("heal_mesh", "Remove isolated vertices, collapse zero-length edges, and fix duplicate faces.", {
-      type: "object",
-      additionalProperties: false,
-      properties: {},
-    }),
-    tool("weld_vertices", "Weld coincident vertices on the active mesh within a distance epsilon.", {
+    },
+  },
+  heal_mesh: {
+    description: "Remove isolated vertices, collapse zero-length edges, and fix duplicate faces.",
+    parameters: { type: "object", additionalProperties: false, properties: {} },
+  },
+  weld_vertices: {
+    description: "Weld coincident vertices on the active mesh within a distance epsilon.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       properties: { epsilon: { type: "number" } },
-    }),
-    tool("triangulate_faces", "Triangulate selected faces, or all faces if none are selected.", {
-      type: "object",
-      additionalProperties: false,
-      properties: {},
-    }),
-    tool("merge_vertices", "Merge the currently selected vertices to a target position.", {
+    },
+  },
+  triangulate_faces: {
+    description: "Triangulate selected faces, or all faces if none are selected.",
+    parameters: { type: "object", additionalProperties: false, properties: {} },
+  },
+  merge_vertices: {
+    description: "Merge the currently selected vertices to a target position.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       properties: {
-        target: { type: "string", enum: ["center", "active", "first", "last", "cursor", "custom"] },
+        target: { type: "string", enum: [...MERGE_TARGETS] },
+        position: VEC3,
+        cursorPosition: VEC3,
       },
-    }),
-    tool("connect_vertices", "Cut a diagonal between two selected vertices on a shared face.", {
-      type: "object",
-      additionalProperties: false,
-      properties: {},
-    }),
-    tool("transform_selection", "Translate the current selection or active object.", {
+    },
+  },
+  connect_vertices: {
+    description: "Cut a diagonal between two selected vertices on a shared face.",
+    parameters: { type: "object", additionalProperties: false, properties: {} },
+  },
+  transform_selection: {
+    description: "Translate the current selection or active object.",
+    parameters: {
       type: "object",
       additionalProperties: false,
       properties: {
@@ -222,28 +274,33 @@ export function getEditorToolDefinitions(): readonly EditorToolDefinition[] {
         y: { type: "number" },
         z: { type: "number" },
       },
-    }),
-    tool("undo", "Undo the last committed modeling command.", {
-      type: "object",
-      additionalProperties: false,
-      properties: {},
-    }),
-    tool("redo", "Redo the last undone modeling command.", {
-      type: "object",
-      additionalProperties: false,
-      properties: {},
-    }),
-    tool("inspect_scene", "Return a compact structured scene summary (counts, bounds, manifold, selection).", {
-      type: "object",
-      additionalProperties: false,
-      properties: {},
-    }),
-    tool("save_scene", "Serialize the document to native versioned JSON for the host to persist.", {
-      type: "object",
-      additionalProperties: false,
-      properties: {},
-    }),
-  ];
+    },
+  },
+  undo: {
+    description: "Undo the last committed modeling command.",
+    parameters: { type: "object", additionalProperties: false, properties: {} },
+  },
+  redo: {
+    description: "Redo the last undone modeling command.",
+    parameters: { type: "object", additionalProperties: false, properties: {} },
+  },
+  inspect_scene: {
+    description: "Return a compact structured scene summary (counts, bounds, manifold, selection).",
+    parameters: { type: "object", additionalProperties: false, properties: {} },
+  },
+  save_scene: {
+    description: "Serialize the document to native versioned JSON for the host to persist.",
+    parameters: { type: "object", additionalProperties: false, properties: {} },
+  },
+};
+
+function tool(name: string, description: string, parameters: JsonSchemaObject): EditorToolDefinition {
+  return { type: "function", function: { name, description, parameters } };
+}
+
+/** OpenAI-style function schemas for plugging `@modeling-kit` into an agent. */
+export function getEditorToolDefinitions(): readonly EditorToolDefinition[] {
+  return Object.entries(TOOLS).map(([name, item]) => tool(name, item.description, item.parameters));
 }
 
 export function listEditorToolNames(): readonly string[] {
@@ -255,26 +312,33 @@ export function executeEditorTool(
   name: string,
   args: unknown = {},
 ): EditorToolResult {
-  const parsed = parseArgs(args);
   try {
+    const parsed = parseArgs(args);
+    const definition = TOOLS[name];
+    if (!definition) {
+      throw new RangeError(`Unknown editor tool: ${name}`);
+    }
+    const record = assertValidToolArgs(definition.parameters, parsed);
     switch (name) {
       case "spawn_primitive": {
-        const type = resolvePrimitiveType(requireString(parsed, "type"));
-        const object = editor.spawn.primitive(type, spawnParams(parsed));
+        const type = resolvePrimitiveType(requireString(record, "type"));
+        const object = editor.spawn.primitive(type, spawnParams(record));
         return success(editor, name, { objectId: object.objectId, meshId: object.meshId });
       }
       case "select_components": {
-        const object = resolveTarget(editor, optionalString(parsed, "objectId"));
+        const object = resolveTarget(editor, optionalString(record, "objectId"));
         if (!object) {
           throw new RangeError("select_components requires a spawned or identified object");
         }
-        const domain = optionalString(parsed, "domain") ?? "face";
-        const tags = optionalStringArray(parsed, "tags");
-        const elementIds = optionalStringArray(parsed, "elementIds");
+        const domain = optionalString(record, "domain") ?? "face";
+        const tags = stringArray(record, "tags");
+        const elementIds = stringArray(record, "elementIds");
         if (domain === "object" || (tags.length === 0 && elementIds.length === 0)) {
           object.selectObject();
-        } else if (domain === "face" && tags[0]) {
-          object.select(tags[0] as "top");
+        } else if (domain === "face" && tags.length > 0) {
+          const taggedIds = object.faceIdsForTags(tags);
+          const extra = elementIds as FaceId[];
+          object.selectFaces(extra.length > 0 ? [...taggedIds, ...extra] : taggedIds);
         } else if (domain === "face") {
           object.selectFaces(elementIds as FaceId[]);
         } else if (domain === "edge") {
@@ -285,38 +349,38 @@ export function executeEditorTool(
         return success(editor, name);
       }
       case "extrude_faces":
-        requireActive(editor).extrude(requireNumber(parsed, "distance"));
+        requireActive(editor).extrude(requireNumber(record, "distance"));
         return success(editor, name);
       case "inset_faces":
-        requireActive(editor).inset(requireNumber(parsed, "distance"));
+        requireActive(editor).inset(requireNumber(record, "distance"));
         return success(editor, name);
       case "bevel_edges": {
-        const miterMode = optionalString(parsed, "miterMode");
-        const overlapMode = optionalString(parsed, "overlapMode");
-        requireActive(editor).bevel(requireNumber(parsed, "offset"), {
-          ...(hasNumber(parsed, "segments") ? { segments: parsed.segments as number } : {}),
+        const miterMode = optionalString(record, "miterMode");
+        const overlapMode = optionalString(record, "overlapMode");
+        requireActive(editor).bevel(requireNumber(record, "offset"), {
+          ...(hasNumber(record, "segments") ? { segments: record.segments as number } : {}),
           ...(miterMode === "sharp" || miterMode === "clip" ? { miterMode } : {}),
           ...(overlapMode === "clamp" || overlapMode === "error" ? { overlapMode } : {}),
-          ...(parsed.allowClipFallback === true ? { allowClipFallback: true } : {}),
-          ...(hasNumber(parsed, "miterLimit") ? { miterLimit: parsed.miterLimit as number } : {}),
+          ...(record.allowClipFallback === true ? { allowClipFallback: true } : {}),
+          ...(hasNumber(record, "miterLimit") ? { miterLimit: record.miterLimit as number } : {}),
         });
         return success(editor, name);
       }
       case "set_edge_creases":
-        requireActive(editor).setCrease(requireNumber(parsed, "weight"));
+        requireActive(editor).setCrease(requireNumber(record, "weight"));
         return success(editor, name);
       case "subdivide_faces":
-        requireActive(editor).subdivide(hasNumber(parsed, "cuts") ? (parsed.cuts as number) : 1);
+        requireActive(editor).subdivide(hasNumber(record, "cuts") ? (record.cuts as number) : 1);
         return success(editor, name);
       case "catmull_clark":
         requireActive(editor).catmullClark(
-          hasNumber(parsed, "iterations") ? (parsed.iterations as number) : 1,
+          hasNumber(record, "iterations") ? (record.iterations as number) : 1,
         );
         return success(editor, name);
       case "loop_cut": {
-        const startEdgeId = optionalString(parsed, "startEdgeId");
-        requireActive(editor).loopCut(hasNumber(parsed, "factor") ? (parsed.factor as number) : 0.5, {
-          ...(hasNumber(parsed, "cuts") ? { cuts: parsed.cuts as number } : {}),
+        const startEdgeId = optionalString(record, "startEdgeId");
+        requireActive(editor).loopCut(hasNumber(record, "factor") ? (record.factor as number) : 0.5, {
+          ...(hasNumber(record, "cuts") ? { cuts: record.cuts as number } : {}),
           ...(startEdgeId ? { startEdgeId: startEdgeId as EdgeId } : {}),
         });
         return success(editor, name);
@@ -325,35 +389,43 @@ export function executeEditorTool(
         requireActive(editor).dissolve();
         return success(editor, name);
       case "fill_boundary": {
-        const method = optionalString(parsed, "method");
+        const method = optionalString(record, "method");
         requireActive(editor).fillHole(
           method === "fan" || method === "triangulate" || method === "ngon" ? method : "ngon",
         );
         return success(editor, name);
       }
       case "knife_stroke":
-        requireActive(editor).knife(requirePointList(parsed, "points"), optionalNumber(parsed, "snapRadius") ?? 0.15);
+        requireActive(editor).knife(requirePointList(record, "points"), optionalNumber(record, "snapRadius") ?? 0.15);
         return success(editor, name);
       case "heal_mesh":
         requireActive(editor).heal();
         return success(editor, name);
       case "weld_vertices":
-        requireActive(editor).weld(optionalNumber(parsed, "epsilon") ?? 1e-6);
+        requireActive(editor).weld(optionalNumber(record, "epsilon") ?? 1e-6);
         return success(editor, name);
       case "triangulate_faces":
         requireActive(editor).triangulate();
         return success(editor, name);
       case "merge_vertices": {
-        const target = optionalString(parsed, "target");
-        requireActive(editor).mergeVertices(
-          target === "active" ||
-            target === "first" ||
-            target === "last" ||
-            target === "cursor" ||
-            target === "custom"
-            ? target
-            : "center",
-        );
+        const target = (optionalString(record, "target") ?? "center") as MergeVertexTarget;
+        const position = optionalVec3(record, "position");
+        const cursorPosition = optionalVec3(record, "cursorPosition");
+        if (target === "custom" && !position) {
+          throw new ToolArgumentError("merge_vertices target custom requires position: [x, y, z]", {
+            field: "position",
+          });
+        }
+        if (target === "cursor" && !cursorPosition) {
+          throw new ToolArgumentError(
+            "merge_vertices target cursor requires cursorPosition: [x, y, z]",
+            { field: "cursorPosition" },
+          );
+        }
+        requireActive(editor).mergeVertices(target, {
+          ...(position ? { position } : {}),
+          ...(cursorPosition ? { cursorPosition } : {}),
+        });
         return success(editor, name);
       }
       case "connect_vertices":
@@ -361,9 +433,9 @@ export function executeEditorTool(
         return success(editor, name);
       case "transform_selection": {
         const delta: VecDelta = {
-          ...(hasNumber(parsed, "x") ? { x: parsed.x as number } : {}),
-          ...(hasNumber(parsed, "y") ? { y: parsed.y as number } : {}),
-          ...(hasNumber(parsed, "z") ? { z: parsed.z as number } : {}),
+          ...(hasNumber(record, "x") ? { x: record.x as number } : {}),
+          ...(hasNumber(record, "y") ? { y: record.y as number } : {}),
+          ...(hasNumber(record, "z") ? { z: record.z as number } : {}),
         };
         editor.selection.move(delta);
         return success(editor, name);
@@ -377,17 +449,12 @@ export function executeEditorTool(
       case "inspect_scene":
         return success(editor, name);
       case "save_scene":
-        return success(editor, name, { json: editor.session.saveNativeJson() });
+        return success(editor, name, { json: editor.session.serializeNativeJson() });
       default:
         throw new RangeError(`Unknown editor tool: ${name}`);
     }
   } catch (error) {
-    return {
-      ok: false,
-      tool: name,
-      error: error instanceof Error ? error.message : String(error),
-      inspection: editor.inspect(),
-    };
+    return failure(editor, name, error);
   }
 }
 
@@ -397,8 +464,34 @@ export type ToolExecutionResult = EditorToolResult;
 
 function success(editor: FluentEditor, toolName: string, data?: unknown): EditorToolSuccess {
   return data !== undefined
-    ? { ok: true, tool: toolName, inspection: editor.inspect(), data }
-    : { ok: true, tool: toolName, inspection: editor.inspect() };
+    ? { ok: true, tool: toolName, inspection: safeInspect(editor), data }
+    : { ok: true, tool: toolName, inspection: safeInspect(editor) };
+}
+
+function failure(editor: FluentEditor, toolName: string, error: unknown): EditorToolFailure {
+  const argumentError = error instanceof ToolArgumentError ? error : undefined;
+  return {
+    ok: false,
+    tool: toolName,
+    error: error instanceof Error ? error.message : String(error),
+    inspection: safeInspect(editor),
+    ...(argumentError ? { code: argumentError.code, retryable: true } : {}),
+    ...(argumentError?.field ? { field: argumentError.field } : {}),
+  };
+}
+
+function safeInspect(editor: FluentEditor): SceneInspectionResult {
+  try {
+    return editor.inspect();
+  } catch (error) {
+    return {
+      totalObjects: 0,
+      canUndo: false,
+      canRedo: false,
+      objects: [],
+      summary: `inspection unavailable: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
 }
 
 function resolveTarget(editor: FluentEditor, objectId: string | undefined): FluentMeshObject | undefined {
@@ -436,7 +529,7 @@ function parseArgs(args: unknown): Record<string, unknown> {
 
 function asRecord(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new TypeError("Tool arguments must be a JSON object");
+    throw new ToolArgumentError("Tool arguments must be a JSON object");
   }
   return value as Record<string, unknown>;
 }
@@ -444,7 +537,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 function requireString(record: Record<string, unknown>, key: string): string {
   const value = record[key];
   if (typeof value !== "string" || value.length === 0) {
-    throw new TypeError(`Missing string argument: ${key}`);
+    throw new ToolArgumentError(`Missing string argument: ${key}`, { field: key });
   }
   return value;
 }
@@ -457,7 +550,7 @@ function optionalString(record: Record<string, unknown>, key: string): string | 
 function requireNumber(record: Record<string, unknown>, key: string): number {
   const value = record[key];
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new TypeError(`Missing number argument: ${key}`);
+    throw new ToolArgumentError(`Missing number argument: ${key}`, { field: key });
   }
   return value;
 }
@@ -471,31 +564,61 @@ function optionalNumber(record: Record<string, unknown>, key: string): number | 
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+function stringArray(record: Record<string, unknown>, key: string): string[] {
+  const value = record[key];
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function optionalVec3(
+  record: Record<string, unknown>,
+  key: string,
+): readonly [number, number, number] | undefined {
+  const value = record[key];
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+  const x = value[0];
+  const y = value[1];
+  const z = value[2];
+  if (
+    typeof x !== "number" ||
+    typeof y !== "number" ||
+    typeof z !== "number" ||
+    !Number.isFinite(x) ||
+    !Number.isFinite(y) ||
+    !Number.isFinite(z)
+  ) {
+    throw new ToolArgumentError(`${key} must be [x, y, z] finite numbers`, { field: key });
+  }
+  return [x, y, z];
+}
+
 function requirePointList(record: Record<string, unknown>, key: string): Array<readonly [number, number, number]> {
   const value = record[key];
   if (!Array.isArray(value) || value.length < 2) {
-    throw new TypeError(`${key} must be an array of at least two [x,y,z] points`);
+    throw new ToolArgumentError(`${key} must be an array of at least two [x,y,z] points`, { field: key });
   }
   return value.map((item, index) => {
-    if (!Array.isArray(item) || item.length < 3) {
-      throw new TypeError(`${key}[${index}] must be [x, y, z]`);
+    if (!Array.isArray(item) || item.length !== 3) {
+      throw new ToolArgumentError(`${key}[${index}] must be [x, y, z]`, { field: `${key}[${index}]` });
     }
     const x = item[0];
     const y = item[1];
     const z = item[2];
-    if (typeof x !== "number" || typeof y !== "number" || typeof z !== "number") {
-      throw new TypeError(`${key}[${index}] must contain finite numbers`);
+    if (
+      typeof x !== "number" ||
+      typeof y !== "number" ||
+      typeof z !== "number" ||
+      !Number.isFinite(x) ||
+      !Number.isFinite(y) ||
+      !Number.isFinite(z)
+    ) {
+      throw new ToolArgumentError(`${key}[${index}] must contain finite numbers`, {
+        field: `${key}[${index}]`,
+      });
     }
     return [x, y, z] as const;
   });
-}
-
-function optionalStringArray(record: Record<string, unknown>, key: string): string[] {
-  const value = record[key];
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter((item): item is string => typeof item === "string");
 }
 
 function resolvePrimitiveType(type: string): PrimitiveType {
@@ -548,8 +671,8 @@ function spawnParams(record: Record<string, unknown>): {
   ] as const;
 
   for (const key of numKeys) {
-    if (typeof record[key] === "number") {
-      (params as Record<string, unknown>)[key] = record[key];
+    if (hasNumber(record, key)) {
+      params[key] = record[key] as number;
     }
   }
 

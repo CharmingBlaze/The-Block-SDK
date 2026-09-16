@@ -13,6 +13,7 @@ export default tseslint.config(
       "**/vite.config.ts",
       "**/vitest.config.ts",
       "**/vitest.dist.config.ts",
+      "**/vitest.benchmark.config.ts",
       "**/tsup.config.ts",
       "playwright.config.ts",
       "tests/webgl/**",

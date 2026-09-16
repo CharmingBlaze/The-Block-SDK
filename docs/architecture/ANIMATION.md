@@ -29,3 +29,5 @@ Visibility tracks are SDK-only. Export omits them with `unsupported-animation-ch
 `evaluateDocumentClip(clip, time, skeleton?)` wraps time by `loopMode`, applies tracks, and reports missing bone targets. Rest-pose fallback is used when a skeleton is supplied.
 
 Three.js playback (`createThreeAnimationClip` / `AnimationMixer`) is preview-only and must not become the source of truth.
+
+Host interchange: [`../guides/formats.md`](../guides/formats.md). NLA / layers authoring is out of 1.0.

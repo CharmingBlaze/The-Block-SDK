@@ -269,9 +269,6 @@ importers:
       '@modeling-kit/selection':
         specifier: workspace:*
         version: link:../selection
-      '@modeling-kit/snapping':
-        specifier: workspace:*
-        version: link:../snapping
       '@modeling-kit/tools':
         specifier: workspace:*
         version: link:../tools
@@ -343,9 +340,6 @@ importers:
 
   packages/input:
     dependencies:
-      '@modeling-kit/core':
-        specifier: workspace:*
-        version: link:../core
       '@modeling-kit/math':
         specifier: workspace:*
         version: link:../math
@@ -394,9 +388,6 @@ importers:
       '@modeling-kit/core':
         specifier: workspace:*
         version: link:../core
-      '@modeling-kit/math':
-        specifier: workspace:*
-        version: link:../math
       '@modeling-kit/mesh':
         specifier: workspace:*
         version: link:../mesh
@@ -535,9 +526,6 @@ importers:
 
   packages/snapping:
     dependencies:
-      '@modeling-kit/core':
-        specifier: workspace:*
-        version: link:../core
       '@modeling-kit/math':
         specifier: workspace:*
         version: link:../math
@@ -547,9 +535,6 @@ importers:
 
   packages/three-adapter:
     dependencies:
-      '@modeling-kit/animation':
-        specifier: workspace:*
-        version: link:../animation
       '@modeling-kit/commands':
         specifier: workspace:*
         version: link:../commands
@@ -568,9 +553,6 @@ importers:
       '@modeling-kit/rigging':
         specifier: workspace:*
         version: link:../rigging
-      '@modeling-kit/scene':
-        specifier: workspace:*
-        version: link:../scene
       '@modeling-kit/selection':
         specifier: workspace:*
         version: link:../selection
@@ -590,9 +572,6 @@ importers:
       '@modeling-kit/input':
         specifier: workspace:*
         version: link:../input
-      '@modeling-kit/math':
-        specifier: workspace:*
-        version: link:../math
       '@modeling-kit/mesh':
         specifier: workspace:*
         version: link:../mesh

@@ -43,7 +43,12 @@ import { SetTransformsCommand } from "./set-transforms";
 import { SetVisibilityCommand } from "./set-visibility";
 import { inspectScene, type SceneInspectionResult } from "./scene-inspector";
 import { createModelingSession, ModelingSession } from "./session";
-import { parseFaceGroups, type SemanticFaceTag } from "./face-groups";
+import {
+  faceIdsForSemanticTag,
+  isSemanticFaceTag,
+  parseFaceGroups,
+  type SemanticFaceTag,
+} from "./face-groups";
 import { CreateMaterialCommand, type CreateMaterialParams } from "./create-material";
 import { UpdateMaterialCommand } from "./update-material";
 import { AssignMaterialSlotCommand } from "./assign-material-slot";
@@ -52,7 +57,7 @@ import { unwrapFluentSelection } from "./fluent-unwrap";
 
 export type VecDelta = { readonly x?: number; readonly y?: number; readonly z?: number };
 
-export type FaceSelectFilter = SemanticFaceTag | readonly FaceId[];
+export type FaceSelectFilter = SemanticFaceTag | readonly SemanticFaceTag[] | readonly FaceId[];
 
 /** Fluent object proxy allowing method chaining on a 3D object and its topology. */
 export class FluentMeshObject {
@@ -96,27 +101,42 @@ export class FluentMeshObject {
       return this;
     }
 
-    const groups = this.resolveGroups();
-    let faceIds: FaceId[] = [];
-    if (filter === "all") {
-      faceIds = Array.from(mesh.faces.keys());
-    } else if (filter === "left" && groups?.negX) {
-      faceIds = [groups.negX];
-    } else if (filter === "right" && groups?.posX) {
-      faceIds = [groups.posX];
-    } else if (typeof filter === "string") {
-      const tagged = groups?.[filter as Exclude<SemanticFaceTag, "all" | "left" | "right">];
-      faceIds = tagged ? [...tagged] : [];
-    } else {
-      faceIds = [...filter];
-    }
-
     this.editor.session.selection.replace({
       domain: "face",
       objectId: this.objectId,
-      elementIds: faceIds,
+      elementIds: this.resolveFaceIds(mesh, filter),
     });
     return this;
+  }
+
+  /** Resolves semantic tags to live face IDs, unioning every requested tag. */
+  faceIdsForTags(tags: readonly string[]): FaceId[] {
+    const mesh = this.mesh;
+    if (!mesh) {
+      return [];
+    }
+    const unknown = tags.filter((tag) => !isSemanticFaceTag(tag));
+    if (unknown.length > 0) {
+      throw new RangeError(`Unknown face tag: ${unknown.join(", ")}`);
+    }
+    return this.resolveFaceIds(mesh, tags as readonly SemanticFaceTag[]);
+  }
+
+  private resolveFaceIds(mesh: HalfEdgeMesh, filter: FaceSelectFilter | readonly SemanticFaceTag[]): FaceId[] {
+    const groups = this.resolveGroups();
+    if (typeof filter === "string") {
+      return faceIdsForSemanticTag(mesh, groups, filter);
+    }
+    if (filter.length > 0 && filter.every((item) => isSemanticFaceTag(item))) {
+      const ids = new Set<FaceId>();
+      for (const tag of filter) {
+        for (const id of faceIdsForSemanticTag(mesh, groups, tag)) {
+          ids.add(id);
+        }
+      }
+      return [...ids];
+    }
+    return [...(filter as readonly FaceId[])];
   }
 
   selectEdges(filter: "all" | readonly EdgeId[]): this {
@@ -232,8 +252,22 @@ export class FluentMeshObject {
     return this;
   }
 
-  mergeVertices(target: MergeVertexTarget = "center"): this {
-    this.editor.session.execute(new MergeVerticesCommand({ target }));
+  mergeVertices(
+    target: MergeVertexTarget = "center",
+    options: {
+      readonly position?: readonly [number, number, number];
+      readonly cursorPosition?: readonly [number, number, number];
+    } = {},
+  ): this {
+    this.editor.session.execute(
+      new MergeVerticesCommand({
+        target,
+        ...(target === "custom" && options.position ? { custom: options.position } : {}),
+        ...(target === "cursor" && options.cursorPosition
+          ? { cursor: options.cursorPosition }
+          : {}),
+      }),
+    );
     return this;
   }
 
@@ -686,7 +720,7 @@ export class FluentEditor {
   }
 
   clear(): this {
-    this.session.clearScene();
+    this.session.resetSessionDocument();
     this.lastObject = null;
     return this;
   }

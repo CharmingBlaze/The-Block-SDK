@@ -1,7 +1,8 @@
 import type { FaceId, MeshId } from "@modeling-kit/core";
+import type { Command } from "@modeling-kit/history";
+import type { HalfEdgeMesh } from "@modeling-kit/mesh";
 import type { AutomaticUvUnwrapOptions, AutomaticUvUnwrapResult, UnwrapExecutionOptions } from "@modeling-kit/uv";
 import { AutomaticUnwrapCommand } from "./automatic-unwrap";
-import type { ModelingSession } from "./session";
 
 export interface SessionAutomaticUnwrapParams {
   readonly meshId: MeshId;
@@ -10,8 +11,13 @@ export interface SessionAutomaticUnwrapParams {
   readonly options?: AutomaticUvUnwrapOptions;
 }
 
+interface SessionAutomaticUnwrapHost {
+  readonly meshes: ReadonlyMap<MeshId, HalfEdgeMesh>;
+  execute<T>(command: Command<T>): T;
+}
+
 export async function unwrapSessionMesh(
-  session: ModelingSession,
+  session: SessionAutomaticUnwrapHost,
   params: SessionAutomaticUnwrapParams,
   execution: UnwrapExecutionOptions = {},
 ): Promise<AutomaticUvUnwrapResult> {
