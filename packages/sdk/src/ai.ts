@@ -51,6 +51,7 @@ const PRIMITIVE_TYPES: readonly PrimitiveType[] = [
   "cone",
   "pyramid",
   "uvSphere",
+  "quadSphere",
   "icosphere",
   "torus",
   "capsule",
@@ -59,6 +60,19 @@ const PRIMITIVE_TYPES: readonly PrimitiveType[] = [
   "arch",
   "wall",
   "column",
+  "quad",
+  "rectangle",
+  "roundedRectangle",
+  "stadium",
+  "ellipse",
+  "annulus",
+  "superellipse",
+  "squircle",
+  "reuleux",
+  "roundedCube",
+  "ellipsoid",
+  "tetrahedron",
+  "icosahedron",
 ];
 
 function tool(name: string, description: string, parameters: JsonSchemaObject): EditorToolDefinition {

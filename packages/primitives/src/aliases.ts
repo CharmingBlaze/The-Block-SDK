@@ -7,11 +7,18 @@ export const PRIMITIVE_TYPE_ALIASES: Readonly<Record<string, PrimitiveType>> = {
   uvsphere: "uvSphere",
   UVSphere: "uvSphere",
   sphere: "uvSphere",
+  "quad-sphere": "quadSphere",
+  quadsphere: "quadSphere",
   "ico-sphere": "icosphere",
   icoSphere: "icosphere",
   Icosphere: "icosphere",
   pryamid: "pyramid",
   Pyramid: "pyramid",
+  rectangle: "rectangle",
+  "rounded-rectangle": "roundedRectangle",
+  "rounded-cube": "roundedCube",
+  reuleaux: "reuleux",
+  Reuleaux: "reuleux",
 };
 
 export function resolvePrimitiveType(type: string): PrimitiveType {

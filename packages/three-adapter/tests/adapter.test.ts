@@ -292,4 +292,31 @@ describe("ThreeViewportAdapter", () => {
     adapter.dispose();
     expect(disposeCount).toBe(1);
   });
+
+  it("rebuilds and disposes derived geometry for a library primitive", () => {
+    const session = createModelingSession(createSequenceIdFactory("lib-geo"));
+    const created = session.execute(new CreatePrimitiveCommand("tetrahedron", { radius: 0.5 }));
+    const adapter = new ThreeViewportAdapter({
+      session,
+      scene: new Scene(),
+      camera: new PerspectiveCamera(50, 1, 0.1, 100),
+      renderer: stubRenderer(),
+    });
+    adapter.mount();
+    const mesh = adapter.object3D(created.objectId) as Mesh;
+    expect(mesh).toBeInstanceOf(Mesh);
+    const geometry = mesh.geometry;
+    expect(geometry.getAttribute("position")).toBeTruthy();
+    expect(geometry.getAttribute("normal")).toBeTruthy();
+    expect(geometry.getAttribute("uv")).toBeTruthy();
+    expect(geometry.getIndex()).toBeTruthy();
+    expect(geometry.boundingBox).toBeTruthy();
+    expect(geometry.boundingSphere).toBeTruthy();
+    const before = adapter.runtimeGeometryCount;
+    session.execute(new CreatePrimitiveCommand("quad", { scale: 0.5 }));
+    expect(adapter.runtimeGeometryCount).toBe(before + 1);
+    adapter.dispose();
+    expect(adapter.nodeObjects.size).toBe(0);
+    expect(() => adapter.sync()).toThrow(/disposed/);
+  });
 });

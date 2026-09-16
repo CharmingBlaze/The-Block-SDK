@@ -159,9 +159,9 @@ Added as a runtime dependency of `@modeling-kit/primitives` only. Conversion bou
 5. Licence: MIT (Damien Seguin). Copyright notice retained via the npm package.  
 6. Maintenance: stable 2.x, zero runtime dependencies.  
 7. Browser/Node: ESM, Node >= 22, no DOM.  
-8. Canonical model: unchanged. Library arrays are discarded after conversion. `ModelDocument` still stores serialized half-edge meshes.  
-9. Abstraction: `convertSimplicialComplex` is the only import site. Commands, triangulation, Three.js adapter, undo, and validation never import `primitive-geometry`.  
-10. Tests: `packages/primitives/tests/library.test.ts`; command undo in `packages/commands/tests/library-primitive.test.ts`; adapter rebuild/dispose in `packages/three-adapter/tests/adapter.test.ts`. Visual fixture: `apps/_tmp-geometry-gallery`.
+8. Canonical model: unchanged. Library arrays are discarded after conversion. `ModelDocument` still stores serialized half-edge meshes. Catalog cube, UV sphere, quad sphere, torus, cylinder, capsule, and rounded cube use SDK `MeshBuilder` generators.  
+9. Abstraction: `convertSimplicialComplex` is the only import site. Library `cells` are treated as triangles unless `cellSize` is supplied. Commands, triangulation, Three.js adapter, undo, and validation never import `primitive-geometry`.  
+10. Tests: `packages/primitives/tests/library.test.ts`, `packages/primitives/tests/topology-canonical.test.ts`; command undo in `packages/commands/tests/library-primitive.test.ts`; adapter rebuild/dispose in `packages/three-adapter/tests/adapter.test.ts`. Visual fixture: `apps/geometry-gallery`.
 
 Excluded library entries: `circle` (polyline, no faces) and catalog `box`/`cube` (SDK keeps the 6-quad modeling bar). The converter still accepts the library `box` (no UVs/normals) and `cube` in tests.
 

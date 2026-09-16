@@ -65,4 +65,4 @@ math
 
 ## Optional engines
 
-`robust-predicates` is installed in `@modeling-kit/math` only (R1-T013), behind `GeometryPredicates`. Earcut, three-mesh-bvh, and manifold-3d remain uninstalled until their adapter tasks. `primitive-geometry` may already be present in `@modeling-kit/primitives` as a conversion-only dependency.
+`robust-predicates` is installed in `@modeling-kit/math` only (R1-T013), behind `GeometryPredicates`. `primitive-geometry` is installed in `@modeling-kit/primitives` only (R1-T014), behind `convertSimplicialComplex`. Earcut, three-mesh-bvh, and manifold-3d remain uninstalled until their adapter tasks.

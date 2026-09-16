@@ -33,6 +33,8 @@ export function syncDerivedGeometry(
   geometry.setAttribute("normal", new BufferAttribute(tri.normals, 3));
   geometry.setAttribute("uv", new BufferAttribute(tri.uvs, 2));
   geometry.setIndex(new BufferAttribute(tri.indices, 1));
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
   const mapping: RenderMapping = {
     triangleToFace: tri.triangleFaceIds,
     renderVertexToVertex: tri.vertexIdMap,

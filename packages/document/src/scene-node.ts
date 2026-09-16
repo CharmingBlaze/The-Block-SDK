@@ -46,8 +46,10 @@ export type PrimitiveType =
   | "disc"
   | "circle"
   | "uv-sphere"
+  | "quad-sphere"
   | "ico-sphere"
   | "uvSphere"
+  | "quadSphere"
   | "icosphere"
   | "cylinder"
   | "cone"
@@ -58,7 +60,20 @@ export type PrimitiveType =
   | "stairs"
   | "arch"
   | "wall"
-  | "column";
+  | "column"
+  | "quad"
+  | "rectangle"
+  | "roundedRectangle"
+  | "stadium"
+  | "ellipse"
+  | "annulus"
+  | "superellipse"
+  | "squircle"
+  | "reuleux"
+  | "roundedCube"
+  | "ellipsoid"
+  | "tetrahedron"
+  | "icosahedron";
 
 export type PrimitiveParameters = Record<string, number | string | boolean | undefined>;
 

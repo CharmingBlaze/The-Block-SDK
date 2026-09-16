@@ -18,7 +18,7 @@ A framework-agnostic TypeScript SDK for polygonal modeling, UV editing, painting
 ```
 Host UI  →  commands / queries / events
                 ↓
-         EditorSession (transient)
+         ModelingSession (transient)
                 ↓
          ModelDocument (canonical, serializable)
                 ↓
@@ -67,19 +67,18 @@ scene  selection  materials  uv
 
 **Peer:** `three-adapter` takes `three` as a peer. `@modeling-kit/sdk` is headless; `three` / `three-adapter` are optional peers for `@modeling-kit/sdk/three` only.
 
-## Public import shape (target)
+## Public import shape
 
 ```ts
-import { ModelDocument, EditorSession } from "@modeling-kit/core";
-import { Mesh, MeshBuilder } from "@modeling-kit/mesh";
+import { createEditor, createModelingSession } from "@modeling-kit/sdk";
+import { MeshBuilder } from "@modeling-kit/mesh";
 import { CommandManager } from "@modeling-kit/history";
 import { SelectionManager } from "@modeling-kit/selection";
-import { TransformService } from "@modeling-kit/transform";
+import { TransformGesture } from "@modeling-kit/transform";
 import { ThreeViewportAdapter, createThreeViewport } from "@modeling-kit/three-adapter";
-import { createModelingSession } from "@modeling-kit/sdk";
 ```
 
-See `docs/architecture/dependency-policy.md` for the approved library set and backend wrappers.
+The full subsystem list is in the root `README.md`. See `docs/architecture/dependency-policy.md` for the approved library set and backend wrappers.
 
 ## Workers
 
@@ -97,11 +96,11 @@ The headless `@modeling-kit/sdk` re-exports the runtime-neutral pool so browser 
 
 Input is documented in `docs/architecture/input.md`. Hosts bind DOM separately (`@modeling-kit/input/dom`); the adapter does not own keymaps.
 
-Ownership of document, session, tools, and derived Three.js objects is in `docs/architecture/ownership.md`.
+Ownership of document, session, tools, and derived Three.js objects is in `docs/architecture/ownership.md`. Primitive face composition is in `docs/architecture/primitive-topology.md`.
 
 ## Session vs document
 
-`ModelDocument` is what you save. `EditorSession` holds selection, active tool, transform space, pivot mode, snapping, history, interaction (hover, drag, box/lasso, previews), animation time, and playback.
+`ModelDocument` is what you save. `ModelingSession` holds selection, history, live meshes, transform/paint gestures, animation time, and playback.
 
 Previews must not append history. Commit or cancel is explicit.
 

@@ -17,7 +17,8 @@
   "dependencies": {
     "@modeling-kit/core": "workspace:*",
     "@modeling-kit/mesh": "workspace:*",
-    "@modeling-kit/validation": "workspace:*"
+    "@modeling-kit/validation": "workspace:*",
+    "primitive-geometry": "2.11.0"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",

@@ -70,7 +70,8 @@ function defaultParams(type: PrimitiveType): CreatePrimitiveParams {
       return { width: 3, height: 2, depth: 0.2 };
     case "column":
       return { radius: 0.35, height: 2.4, segments: 16 };
-  }
+    default:
+      return {};
 }
 
 const viewport = document.getElementById("viewport");

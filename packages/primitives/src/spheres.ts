@@ -252,7 +252,14 @@ export function generateTorus(
       );
     }
   }
-  return finalizePrimitive("torus", builder, { ...emptyGroups(), sides });
+  const result = finalizePrimitive("torus", builder, { ...emptyGroups(), sides });
+  for (let j = 0; j < ts; j++) {
+    markEdgeSeam(result.mesh, grid[j]![0]!, grid[j]![rs - 1]!);
+  }
+  for (let i = 0; i < rs; i++) {
+    markEdgeSeam(result.mesh, grid[0]![i]!, grid[ts - 1]![i]!);
+  }
+  return result;
 }
 
 export const torusPrimitive: PrimitiveGenerator<TorusParameters> = {

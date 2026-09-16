@@ -28,7 +28,7 @@ Do **not** make Three.js primitive geometries (`BoxGeometry`, etc.) canonical. D
 | `robust-predicates` | `orient2d` / `orient3d` | `@modeling-kit/math` behind `GeometryPredicates` | **Added 2026-09-16.** Sign/orientation only; distances stay on `GeometryTolerance`. See `docs/guides/geometry-predicates.md`. |
 | `zod` | Native JSON, tool params, clipboard, worker messages | `@modeling-kit/document` (and formats IO) | After a schema is frozen; do not Zod every vector op |
 | `fast-check` | Property tests (undo fingerprints, validity) | devDependency | After one generator is stable |
-| `primitive-geometry` | Typed-array geometry recipes (positions/normals/UVs/cells) | `@modeling-kit/primitives` behind `convertSimplicialComplex` | 2026-09-16. Canonical mesh stays half-edge; library output is never editable. |
+| `primitive-geometry` | Typed-array geometry recipes (positions/normals/UVs/cells) | `@modeling-kit/primitives` behind `convertSimplicialComplex` | 2026-09-16. Canonical primitives use `MeshBuilder`. Library `cells` are triangles unless `cellSize` is explicit. See `docs/architecture/primitive-topology.md`. |
 
 ## Approved later, optional adapter packages only
 

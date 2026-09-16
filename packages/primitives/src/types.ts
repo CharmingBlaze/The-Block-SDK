@@ -1,4 +1,4 @@
-import type { FaceId, MeshId } from "@modeling-kit/core";
+import type { FaceId, MeshId, VertexId } from "@modeling-kit/core";
 import type { CubeFaceIds, HalfEdgeMesh } from "@modeling-kit/mesh";
 
 export interface PrimitiveValidationResult {
@@ -27,10 +27,19 @@ export interface PrimitiveFaceGroups {
   readonly negZ?: FaceId;
 }
 
+export interface PrimitiveLibraryConversion {
+  readonly renderVertexCount: number;
+  readonly cellSize: 3 | 4;
+  readonly hadNormals: boolean;
+  readonly hadUvs: boolean;
+  readonly sourceIndexToVertex: readonly VertexId[];
+}
+
 export interface PrimitiveResult {
   readonly type: string;
   readonly mesh: HalfEdgeMesh;
   readonly groups: PrimitiveFaceGroups;
+  readonly library?: PrimitiveLibraryConversion;
 }
 
 export interface PrimitiveGenerator<TParameters> {
@@ -51,6 +60,7 @@ export type PrimitiveType =
   | "cone"
   | "pyramid"
   | "uvSphere"
+  | "quadSphere"
   | "icosphere"
   | "torus"
   | "capsule"
@@ -58,12 +68,28 @@ export type PrimitiveType =
   | "stairs"
   | "arch"
   | "wall"
-  | "column";
+  | "column"
+  | "quad"
+  | "rectangle"
+  | "roundedRectangle"
+  | "stadium"
+  | "ellipse"
+  | "annulus"
+  | "superellipse"
+  | "squircle"
+  | "reuleux"
+  | "roundedCube"
+  | "ellipsoid"
+  | "tetrahedron"
+  | "icosahedron";
 
 export interface BoxParameters {
   readonly width: number;
   readonly height: number;
   readonly depth: number;
+  readonly segmentsX?: number;
+  readonly segmentsY?: number;
+  readonly segmentsZ?: number;
 }
 
 export interface PlaneParameters {
@@ -110,6 +136,11 @@ export interface UvSphereParameters {
   readonly radius: number;
   readonly widthSegments: number;
   readonly heightSegments: number;
+}
+
+export interface QuadSphereParameters {
+  readonly radius: number;
+  readonly segments: number;
 }
 
 export interface IcosphereParameters {
@@ -162,4 +193,162 @@ export interface ColumnParameters {
   readonly radius: number;
   readonly height: number;
   readonly radialSegments: number;
+}
+
+export interface QuadParameters {
+  readonly scale: number;
+}
+
+export interface RectangleParameters {
+  readonly width: number;
+  readonly depth: number;
+  readonly segmentsX: number;
+  readonly segmentsZ: number;
+}
+
+export interface RoundedRectangleParameters {
+  readonly width: number;
+  readonly depth: number;
+  readonly radius: number;
+  readonly roundSegments: number;
+  readonly edgeSegments: number;
+}
+
+export interface StadiumParameters {
+  readonly width: number;
+  readonly depth: number;
+  readonly roundSegments: number;
+  readonly edgeSegments: number;
+}
+
+export interface EllipseParameters {
+  readonly radius: number;
+  readonly radiusX: number;
+  readonly radiusZ: number;
+  readonly segments: number;
+  readonly innerSegments: number;
+  readonly theta: number;
+  readonly thetaOffset: number;
+  readonly mergeCentroid: boolean;
+}
+
+export interface AnnulusParameters {
+  readonly radius: number;
+  readonly innerRadius: number;
+  readonly segments: number;
+  readonly innerSegments: number;
+  readonly theta: number;
+  readonly thetaOffset: number;
+}
+
+export interface SuperellipseParameters {
+  readonly radius: number;
+  readonly radiusX: number;
+  readonly radiusZ: number;
+  readonly segments: number;
+  readonly innerSegments: number;
+  readonly m: number;
+  readonly n: number;
+  readonly theta: number;
+  readonly thetaOffset: number;
+  readonly mergeCentroid: boolean;
+}
+
+export interface SquircleParameters {
+  readonly radius: number;
+  readonly radiusX: number;
+  readonly radiusZ: number;
+  readonly segments: number;
+  readonly innerSegments: number;
+  readonly squareness: number;
+  readonly theta: number;
+  readonly thetaOffset: number;
+  readonly mergeCentroid: boolean;
+}
+
+export interface ReuleuxParameters {
+  readonly radius: number;
+  readonly segments: number;
+  readonly innerSegments: number;
+  readonly sides: number;
+  readonly theta: number;
+  readonly thetaOffset: number;
+  readonly mergeCentroid: boolean;
+}
+
+export interface RoundedCubeParameters {
+  readonly width: number;
+  readonly height: number;
+  readonly depth: number;
+  readonly radius: number;
+  readonly roundSegments: number;
+  readonly edgeSegments: number;
+}
+
+export interface EllipsoidParameters {
+  readonly radius: number;
+  readonly radiusX: number;
+  readonly radiusY: number;
+  readonly radiusZ: number;
+  readonly widthSegments: number;
+  readonly heightSegments: number;
+}
+
+export interface TetrahedronParameters {
+  readonly radius: number;
+}
+
+export interface IcosahedronParameters {
+  readonly radius: number;
+}
+
+export interface PrimitiveCreateParams {
+  readonly name?: string;
+  readonly width?: number;
+  readonly height?: number;
+  readonly depth?: number;
+  readonly radius?: number;
+  readonly innerRadius?: number;
+  readonly outerRadius?: number;
+  readonly tube?: number;
+  readonly minorRadius?: number;
+  readonly segments?: number;
+  readonly radialSegments?: number;
+  readonly heightSegments?: number;
+  readonly widthSegments?: number;
+  readonly capSegments?: number;
+  readonly segmentsX?: number;
+  readonly segmentsY?: number;
+  readonly segmentsZ?: number;
+  readonly tubularSegments?: number;
+  readonly subdivisions?: number;
+  readonly steps?: number;
+  readonly capTop?: boolean;
+  readonly capBottom?: boolean;
+  readonly scale?: number;
+  readonly nx?: number;
+  readonly ny?: number;
+  readonly nz?: number;
+  readonly sx?: number;
+  readonly sy?: number;
+  readonly sz?: number;
+  readonly innerSegments?: number;
+  readonly roundSegments?: number;
+  readonly edgeSegments?: number;
+  readonly theta?: number;
+  readonly thetaOffset?: number;
+  readonly phi?: number;
+  readonly phiOffset?: number;
+  readonly radiusX?: number;
+  readonly radiusY?: number;
+  readonly radiusZ?: number;
+  readonly rx?: number;
+  readonly ry?: number;
+  readonly rz?: number;
+  readonly m?: number;
+  readonly n?: number;
+  readonly sides?: number;
+  readonly squareness?: number;
+  readonly mergeCentroid?: boolean;
+  readonly radiusApex?: number;
 }

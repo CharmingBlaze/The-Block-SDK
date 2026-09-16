@@ -12,7 +12,8 @@ import type { MaterialData } from "@modeling-kit/document";
 import type { MaterialSlotTarget } from "@modeling-kit/materials";
 import { cloneTransform } from "@modeling-kit/transform";
 import type { HalfEdgeMesh } from "@modeling-kit/mesh";
-import type { PrimitiveFaceGroups, PrimitiveType } from "@modeling-kit/primitives";
+import type { LibraryGeometryId, PrimitiveFaceGroups, PrimitiveType } from "@modeling-kit/primitives";
+import { CreateLibraryPrimitiveCommand } from "./create-library-primitive";
 import { CreatePrimitiveCommand, type CreatePrimitiveParams } from "./create-primitive";
 import { ExtrudeFacesCommand, type ExtrudeFacesParams } from "./extrude-faces";
 import { InsetFacesCommand, type InsetFacesParams } from "./inset-faces";
@@ -424,6 +425,13 @@ export class FluentEditor {
       object.selectObject();
       return object;
     },
+    library: (kind: LibraryGeometryId, params: CreatePrimitiveParams = {}): FluentMeshObject => {
+      const res = this.session.execute(new CreateLibraryPrimitiveCommand(kind, params));
+      const object = new FluentMeshObject(this, res.objectId, res.meshId, res.groups);
+      this.lastObject = object;
+      object.selectObject();
+      return object;
+    },
     box: (params: { size?: number; width?: number; height?: number; depth?: number; name?: string } = {}): FluentMeshObject => {
       return this.spawn.cube(params);
     },
@@ -474,6 +482,15 @@ export class FluentEditor {
         ...(params.radius !== undefined ? { radius: params.radius } : {}),
         ...(params.widthSegments !== undefined ? { widthSegments: params.widthSegments } : {}),
         ...(params.heightSegments !== undefined ? { heightSegments: params.heightSegments } : {}),
+        ...(params.name !== undefined ? { name: params.name } : {}),
+      });
+    },
+    quadSphere: (
+      params: { radius?: number; segments?: number; name?: string } = {},
+    ): FluentMeshObject => {
+      return this.spawn.primitive("quadSphere", {
+        radius: params.radius ?? 1,
+        segments: params.segments ?? 4,
         ...(params.name !== undefined ? { name: params.name } : {}),
       });
     },
@@ -540,6 +557,63 @@ export class FluentEditor {
         capSegments: params.capSegments ?? 8,
         ...(params.name !== undefined ? { name: params.name } : {}),
       });
+    },
+    quad: (params: { scale?: number; radius?: number; name?: string } = {}): FluentMeshObject => {
+      return this.spawn.primitive("quad", {
+        scale: params.scale ?? params.radius ?? 0.5,
+        ...(params.name !== undefined ? { name: params.name } : {}),
+      });
+    },
+    rectangle: (
+      params: { width?: number; depth?: number; segmentsX?: number; segmentsZ?: number; name?: string } = {},
+    ): FluentMeshObject => {
+      return this.spawn.primitive("rectangle", params);
+    },
+    roundedRectangle: (
+      params: { width?: number; depth?: number; radius?: number; name?: string } = {},
+    ): FluentMeshObject => {
+      return this.spawn.primitive("roundedRectangle", params);
+    },
+    stadium: (params: { width?: number; depth?: number; name?: string } = {}): FluentMeshObject => {
+      return this.spawn.primitive("stadium", params);
+    },
+    ellipse: (params: { radius?: number; radiusX?: number; radiusZ?: number; segments?: number; name?: string } = {}): FluentMeshObject => {
+      return this.spawn.primitive("ellipse", params);
+    },
+    annulus: (params: { radius?: number; innerRadius?: number; segments?: number; name?: string } = {}): FluentMeshObject => {
+      return this.spawn.primitive("annulus", params);
+    },
+    superellipse: (params: { radius?: number; m?: number; n?: number; segments?: number; name?: string } = {}): FluentMeshObject => {
+      return this.spawn.primitive("superellipse", params);
+    },
+    squircle: (params: { radius?: number; squareness?: number; segments?: number; name?: string } = {}): FluentMeshObject => {
+      return this.spawn.primitive("squircle", params);
+    },
+    reuleux: (params: { radius?: number; sides?: number; segments?: number; name?: string } = {}): FluentMeshObject => {
+      return this.spawn.primitive("reuleux", params);
+    },
+    roundedCube: (
+      params: { width?: number; height?: number; depth?: number; size?: number; radius?: number; name?: string } = {},
+    ): FluentMeshObject => {
+      const size = params.size ?? 1;
+      return this.spawn.primitive("roundedCube", {
+        width: params.width ?? size,
+        height: params.height ?? size,
+        depth: params.depth ?? size,
+        ...(params.radius !== undefined ? { radius: params.radius } : {}),
+        ...(params.name !== undefined ? { name: params.name } : {}),
+      });
+    },
+    ellipsoid: (
+      params: { radiusX?: number; radiusY?: number; radiusZ?: number; name?: string } = {},
+    ): FluentMeshObject => {
+      return this.spawn.primitive("ellipsoid", params);
+    },
+    tetrahedron: (params: { radius?: number; name?: string } = {}): FluentMeshObject => {
+      return this.spawn.primitive("tetrahedron", params);
+    },
+    icosahedron: (params: { radius?: number; name?: string } = {}): FluentMeshObject => {
+      return this.spawn.primitive("icosahedron", params);
     },
   };
 

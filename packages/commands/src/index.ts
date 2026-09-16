@@ -1,9 +1,10 @@
-export {
-  CreatePrimitiveCommand,
-  type CreatePrimitiveParams,
-  type CreatePrimitiveResult,
-  type PrimitiveType,
-} from "./create-primitive";
+export { CreatePrimitiveCommand } from "./create-primitive";
+export { CreateLibraryPrimitiveCommand } from "./create-library-primitive";
+export type {
+  CreatePrimitiveParams,
+  CreatePrimitiveResult,
+  PrimitiveType,
+} from "./create-primitive-result";
 export {
   ExtrudeFacesCommand,
   type ExtrudeFacesParams,

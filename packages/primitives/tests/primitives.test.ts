@@ -105,6 +105,8 @@ function reducedParams(type: PrimitiveType) {
       return { segments: 8, radialSegments: 8 };
     case "uvSphere":
       return { widthSegments: 8, heightSegments: 6 };
+    case "quadSphere":
+      return { radius: 0.5, segments: 2 };
     case "icosphere":
       return { subdivisions: 1 };
     case "torus":
@@ -115,6 +117,26 @@ function reducedParams(type: PrimitiveType) {
       return { steps: 3 };
     case "arch":
       return { segments: 8 };
+    case "quad":
+      return { scale: 0.5 };
+    case "rectangle":
+      return { width: 1, depth: 1, segmentsX: 2, segmentsZ: 2 };
+    case "roundedRectangle":
+    case "stadium":
+      return { width: 1, depth: 0.5, radius: 0.15, roundSegments: 4, edgeSegments: 1 };
+    case "ellipse":
+    case "annulus":
+    case "superellipse":
+    case "squircle":
+    case "reuleux":
+      return { radius: 0.5, segments: 10, innerSegments: 3 };
+    case "roundedCube":
+      return { width: 1, height: 1, depth: 1, radius: 0.15, roundSegments: 3 };
+    case "ellipsoid":
+      return { radius: 1, widthSegments: 8, heightSegments: 6 };
+    case "tetrahedron":
+    case "icosahedron":
+      return { radius: 0.5 };
     default:
       return {};
   }
@@ -268,7 +290,21 @@ describe("@modeling-kit/primitives topology", () => {
   });
 
   it("validates every catalog type", () => {
-    const open: PrimitiveType[] = ["plane", "grid", "disc", "circle"];
+    const open: PrimitiveType[] = [
+      "plane",
+      "grid",
+      "disc",
+      "circle",
+      "quad",
+      "rectangle",
+      "roundedRectangle",
+      "stadium",
+      "ellipse",
+      "annulus",
+      "superellipse",
+      "squircle",
+      "reuleux",
+    ];
     const closed: PrimitiveType[] = [
       "box",
       "cube",
@@ -276,6 +312,7 @@ describe("@modeling-kit/primitives topology", () => {
       "cone",
       "pyramid",
       "uvSphere",
+      "quadSphere",
       "icosphere",
       "torus",
       "capsule",
@@ -284,6 +321,10 @@ describe("@modeling-kit/primitives topology", () => {
       "arch",
       "wall",
       "column",
+      "roundedCube",
+      "ellipsoid",
+      "tetrahedron",
+      "icosahedron",
     ];
     for (const type of open) {
       expectValidMesh(type, false);
@@ -301,5 +342,6 @@ describe("@modeling-kit/primitives topology", () => {
     expect(ico.type).toBe("icosphere");
     expect(generatePrimitive("pryamid", { width: 1, depth: 1, height: 1 }).type).toBe("pyramid");
     expect(generatePrimitive("sphere", { widthSegments: 8, heightSegments: 6 }).type).toBe("uvSphere");
+    expect(generatePrimitive("quad-sphere", { segments: 2 }).type).toBe("quadSphere");
   });
 });

@@ -48,28 +48,6 @@ importers:
         specifier: ^3.2.4
         version: 3.2.7(@types/node@24.13.4)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
 
-  apps/_tmp-geometry-gallery:
-    dependencies:
-      '@modeling-kit/sdk':
-        specifier: workspace:*
-        version: link:../../packages/sdk
-      '@modeling-kit/three-adapter':
-        specifier: workspace:*
-        version: link:../../packages/three-adapter
-      three:
-        specifier: ^0.180.0
-        version: 0.180.0
-    devDependencies:
-      '@types/three':
-        specifier: ^0.180.0
-        version: 0.180.0
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      vite:
-        specifier: ^5.4.14
-        version: 5.4.21(@types/node@24.13.4)
-
   apps/example-react:
     dependencies:
       '@modeling-kit/sdk':
@@ -137,6 +115,28 @@ importers:
       vue-tsc:
         specifier: ^2.2.0
         version: 2.2.12(typescript@5.9.3)
+
+  apps/geometry-gallery:
+    dependencies:
+      '@modeling-kit/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk
+      '@modeling-kit/three-adapter':
+        specifier: workspace:*
+        version: link:../../packages/three-adapter
+      three:
+        specifier: ^0.180.0
+        version: 0.180.0
+    devDependencies:
+      '@types/three':
+        specifier: ^0.180.0
+        version: 0.180.0
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^5.4.14
+        version: 5.4.21(@types/node@24.13.4)
 
   apps/playground:
     dependencies:

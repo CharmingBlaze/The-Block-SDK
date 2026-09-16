@@ -7,34 +7,16 @@ import {
   generateWall,
 } from "./architecture";
 import { generateBox } from "./box";
-import { generateDisc, generateGrid, generatePlane } from "./planar";
+import { generateDisc, generateGrid, generatePlane, generateQuad } from "./planar";
 import { generateCapsule, generateCone, generateCylinder, generatePyramid } from "./solids";
 import { generateIcosphere, generateTorus, generateUvSphere } from "./spheres";
+import { generateQuadSphere } from "./quad-sphere";
 import { canonicalizePrimitiveType } from "./aliases";
-import type { PrimitiveGenerationContext, PrimitiveResult, PrimitiveType } from "./types";
+import { generateCatalogLibraryPrimitive } from "./catalog-library";
+import { generateRoundedCube } from "./rounded-cube";
+import type { PrimitiveCreateParams, PrimitiveGenerationContext, PrimitiveResult, PrimitiveType } from "./types";
 
-export interface PrimitiveCreateParams {
-  readonly name?: string;
-  readonly width?: number;
-  readonly height?: number;
-  readonly depth?: number;
-  readonly radius?: number;
-  readonly innerRadius?: number;
-  readonly outerRadius?: number;
-  readonly tube?: number;
-  readonly segments?: number;
-  readonly radialSegments?: number;
-  readonly heightSegments?: number;
-  readonly widthSegments?: number;
-  readonly capSegments?: number;
-  readonly segmentsX?: number;
-  readonly segmentsZ?: number;
-  readonly tubularSegments?: number;
-  readonly subdivisions?: number;
-  readonly steps?: number;
-  readonly capTop?: boolean;
-  readonly capBottom?: boolean;
-}
+export type { PrimitiveCreateParams } from "./types";
 
 export const primitiveDisplayNames: Record<PrimitiveType, string> = {
   box: "Cube",
@@ -47,6 +29,7 @@ export const primitiveDisplayNames: Record<PrimitiveType, string> = {
   cone: "Cone",
   pyramid: "Pyramid",
   uvSphere: "UV Sphere",
+  quadSphere: "Quad Sphere",
   icosphere: "Icosphere",
   torus: "Torus",
   capsule: "Capsule",
@@ -55,6 +38,19 @@ export const primitiveDisplayNames: Record<PrimitiveType, string> = {
   arch: "Arch",
   wall: "Wall",
   column: "Column",
+  quad: "Quad",
+  rectangle: "Rectangle",
+  roundedRectangle: "Rounded Rectangle",
+  stadium: "Stadium",
+  ellipse: "Ellipse",
+  annulus: "Annulus",
+  superellipse: "Superellipse",
+  squircle: "Squircle",
+  reuleux: "Reuleaux",
+  roundedCube: "Rounded Cube",
+  ellipsoid: "Ellipsoid",
+  tetrahedron: "Tetrahedron",
+  icosahedron: "Icosahedron",
 };
 
 export function generatePrimitive(
@@ -62,7 +58,8 @@ export function generatePrimitive(
   params: PrimitiveCreateParams = {},
   context: PrimitiveGenerationContext = {},
 ): PrimitiveResult {
-  switch (canonicalizePrimitiveType(type)) {
+  const kind = canonicalizePrimitiveType(type);
+  switch (kind) {
     case "cube":
     case "box":
       return generateBox(
@@ -70,6 +67,9 @@ export function generatePrimitive(
           width: params.width ?? 1,
           height: params.height ?? 1,
           depth: params.depth ?? 1,
+          segmentsX: params.segmentsX ?? params.nx ?? 1,
+          segmentsY: params.segmentsY ?? params.ny ?? 1,
+          segmentsZ: params.segmentsZ ?? params.nz ?? 1,
         },
         context,
       );
@@ -129,6 +129,14 @@ export function generatePrimitive(
           radius: params.radius ?? 0.5,
           widthSegments: params.widthSegments ?? params.radialSegments ?? params.segments ?? 16,
           heightSegments: params.heightSegments ?? 12,
+        },
+        context,
+      );
+    case "quadSphere":
+      return generateQuadSphere(
+        {
+          radius: params.radius ?? 0.5,
+          segments: params.segments ?? params.widthSegments ?? params.nx ?? 4,
         },
         context,
       );
@@ -205,7 +213,36 @@ export function generatePrimitive(
         },
         context,
       );
-    default:
+    case "quad":
+      return generateQuad({ scale: params.scale ?? params.width ?? 1 }, context);
+    case "rectangle":
+      return generateGrid(
+        {
+          width: params.width ?? 1,
+          depth: params.depth ?? params.height ?? 1,
+          segmentsX: params.segmentsX ?? params.nx ?? 1,
+          segmentsZ: params.segmentsZ ?? params.nz ?? 1,
+        },
+        context,
+      );
+    case "roundedCube":
+      return generateRoundedCube(
+        {
+          width: params.width ?? 1,
+          height: params.height ?? 1,
+          depth: params.depth ?? 1,
+          radius: params.radius ?? Math.min(params.width ?? 1, params.height ?? 1, params.depth ?? 1) * 0.15,
+          roundSegments: params.roundSegments ?? 4,
+          edgeSegments: params.edgeSegments ?? 1,
+        },
+        context,
+      );
+    default: {
+      const fromLibrary = generateCatalogLibraryPrimitive(kind, params, context);
+      if (fromLibrary) {
+        return fromLibrary;
+      }
       throw new SchemaError(`Unknown primitive type: ${String(type)}`);
+    }
   }
 }

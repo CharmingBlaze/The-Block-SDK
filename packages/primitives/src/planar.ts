@@ -17,6 +17,7 @@ import type {
   PrimitiveGenerator,
   PrimitiveResult,
   PrimitiveValidationResult,
+  QuadParameters,
 } from "./types";
 
 export const planeDefaults: PlaneParameters = { width: 1, depth: 1 };
@@ -52,6 +53,30 @@ export function generatePlane(
     top: [top],
   });
 }
+
+export const quadDefaults: QuadParameters = { scale: 1 };
+
+export function validateQuadParameters(parameters: QuadParameters): PrimitiveValidationResult {
+  const errors: string[] = [];
+  positive("scale", parameters.scale, errors);
+  return { ok: errors.length === 0, errors };
+}
+
+export function generateQuad(
+  parameters: QuadParameters = quadDefaults,
+  context: PrimitiveGenerationContext = {},
+): PrimitiveResult {
+  requireValid(validateQuadParameters(parameters), "quad");
+  const result = generatePlane({ width: parameters.scale, depth: parameters.scale }, context);
+  return { ...result, type: "quad" };
+}
+
+export const quadPrimitive: PrimitiveGenerator<QuadParameters> = {
+  type: "quad",
+  defaults: quadDefaults,
+  validate: validateQuadParameters,
+  generate: generateQuad,
+};
 
 export const planePrimitive: PrimitiveGenerator<PlaneParameters> = {
   type: "plane",

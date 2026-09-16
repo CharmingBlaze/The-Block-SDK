@@ -1,4 +1,5 @@
 export {
+  CreateLibraryPrimitiveCommand,
   CreatePrimitiveCommand,
   ExtrudeFacesCommand,
   InsetFacesCommand,
@@ -433,6 +434,8 @@ export {
   generateCone,
   generatePyramid,
   generateUvSphere,
+  generateQuadSphere,
+  generateRoundedCube,
   generateIcosphere,
   generateTorus,
   generateCapsule,
@@ -444,6 +447,11 @@ export {
   generatePrimitive,
   primitiveDisplayNames,
   canonicalizePrimitiveType,
+  convertSimplicialComplex,
+  generateLibraryPrimitive,
+  LIBRARY_DISPLAY_NAMES,
+  LIBRARY_GEOMETRY_IDS,
+  isLibraryGeometryId,
   boxPrimitive,
   boxDefaults,
   validateBoxParameters,
@@ -453,6 +461,8 @@ export {
   type PrimitiveGenerator,
   type PrimitiveType,
   type PrimitiveCreateParams,
+  type PrimitiveLibraryConversion,
+  type LibraryGeometryId,
 } from "@modeling-kit/primitives";
 export { validateMesh, healMesh, type MeshValidationResult, type MeshIssue, type MeshCleanupReport } from "@modeling-kit/validation";
 export {

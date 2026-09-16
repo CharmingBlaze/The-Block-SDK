@@ -2,6 +2,7 @@ export {
   boxDefaults,
   boxPrimitive,
   generateBox,
+  generateSubdividedBox,
   validateBoxParameters,
 } from "./box";
 export {
@@ -12,13 +13,17 @@ export {
   generateDisc,
   generateGrid,
   generatePlane,
+  generateQuad,
   gridDefaults,
   gridPrimitive,
   planeDefaults,
   planePrimitive,
+  quadDefaults,
+  quadPrimitive,
   validateDiscParameters,
   validateGridParameters,
   validatePlaneParameters,
+  validateQuadParameters,
 } from "./planar";
 export {
   capsuleDefaults,
@@ -53,6 +58,18 @@ export {
   validateUvSphereParameters,
 } from "./spheres";
 export {
+  generateQuadSphere,
+  quadSphereDefaults,
+  quadSpherePrimitive,
+  validateQuadSphereParameters,
+} from "./quad-sphere";
+export {
+  generateRoundedCube,
+  roundedCubeDefaults,
+  roundedCubePrimitive,
+  validateRoundedCubeParameters,
+} from "./rounded-cube";
+export {
   archDefaults,
   archPrimitive,
   columnDefaults,
@@ -76,6 +93,19 @@ export {
 } from "./architecture";
 export { generatePrimitive, primitiveDisplayNames, type PrimitiveCreateParams } from "./catalog";
 export { canonicalizePrimitiveType, resolvePrimitiveType, PRIMITIVE_TYPE_ALIASES } from "./aliases";
+export {
+  convertSimplicialComplex,
+  generateLibraryPrimitive,
+  validateLibraryParameters,
+  LIBRARY_CLOSED,
+  LIBRARY_DISPLAY_NAMES,
+  LIBRARY_GEOMETRY_IDS,
+  isLibraryGeometryId,
+  type ConvertedPrimitive,
+  type ConvertSimplicialOptions,
+  type SimplicialComplexInput,
+  type LibraryGeometryId,
+} from "./library";
 export type {
   ArchParameters,
   BoxParameters,
@@ -90,11 +120,15 @@ export type {
   PrimitiveFaceGroups,
   PrimitiveGenerationContext,
   PrimitiveGenerator,
+  PrimitiveLibraryConversion,
   PrimitiveResult,
   PrimitiveType,
   PrimitiveValidationResult,
   PyramidParameters,
+  QuadParameters,
+  QuadSphereParameters,
   RampParameters,
+  RoundedCubeParameters,
   StairsParameters,
   TorusParameters,
   UvSphereParameters,

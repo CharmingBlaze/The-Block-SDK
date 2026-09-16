@@ -43,8 +43,55 @@ export function addFace(
   builder: MeshBuilder,
   vertices: readonly VertexId[],
   uvs: [number, number][],
+  extra?: { readonly normals?: readonly (readonly [number, number, number])[]; readonly isSmooth?: boolean },
 ): FaceId {
-  return builder.addFace(vertices, { uvs });
+  return builder.addFace(vertices, {
+    uvs,
+    ...(extra?.normals ? { normals: extra.normals.map((n) => [n[0], n[1], n[2]] as [number, number, number]) } : {}),
+    ...(extra?.isSmooth !== undefined ? { isSmooth: extra.isSmooth } : {}),
+  });
+}
+
+/** Reverse a face loop when Newell's normal points toward the origin. */
+export function orientLoopOutward(
+  builder: MeshBuilder,
+  vertices: readonly VertexId[],
+  uvs: [number, number][],
+): { vertices: VertexId[]; uvs: [number, number][] } {
+  const mesh = builder.getMesh();
+  const pts = vertices.map((id) => {
+    const vertex = mesh.vertices.get(id);
+    if (!vertex) {
+      throw new SchemaError("orientLoopOutward: missing vertex");
+    }
+    return vertex.position;
+  });
+  let nx = 0;
+  let ny = 0;
+  let nz = 0;
+  const n = pts.length;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i]!;
+    const b = pts[(i + 1) % n]!;
+    nx += (a[1] - b[1]) * (a[2] + b[2]);
+    ny += (a[2] - b[2]) * (a[0] + b[0]);
+    nz += (a[0] - b[0]) * (a[1] + b[1]);
+  }
+  let cx = 0;
+  let cy = 0;
+  let cz = 0;
+  for (const p of pts) {
+    cx += p[0];
+    cy += p[1];
+    cz += p[2];
+  }
+  cx /= n;
+  cy /= n;
+  cz /= n;
+  if (nx * cx + ny * cy + nz * cz >= 0) {
+    return { vertices: [...vertices], uvs };
+  }
+  return { vertices: [...vertices].reverse(), uvs: [...uvs].reverse() };
 }
 
 export function ringPoint(radius: number, index: number, count: number, y: number): [number, number, number] {
@@ -107,9 +154,33 @@ export function finalizePrimitive(
       `${type} primitive failed validation: ${validity.errors.map((issue: MeshIssue) => issue.code).join(", ")}`,
     );
   }
-  for (const corner of mesh.corners.values()) {
-    if (!corner.uv || !Number.isFinite(corner.uv[0]) || !Number.isFinite(corner.uv[1])) {
-      throw new SchemaError(`${type} primitive is missing per-corner UVs`);
+  for (const [faceId] of mesh.faces) {
+    const verts = mesh.getFaceVertices(faceId);
+    const a = mesh.vertices.get(verts[0]!)!.position;
+    const b = mesh.vertices.get(verts[1]!)!.position;
+    const c = mesh.vertices.get(verts[2]!)!.position;
+    const nx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]);
+    const ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
+    const nz = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+    const len = Math.hypot(nx, ny, nz) || 1;
+    const fallback: [number, number, number] = [nx / len, ny / len, nz / len];
+    for (const cornerId of mesh.getFaceCorners(faceId)) {
+      const corner = mesh.corners.get(cornerId);
+      if (!corner) {
+        continue;
+      }
+      if (!corner.uv || !Number.isFinite(corner.uv[0]) || !Number.isFinite(corner.uv[1])) {
+        throw new SchemaError(`${type} primitive is missing per-corner UVs`);
+      }
+      const normal = corner.normal;
+      if (
+        !normal ||
+        !Number.isFinite(normal[0]) ||
+        !Number.isFinite(normal[1]) ||
+        !Number.isFinite(normal[2])
+      ) {
+        corner.normal = fallback;
+      }
     }
   }
   return { type, mesh, groups };

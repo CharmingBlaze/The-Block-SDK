@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Primitive geometry gallery</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; background: #101018; color: #ececf4; }
+      #viewport { width: 100%; height: 100%; }
+      #ui {
+        position: absolute; top: 12px; left: 12px; z-index: 10; width: 320px;
+        max-height: calc(100% - 24px); overflow: auto;
+        background: rgba(18, 18, 28, 0.92); border: 1px solid #333348;
+        border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+      }
+      h1 { margin: 0; font-size: 13px; color: #fbbf24; }
+      .hint { font-size: 11px; color: #a1a1aa; line-height: 1.4; }
+      label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #8888a0; }
+      select {
+        width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid #3d3d54;
+        background: #1c1c2a; color: #eee; font-size: 13px;
+      }
+      .row { display: flex; gap: 6px; flex-wrap: wrap; }
+      button {
+        flex: 1; padding: 7px 8px; background: #252536; border: 1px solid #3d3d54;
+        border-radius: 6px; color: #ddd; font-size: 12px; cursor: pointer;
+      }
+      button[aria-pressed="true"] { border-color: #fbbf24; color: #fff; }
+      .stats { font-size: 11px; color: #9999b0; background: #191924; border: 1px solid #29293a; border-radius: 6px; padding: 8px; }
+    </style>
+  </head>
+  <body>
+    <div id="ui">
+      <h1>Primitive geometry gallery</h1>
+      <div class="hint">Library recipes converted to HalfEdgeMesh. Checker shows UVs; wireframe shows faces; flat/smooth shows normals. <code>pnpm --filter @modeling-kit/geometry-gallery dev</code></div>
+      <label for="shape">Library primitive</label>
+      <select id="shape"></select>
+      <div class="row">
+        <button id="prev" type="button">Prev</button>
+        <button id="next" type="button">Next</button>
+      </div>
+      <div class="row">
+        <button id="flat" type="button" aria-pressed="false">Flat</button>
+        <button id="smooth" type="button" aria-pressed="true">Smooth</button>
+      </div>
+      <div class="row">
+        <button id="wire" type="button" aria-pressed="true">Wireframe</button>
+        <button id="checker" type="button" aria-pressed="true">Checker UVs</button>
+      </div>
+      <div class="stats">
+        <div>Type <strong id="stat-type">—</strong></div>
+        <div>Verts / faces <strong id="stat-mesh">—</strong></div>
+        <div>UVs / normals <strong id="stat-attr">—</strong></div>
+        <div>Seams / closed <strong id="stat-topo">—</strong></div>
+      </div>
+    </div>
+    <div id="viewport"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
