@@ -9,6 +9,7 @@ export default defineConfig({
       "@modeling-kit/document": path.resolve(__dirname, "packages/document/src/index.ts"),
       "@modeling-kit/scene": path.resolve(__dirname, "packages/scene/src/index.ts"),
       "@modeling-kit/mesh": path.resolve(__dirname, "packages/mesh/src/index.ts"),
+      "@modeling-kit/meshopt": path.resolve(__dirname, "packages/meshopt/src/index.ts"),
       "@modeling-kit/selection": path.resolve(__dirname, "packages/selection/src/index.ts"),
       "@modeling-kit/history": path.resolve(__dirname, "packages/history/src/index.ts"),
       "@modeling-kit/commands": path.resolve(__dirname, "packages/commands/src/index.ts"),

@@ -26,7 +26,7 @@ module.exports = {
         "Three.js is allowed only in @modeling-kit/three-adapter, host apps, and @modeling-kit/sdk/three.",
       severity: "error",
       from: {
-        path: "^packages/(core|math|document|mesh|validation|scene|selection|history|materials|uv|paint|primitives|transform|snapping|input|tools|commands|formats|workers|rigging|animation|sdk)/",
+        path: "^packages/(core|math|document|mesh|meshopt|validation|scene|selection|history|materials|uv|paint|primitives|transform|snapping|input|tools|commands|formats|workers|rigging|animation|sdk)/",
         pathNot: "^packages/sdk/src/three\\.ts$",
       },
       to: { path: "(^|/)node_modules/three(/|$)|^three$" },
@@ -36,7 +36,7 @@ module.exports = {
       comment: "Headless packages must not import @modeling-kit/three-adapter.",
       severity: "error",
       from: {
-        path: "^packages/(core|math|document|mesh|validation|scene|selection|history|materials|uv|paint|primitives|transform|snapping|input|tools|commands|formats|workers|rigging|animation|sdk)/",
+        path: "^packages/(core|math|document|mesh|meshopt|validation|scene|selection|history|materials|uv|paint|primitives|transform|snapping|input|tools|commands|formats|workers|rigging|animation|sdk)/",
         pathNot: "^packages/sdk/src/three\\.ts$",
       },
       to: { path: "^packages/three-adapter/" },

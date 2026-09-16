@@ -26,6 +26,7 @@ const HEADLESS_IMPORTS: Record<string, readonly string[]> = {
   "@modeling-kit/animation": ["@modeling-kit/animation"],
   "@modeling-kit/sdk": ["@modeling-kit/sdk"],
   "@modeling-kit/workers": ["@modeling-kit/workers", "@modeling-kit/workers/node"],
+  "@modeling-kit/meshopt": ["@modeling-kit/meshopt"],
 };
 
 function runPnpm(args: string[], cwd: string): string {

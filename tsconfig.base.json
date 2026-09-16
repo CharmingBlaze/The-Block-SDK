@@ -33,6 +33,7 @@
       "@modeling-kit/materials": ["./packages/materials/src/index.ts"],
       "@modeling-kit/math": ["./packages/math/src/index.ts"],
       "@modeling-kit/mesh": ["./packages/mesh/src/index.ts"],
+      "@modeling-kit/meshopt": ["./packages/meshopt/src/index.ts"],
       "@modeling-kit/paint": ["./packages/paint/src/index.ts"],
       "@modeling-kit/primitives": ["./packages/primitives/src/index.ts"],
       "@modeling-kit/rigging": ["./packages/rigging/src/index.ts"],

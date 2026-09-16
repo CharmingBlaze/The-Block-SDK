@@ -42,6 +42,7 @@ Tooling setup (Serena, Repomix, dependency-cruiser, Knip, fast-check) is Cursor-
 | R1-T014 | Primitive-geometry adapter | VERIFIED | `@modeling-kit/primitives` (+ commands/three-adapter tests) | `tasks/R1-T014.md` |
 | R1-T015 | Earcut triangulation backend | VERIFIED | `@modeling-kit/mesh` | `tasks/R1-T015.md` |
 | R1-T016 | geometry-extrude profile adapter | VERIFIED | `@modeling-kit/primitives` (+ commands/tools) | `tasks/R1-T016.md` |
+| R1-T017 | meshoptimizer derived-triangle adapter | VERIFIED | `@modeling-kit/meshopt` | `tasks/R1-T017.md` |
 
 ## Backlog
 
@@ -62,3 +63,4 @@ None in M3–M7. Next Cursor-owned work is M8–M12 (box/lasso, formats, UV/pain
 - R1-T014 — 2026-09-16. `primitive-geometry` behind `convertSimplicialComplex`. Library recipes convert to HalfEdgeMesh; catalog cube/uvSphere unchanged.
 - R1-T015 — 2026-09-16. `earcut` behind `triangulatePolygonLoops`. Convex faces stay ear-clipped; holes/concave use Earcut with validation.
 - R1-T016 — 2026-09-16. `geometry-extrude` behind `generateProfileExtrude`. Catalog `wall` and `extrudeFaces` unchanged. Focused tests 26+ passed; primitives/commands/tools/sdk typecheck passed.
+- R1-T017 — 2026-09-16. `meshoptimizer` behind `optimizeDerivedTriangles` in `@modeling-kit/meshopt`. Half-edge kernel unchanged.

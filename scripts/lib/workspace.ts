@@ -138,6 +138,12 @@ export const PACKAGE_LAYERS: Record<
     requirementPrefixes: ["JOB"],
     forbidden: ["three", "DOM in the runtime-neutral entry"],
   },
+  "@modeling-kit/meshopt": {
+    purpose: "Optional meshoptimizer adapter on derived triangles only",
+    layer: "io",
+    requirementPrefixes: ["JOB"],
+    forbidden: ["three", "canonical mesh mutation"],
+  },
   "@modeling-kit/rigging": {
     purpose: "Skeletons and skin weights (preview)",
     layer: "deferred",

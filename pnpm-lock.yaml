@@ -337,6 +337,18 @@ importers:
         specifier: 3.0.2
         version: 3.0.2
 
+  packages/meshopt:
+    dependencies:
+      '@modeling-kit/core':
+        specifier: workspace:*
+        version: link:../core
+      '@modeling-kit/mesh':
+        specifier: workspace:*
+        version: link:../mesh
+      meshoptimizer:
+        specifier: 1.2.0
+        version: 1.2.0
+
   packages/paint:
     dependencies:
       '@modeling-kit/core':
@@ -2624,6 +2636,9 @@ packages:
 
   meshoptimizer@0.22.0:
     resolution: {integrity: sha512-IebiK79sqIy+E4EgOr+CAw+Ke8hAspXKzBd0JdgEmPHiAwmvEj2S4h1rfvo+o/BnfEYd/jAOg5IeeIjzlzSnDg==}
+
+  meshoptimizer@1.2.0:
+    resolution: {integrity: sha512-davRZeIJbxJrE24cwQle7ZDsxjdk/OphNOV83oX+efQinyoHY9Jcyz3MHbaoG0qySZajldGztNZ1RN/T19PZsg==}
 
   micromatch@4.0.8:
     resolution: {integrity: sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==}
@@ -5241,6 +5256,8 @@ snapshots:
   merge2@1.4.1: {}
 
   meshoptimizer@0.22.0: {}
+
+  meshoptimizer@1.2.0: {}
 
   micromatch@4.0.8:
     dependencies:

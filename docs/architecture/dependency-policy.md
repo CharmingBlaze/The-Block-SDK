@@ -30,6 +30,7 @@ Do **not** make Three.js primitive geometries (`BoxGeometry`, etc.) canonical. D
 | `fast-check` | Property tests (undo fingerprints, validity) | devDependency | After one generator is stable |
 | `primitive-geometry` | Typed-array geometry recipes (positions/normals/UVs/cells) | `@modeling-kit/primitives` behind `convertSimplicialComplex` | 2026-09-16. Canonical primitives use `MeshBuilder`. Library `cells` are triangles unless `cellSize` is explicit. See `docs/architecture/primitive-topology.md`. |
 | `geometry-extrude` | 2D profile / path → triangle soup | `@modeling-kit/primitives` behind `generateProfileExtrude` | **Added 2026-09-16.** Does not replace `extrudeFaces` or catalog `wall`. XY+Z remaps to SDK XZ ground / +Y height. See `docs/guides/profile-extrude.md`. |
+| `meshoptimizer` | Vertex-cache/fetch reorder and controlled LOD on **derived** triangles | `@modeling-kit/meshopt` behind `optimizeDerivedTriangles` | **Added 2026-09-16.** Never mutates HalfEdgeMesh. Not a required `@modeling-kit/sdk` dependency. See `docs/guides/meshopt.md`. |
 
 ## Approved later, optional adapter packages only
 
@@ -38,10 +39,9 @@ Do **not** make Three.js primitive geometries (`BoxGeometry`, etc.) canonical. D
 | `three-mesh-bvh` | optional peer of `three-adapter` as `SpatialQueryBackend` | Picking/lasso on large meshes; dirty levels, not rebuild every pointer move |
 | `manifold-3d` | `@modeling-kit/booleans-manifold` as `BooleanBackend` | After kernel, selection, extrusion, undo, save/load (already passing) **and** a conversion-report design |
 | `@gltf-transform/*` | optional processor **beside** our codecs as `GltfBackend` helpers | Dedup/prune/texture resize. **Do not replace** `exportGltf` / `importGltf` / `exportGlb` |
-| `meshoptimizer` | `@modeling-kit/meshopt` on **derived** triangles only | After glTF export (already working) |
 | `comlink` | workers | If postMessage friction is measured |
 
-Keep Manifold, glTF Transform, meshoptimizer, and Comlink **out of** `@modeling-kit/mesh`, `@modeling-kit/document`, and `@modeling-kit/sdk` required dependencies.
+Keep Manifold, glTF Transform, and Comlink **out of** `@modeling-kit/mesh`, `@modeling-kit/document`, and `@modeling-kit/sdk` required dependencies. `meshoptimizer` lives only in `@modeling-kit/meshopt`.
 
 ## Forbidden until a 10-point review is logged
 

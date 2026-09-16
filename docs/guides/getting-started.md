@@ -98,5 +98,6 @@ Heavy triangulation, UV packing, and mesh validation can run on `@modeling-kit/w
 - Primitive-geometry conversion: [`primitive-geometry.md`](primitive-geometry.md)
 - Polygon triangulation (ear clip vs Earcut): [`triangulation.md`](triangulation.md)
 - Profile extrusion: [`profile-extrude.md`](profile-extrude.md)
+- Derived mesh optimization: [`meshopt.md`](meshopt.md)
 - Architecture and ownership: [`../architecture/sdk-architecture.md`](../architecture/sdk-architecture.md), [`../architecture/ownership.md`](../architecture/ownership.md)
 - 1.0 requirements: [`../architecture/modeling-operator-specification.md`](../architecture/modeling-operator-specification.md)

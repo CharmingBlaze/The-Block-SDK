@@ -23,13 +23,13 @@ const FORBIDDEN_DEPENDENCIES = [
   "gl-matrix",
   "@gltf-transform/core",
   "comlink",
-  "meshoptimizer",
 ];
 
 const ALLOWED_OPTIONAL_DEPENDENCIES: Readonly<Record<string, readonly string[]>> = {
   mesh: ["earcut"],
   math: ["robust-predicates"],
   primitives: ["primitive-geometry", "geometry-extrude"],
+  meshopt: ["meshoptimizer"],
 };
 
 function walkTsFiles(dir: string, out: string[] = []): string[] {
@@ -103,7 +103,8 @@ describe("architecture gates", () => {
           (name === "earcut" ||
             name === "robust-predicates" ||
             name === "primitive-geometry" ||
-            name === "geometry-extrude") &&
+            name === "geometry-extrude" ||
+            name === "meshoptimizer") &&
           !allowed.includes(name)
         ) {
           found.push(`${pkg.name}:${name}`);

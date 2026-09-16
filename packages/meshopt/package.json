@@ -1,0 +1,50 @@
+{
+  "name": "@modeling-kit/meshopt",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean --sourcemap",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@modeling-kit/core": "workspace:*",
+    "@modeling-kit/mesh": "workspace:*",
+    "meshoptimizer": "1.2.0"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "description": "Optional meshoptimizer adapter for derived render and export triangles",
+  "homepage": "https://github.com/CharmingBlaze/The-Block-SDK/tree/main/packages/meshopt",
+  "bugs": {
+    "url": "https://github.com/CharmingBlaze/The-Block-SDK/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharmingBlaze/The-Block-SDK.git",
+    "directory": "packages/meshopt"
+  },
+  "keywords": [
+    "3d",
+    "meshoptimizer",
+    "lod",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

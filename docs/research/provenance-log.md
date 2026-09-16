@@ -196,6 +196,21 @@ Added as a runtime dependency of `@modeling-kit/primitives` only. Conversion bou
 9. Abstraction: `generateProfileExtrude` is the only import site. Commands and tools never import `geometry-extrude`.  
 10. Tests: `packages/primitives/tests/profile-extrude.test.ts`, `packages/commands/tests/profile-extrude.test.ts`, `packages/tools/tests/tools.test.ts`.
 
+## meshoptimizer 1.2.0 (MIT) — 2026-09-16
+
+Added as a runtime dependency of `@modeling-kit/meshopt` only. Conversion boundary: `packages/meshopt/src/`.
+
+1. Problem: render/export triangle dumps need vertex-cache locality and optional LOD without rewriting editable topology.  
+2. Why current stack cannot: `triangulateMesh` preserves FaceId mapping but does not reorder for GPU caches or reduce triangle count.  
+3. Bundle-size: WASM encoder + simplifier, isolated to `@modeling-kit/meshopt`.  
+4. Runtime cost: one WASM init plus in-place index reorder / simplify on copies. No result cache.  
+5. Licence: MIT (Arseny Kapoulkine).  
+6. Maintenance: widely used in glTF tooling.  
+7. Browser/Node: WASM; Node >= 22. Headless, no DOM.  
+8. Canonical model: unchanged. HalfEdgeMesh is not an input.  
+9. Abstraction: callers import `optimizeDerivedTriangles`. Commands, mesh kernel, and sdk do not import `meshoptimizer`.  
+10. Tests: `packages/meshopt/tests/meshopt.test.ts`.
+
 ## Incident log
 
 No GPL code has been copied. No implementation phase has started.
