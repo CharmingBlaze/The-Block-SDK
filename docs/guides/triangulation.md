@@ -28,15 +28,16 @@ Force a backend with `{ backend: "earcut" | "earclip" }`. Holes always use Earcu
 
 ## Pipeline
 
-1. Reject non-finite coordinates.
+1. Reject non-finite coordinates (throws).
 2. Collapse near-duplicates / near-collinear vertices (`epsilon`).
-3. Build a stable 3D-to-2D frame from the outer Newell normal (`projectPointToOrientedPlane2d`).
-4. Normalize outer winding to CCW in that frame; holes to CW.
-5. Reject self-intersections when `rejectSelfIntersecting` is true (default).
-6. Triangulate.
-7. Validate index ranges, non-zero triangle area, winding, area vs source, and that every loop edge appears in the mesh.
+3. Reject self-intersections in the largest-extent axis plane (XY / XZ / YZ). Signed area is not used here: a bowtie has ~0 signed area and a slightly non-planar XZ bowtie can have a Newell normal of ±Z, which would hide the crossing.
+4. Build a 3D-to-2D frame from the outer Newell normal (`projectPointToOrientedPlane2d`) for triangulation.
+5. Normalize outer winding to CCW in that frame; holes to CW.
+6. Reject remaining self-intersections in the Newell frame when `rejectSelfIntersecting` is true (default).
+7. Triangulate.
+8. Validate index ranges, non-zero triangle area, winding, area vs source, and that every loop edge appears in the mesh.
 
-Suspicious Earcut output is `status: "failed"` with zero triangles. `triangulateFaces` still throws on non-ok status.
+Suspicious Earcut output is `status: "failed"` with zero triangles. A simple no-hole polygon that still cannot be triangulated is `self-intersecting` so `triangulateFaces` keeps throwing `/self-intersecting/`. Holes that fail stay `failed`.
 
 ## Indices
 

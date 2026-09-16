@@ -126,6 +126,18 @@ describe("earcut triangulation corpus", () => {
     expect(result.triangles).toHaveLength(0);
   });
 
+  it("triangulates a non-planar saddle quad instead of treating it as a bowtie", () => {
+    const result = triangulatePolygon([
+      [0, 0, 0],
+      [1, 0, 1],
+      [1, 1, 0],
+      [0, 1, 1],
+    ]);
+    expect(result.status).toBe("ok");
+    expect(result.triangles).toHaveLength(2);
+    expect(result.nonPlanar).toBe(true);
+  });
+
   it("rejects non-finite coordinates", () => {
     expect(() =>
       triangulatePolygon([

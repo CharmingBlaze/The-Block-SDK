@@ -93,13 +93,13 @@ describe("earcut triangulation corpus", () => {
   });
 
   it("rejects non-finite coordinates", () => {
-    const result = triangulatePolygon([
-      [0, 0, 0],
-      [1, Number.NaN, 0],
-      [0, 1, 0],
-    ]);
-    expect(result.status).toBe("failed");
-    expect(result.triangles).toEqual([]);
+    expect(() =>
+      triangulatePolygon([
+        [0, 0, 0],
+        [1, Number.NaN, 0],
+        [0, 1, 0],
+      ]),
+    ).toThrow(/finite/);
   });
 
   it("rejects unusable projections", () => {

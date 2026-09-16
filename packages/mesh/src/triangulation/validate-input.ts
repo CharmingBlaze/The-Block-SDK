@@ -1,4 +1,5 @@
-import { orient2dPoints, polygonTwiceSignedArea2d, segmentsIntersectProper2d } from "@modeling-kit/math";
+import { orient2dPoints, segmentsIntersectProper2d } from "@modeling-kit/math";
+import { projectToLargestExtentPlane } from "./extent-project";
 import type { Vec2, Vec3 } from "./types";
 
 export function requireFiniteLoops(label: string, loops: readonly (readonly Vec3[])[]): void {
@@ -33,14 +34,7 @@ export function polygonSelfIntersects(coords: readonly Vec2[]): boolean {
 }
 
 export function polygonSelfIntersects3d(points: readonly Vec3[]): boolean {
-  const xy = points.map((p) => [p[0], p[1]] as const);
-  const xz = points.map((p) => [p[0], p[2]] as const);
-  const yz = points.map((p) => [p[1], p[2]] as const);
-  const areaXY = Math.abs(polygonTwiceSignedArea2d(xy));
-  const areaXZ = Math.abs(polygonTwiceSignedArea2d(xz));
-  const areaYZ = Math.abs(polygonTwiceSignedArea2d(yz));
-  const projected = areaXY >= areaXZ && areaXY >= areaYZ ? xy : areaXZ >= areaYZ ? xz : yz;
-  return polygonSelfIntersects(projected);
+  return polygonSelfIntersects(projectToLargestExtentPlane(points));
 }
 
 export function isConvexCCW(coords: readonly Vec2[]): boolean {

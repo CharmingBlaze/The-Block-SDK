@@ -22,9 +22,3 @@ export interface PolygonTriangulation {
   readonly backend: TriangulationBackendUsed;
   readonly sourceVertexIndices: readonly (readonly [number, number, number])[];
 }
-
-export interface PreparedLoop {
-  readonly points: readonly Vec3[];
-  readonly indices: readonly number[];
-  readonly projected: readonly Vec2[];
-}
