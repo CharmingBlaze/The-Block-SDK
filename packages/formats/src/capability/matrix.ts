@@ -20,13 +20,6 @@ const GLTF_ASPECTS: FormatCapabilityRow["aspects"] = {
   ),
 };
 
-const LOST_MESH_ASPECTS: FormatCapabilityRow["aspects"] = {
-  topology: none("No codec"),
-  materials: none("No codec"),
-  skins: none("No codec"),
-  animation: none("No codec"),
-};
-
 export const FORMAT_CAPABILITY_MATRIX: readonly FormatCapabilityRow[] = [
   {
     id: "native-json",
@@ -98,10 +91,17 @@ export const FORMAT_CAPABILITY_MATRIX: readonly FormatCapabilityRow[] = [
   },
   {
     id: "ply",
-    label: "PLY",
-    package: null,
-    codec: "none",
-    aspects: LOST_MESH_ASPECTS,
-    notes: "Allowed open standard in the clean-room policy; no importer or exporter yet.",
+    label: "PLY (ASCII)",
+    package: "@modeling-kit/formats",
+    codec: "implemented",
+    aspects: {
+      topology: approximate(
+        "Vertex rows plus face index lists keep shared positions and n-gons; no branded half-edge IDs",
+      ),
+      materials: lose("Geometry-only; per-vertex colours and normals are dropped on import"),
+      skins: lose("Not written or read"),
+      animation: lose("Not written or read"),
+    },
+    notes: "ASCII only. Binary PLY is rejected by design, matching ASCII STL.",
   },
 ];

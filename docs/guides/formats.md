@@ -9,7 +9,7 @@ const reloaded = ModelingSession.loadNativeJson(json);
 
 Open formats live in `@modeling-kit/formats`. They ingest or dump derived interchange meshes. They do not become a second mesh kernel. glTF uses **glTF Transform** (`@gltf-transform/core` + extensions). Three.js `GLTFLoader` / `GLTFExporter` are not the headless importer/exporter.
 
-Implemented codecs: **glTF/GLB**, **Wavefront OBJ**, **ASCII STL**, **PPM** images. PLY is an allowed open standard in the clean-room policy; there is no codec yet.
+Implemented codecs: **glTF/GLB**, **Wavefront OBJ**, **ASCII STL**, **ASCII PLY**, **PPM** images. Binary PLY and binary STL are rejected by design; see each section.
 
 Hosts can import the same table as data from `@modeling-kit/formats`:
 
@@ -30,7 +30,7 @@ Fidelity is **preserve** (round-trips that aspect), **approximate** (kept in a r
 | Wavefront OBJ | approximate | lose | lose | lose | Polygon `v` / `vn` / `f` only. No `vt`, materials, skins, or animation. |
 | ASCII STL | lose | lose | lose | lose | Triangle soup after tessellation. Binary STL is rejected. |
 | PPM P3 | none | none | none | none | Image RGB only; import forces alpha to 255. |
-| PLY | none | none | none | none | Allowed standard; no codec yet. |
+| PLY (ASCII) | approximate | lose | lose | lose | Vertex rows + face index lists keep shared positions **and n-gons**. No UVs, colours, or normals. Binary PLY is rejected. |
 
 `saveNativeJson()` writes the document. It does not mark the session saved unless you pass `{ markSaved: true }` after the host has actually persisted the bytes.
 
@@ -86,6 +86,43 @@ const stlText = exportStlAscii(mesh);
 
 OBJ round-trips polygon vertex loops (`v` / `vn` / `f`). It does **not** write or read `vt` UVs or materials. STL ASCII writes facet normals after triangulation. Use `*WithReport` variants when you need conversion diagnostics. Binary STL is not in this package.
 
+## PLY
+
+```ts
+import { createSequenceIdFactory } from "@modeling-kit/core";
+import { exportPly, importPlyWithReport } from "@modeling-kit/formats";
+
+const plyText = exportPly(mesh, { comment: "level-01" });
+
+const ids = createSequenceIdFactory("io");
+const { mesh: back, report } = importPlyWithReport(plyText, ids);
+for (const warning of report.warnings) console.warn(warning);
+```
+
+PLY is the **best open interchange for quad and n-gon workflows**: a face is
+written as a length-prefixed index list, so `MeshBuilder.createCube` exports as
+six quads (`4 0 1 2 3`) rather than the twelve triangles STL produces. Vertices
+are written once and referenced, so shared topology survives the round trip.
+
+Header rules the reader enforces:
+
+- `format ascii 1.0` is required; `binary_little_endian` / `binary_big_endian`
+  throw rather than guess a byte order and word size.
+- The `vertex` element must declare scalar `x`, `y`, `z`. Any other per-vertex
+  property (`nx`, `red`, …) is consumed and reported as dropped, so extra columns
+  cannot shift the face rows out of alignment.
+- The `face` element needs exactly one list property.
+- Rows are collected before the mesh is built, so a file that declares
+  `element face` before `element vertex` still resolves indices correctly.
+- Unsupported elements (`edge`, `property`, camera blocks) are consumed row by
+  row and reported, which keeps later elements aligned.
+- A non-finite vertex coordinate **throws** instead of being skipped: dropping a
+  vertex would silently renumber every later face reference.
+- Out-of-range or fewer-than-3-distinct-vertex faces are skipped and counted in
+  one warning.
+
+Only the first `vertex` and first `face` element are used.
+
 ## Images
 
 `exportImagePpm` / `importImagePpm` for tiled paint buffers. Texture RGBA in native JSON uses `pixelsBase64` via session flush/hydrate.
@@ -97,7 +134,7 @@ OBJ round-trips polygon vertex loops (`v` / `vn` / `f`). It does **not** write o
 | Save the project | `session.saveNativeJson()` | Treat exported glTF as the document |
 | Canonical cube / UV sphere | `editor.spawn.cube()` / `spawn.sphere()` | Treat a library recipe as the same mesh |
 | Library recipe | `convertSimplicialComplex` / `generateLibraryPrimitive` | Infer triangles vs quads from buffer length |
-| glTF / OBJ / STL | `@modeling-kit/formats` | Run files through `facesFromFlatCells` |
+| glTF / OBJ / STL / PLY | `@modeling-kit/formats` | Run files through `facesFromFlatCells` |
 | Render IDs | `triangulateMesh` maps | Persist GPU indices as topology |
 
 `PRIMITIVE_CATALOG` tells a host whether a public name is canonical or a library recipe. See [primitive-geometry](primitive-geometry.md) and [`apps/geometry-gallery`](examples.md).

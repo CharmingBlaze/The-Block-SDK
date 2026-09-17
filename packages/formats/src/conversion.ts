@@ -5,7 +5,7 @@
  * Import uses format-native faces (OBJ loops, glTF TRIANGLES, STL triangles) and
  * MeshBuilder directly. Do not route files through primitives' packed-cell IR.
  */
-export type InterchangeFormat = "gltf" | "glb" | "obj" | "stl" | "ppm";
+export type InterchangeFormat = "gltf" | "glb" | "obj" | "stl" | "ply" | "ppm";
 
 export interface ConversionReport {
   readonly format: InterchangeFormat;

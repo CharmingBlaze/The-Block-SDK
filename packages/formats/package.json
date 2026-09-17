@@ -40,7 +40,7 @@
   "files": [
     "dist"
   ],
-  "description": "glTF, OBJ, STL, and PPM interchange for modeling-kit",
+  "description": "glTF, OBJ, STL, PLY, and PPM interchange for modeling-kit",
   "homepage": "https://github.com/CharmingBlaze/The-Block-SDK/tree/main/packages/formats",
   "bugs": {
     "url": "https://github.com/CharmingBlaze/The-Block-SDK/issues"
@@ -55,6 +55,7 @@
     "gltf",
     "obj",
     "stl",
+    "ply",
     "interchange",
     "typescript"
   ],

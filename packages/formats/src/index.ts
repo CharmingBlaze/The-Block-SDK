@@ -1,6 +1,16 @@
 export { exportObj, importObj, exportObjWithReport, importObjWithReport, type ObjExportOptions, type ObjImportOptions, type ObjIoResult } from "./obj";
 export { exportStlAscii, importStlAscii, importStlAsciiWithReport, stlExportReport, type StlExportOptions, type StlImportOptions, type StlImportResult } from "./stl";
 export {
+  exportPly,
+  exportPlyWithReport,
+  importPly,
+  importPlyWithReport,
+  plyExportReport,
+  type PlyExportOptions,
+  type PlyImportOptions,
+  type PlyImportResult,
+} from "./ply";
+export {
   exportGltf,
   exportGlb,
   exportGltfWithReport,

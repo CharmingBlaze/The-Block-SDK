@@ -23,7 +23,11 @@ describe("format capability matrix", () => {
   it("states honest fidelity for canonical vs interchange codecs", () => {
     for (const aspect of FORMAT_ASPECTS) {
       expect(formatAspectFidelity("native-json", aspect).fidelity).toBe("preserve");
-      expect(formatAspectFidelity("ply", aspect).fidelity).toBe("none");
+    }
+    // PLY carries geometry only: faces survive as index lists, nothing else does.
+    expect(formatAspectFidelity("ply", "topology").fidelity).toBe("approximate");
+    for (const aspect of ["materials", "skins", "animation"] as const) {
+      expect(formatAspectFidelity("ply", aspect).fidelity).toBe("lose");
     }
     expect(formatCapability("gltf").aspects).toEqual(formatCapability("glb").aspects);
     expect(formatAspectFidelity("gltf", "topology").fidelity).toBe("approximate");
@@ -32,7 +36,7 @@ describe("format capability matrix", () => {
     expect(formatAspectFidelity("obj", "skins").fidelity).toBe("lose");
     expect(formatAspectFidelity("obj", "animation").fidelity).toBe("lose");
     expect(formatAspectFidelity("stl-ascii", "topology").fidelity).toBe("lose");
-    expect(formatCapability("ply").codec).toBe("none");
+    expect(formatCapability("ply").codec).toBe("implemented");
     expect(formatCapability("ppm").aspects.topology.fidelity).toBe("none");
   });
 });
