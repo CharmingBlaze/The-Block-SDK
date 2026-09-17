@@ -241,7 +241,7 @@ function makeSpriteMaterial(
   ) as ShaderMaterial;
 }
 
-function spriteTexture(assets: VertexVisualizerAssets, kind: "square" | "circle"): CanvasTexture | undefined {
+function _spriteTexture(assets: VertexVisualizerAssets, kind: "square" | "circle"): CanvasTexture | undefined {
   if (assets.spriteTextures[kind]) {
     return assets.spriteTextures[kind];
   }

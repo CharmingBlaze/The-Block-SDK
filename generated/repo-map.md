@@ -21,7 +21,7 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 - Version: 0.1.0
 - Public entry keys: .
 - Internal directories: packages/commands/src/automatic-unwrap
-- Workspace dependencies: @modeling-kit/animation, @modeling-kit/core, @modeling-kit/document, @modeling-kit/history, @modeling-kit/materials, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/paint, @modeling-kit/primitives, @modeling-kit/rigging, @modeling-kit/scene, @modeling-kit/selection, @modeling-kit/tools, @modeling-kit/transform, @modeling-kit/uv, @modeling-kit/validation
+- Workspace dependencies: @modeling-kit/animation, @modeling-kit/core, @modeling-kit/document, @modeling-kit/history, @modeling-kit/materials, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/paint, @modeling-kit/primitives, @modeling-kit/rigging, @modeling-kit/scene, @modeling-kit/selection, @modeling-kit/snapping, @modeling-kit/tools, @modeling-kit/transform, @modeling-kit/uv, @modeling-kit/validation
 - Forbidden: three; DOM
 - Requirement ID prefixes: CMD
 - Tests: packages/commands/tests
@@ -116,7 +116,7 @@ Generated from `packages/*/package.json`. Do not edit by hand. Refresh with `pnp
 - Layer: kernel
 - Version: 0.1.0
 - Public entry keys: .
-- Internal directories: packages/mesh/src/internal, packages/mesh/src/operations, packages/mesh/src/triangulation
+- Internal directories: packages/mesh/src/bvh, packages/mesh/src/internal, packages/mesh/src/operations, packages/mesh/src/triangulation
 - Workspace dependencies: @modeling-kit/core, @modeling-kit/math
 - Forbidden: tools; commands; document; three; DOM
 - Requirement ID prefixes: MESH, MESH-OP

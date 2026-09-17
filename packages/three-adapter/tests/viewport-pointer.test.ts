@@ -440,7 +440,7 @@ describe("ViewportGestureController", () => {
   it("pans on middle drag", () => {
     const canvas = fakeCanvas();
     const { gestures, gate, controlSlot } = attachGestures({ canvas });
-    const { camera, controls } = mountControls(canvas, gate);
+    const { controls } = mountControls(canvas, gate);
     controlSlot.controls = controls;
     const target = controls.target.clone();
 

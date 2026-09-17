@@ -4,7 +4,7 @@ Generated from workspace manifests (dependencies + peerDependencies with `worksp
 
 ```text
 @modeling-kit/animation → @modeling-kit/core, @modeling-kit/document, @modeling-kit/math, @modeling-kit/rigging
-@modeling-kit/commands → @modeling-kit/animation, @modeling-kit/core, @modeling-kit/document, @modeling-kit/history, @modeling-kit/materials, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/paint, @modeling-kit/primitives, @modeling-kit/rigging, @modeling-kit/scene, @modeling-kit/selection, @modeling-kit/tools, @modeling-kit/transform, @modeling-kit/uv, @modeling-kit/validation
+@modeling-kit/commands → @modeling-kit/animation, @modeling-kit/core, @modeling-kit/document, @modeling-kit/history, @modeling-kit/materials, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/paint, @modeling-kit/primitives, @modeling-kit/rigging, @modeling-kit/scene, @modeling-kit/selection, @modeling-kit/snapping, @modeling-kit/tools, @modeling-kit/transform, @modeling-kit/uv, @modeling-kit/validation
 @modeling-kit/core → (none)
 @modeling-kit/document → @modeling-kit/core, @modeling-kit/math
 @modeling-kit/formats → @modeling-kit/animation, @modeling-kit/core, @modeling-kit/document, @modeling-kit/math, @modeling-kit/mesh, @modeling-kit/rigging, @modeling-kit/scene
