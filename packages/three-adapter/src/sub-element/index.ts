@@ -17,7 +17,13 @@ export type {
   ColorOpacity,
   DeepPartial,
 } from "./types";
-export { defaultSubElementTheme, defaultSubElementDisplay, mergeSubElementTheme, mergeSubElementDisplay } from "./theme";
+export {
+  defaultSubElementTheme,
+  defaultSubElementDisplay,
+  mergeSubElementTheme,
+  mergeSubElementDisplay,
+  subElementDisplayForDomain,
+} from "./theme";
 export { resolveElementVisualState, visualStatePriority, emptyElementIdSets } from "./resolve-state";
 export { worldSizeForPixels, clampPixelSize, distanceAlongView } from "./screen-space";
 export { planElementLod, isLodIndexVisible } from "./lod";

@@ -1,17 +1,21 @@
 import { createSequenceIdFactory } from "@modeling-kit/core";
 import { MeshBuilder } from "@modeling-kit/mesh";
-import { projectUvs } from "@modeling-kit/uv";
+import { packUvs, projectUvs, setSeams } from "@modeling-kit/uv";
 import { describe, expect, it } from "vitest";
 import {
   TextureBuffer,
   drawBrushDab,
   drawBrushLine,
+  drawPixelLine,
+  drawPixelRectangle,
   uvToPixel,
   PaintEngine,
   paintSurfaceHitOnStroke,
+  resolveSurfaceHitPixel,
   resolveHitMaterialSlot,
   dilateSeamTexels,
   applyTextureTilePatches,
+  analyzePaintUvLayout,
 } from "../src/index";
 
 describe("@modeling-kit/paint", () => {
@@ -54,6 +58,40 @@ describe("@modeling-kit/paint", () => {
     expect(mid[1]).toBe(255);
   });
 
+  it("draws exact pixel-tool lines, rectangles, and eraser strokes", () => {
+    const buf = TextureBuffer.create(8, 8);
+    drawPixelLine(buf, { x: 3, y: 4 }, { x: 3, y: 4 }, {
+      size: 1,
+      color: [255, 0, 0, 255],
+    });
+    let painted = 0;
+    for (let y = 0; y < buf.height; y += 1) {
+      for (let x = 0; x < buf.width; x += 1) {
+        if (buf.getPixel(x, y)[3] > 0) painted += 1;
+      }
+    }
+    expect(painted).toBe(1);
+
+    drawPixelRectangle(buf, { x: 1, y: 1 }, { x: 3, y: 3 }, false, {
+      size: 1,
+      color: [0, 255, 0, 255],
+    });
+    let green = 0;
+    for (let y = 0; y < buf.height; y += 1) {
+      for (let x = 0; x < buf.width; x += 1) {
+        if (buf.getPixel(x, y)[1] === 255) green += 1;
+      }
+    }
+    expect(green).toBe(8);
+
+    drawPixelLine(buf, { x: 3, y: 4 }, { x: 3, y: 4 }, {
+      erase: true,
+      size: 1,
+      color: [255, 255, 255, 255],
+    });
+    expect(buf.getPixel(3, 4)).toEqual([0, 0, 0, 0]);
+  });
+
   it("performs flood fill on matching color region", () => {
     const buf = TextureBuffer.create(8, 8, [100, 100, 100, 255]);
     buf.floodFill(0, 0, [255, 0, 0, 255]);
@@ -69,6 +107,24 @@ describe("@modeling-kit/paint", () => {
     const [px, py] = uvToPixel(0.5, 0.5, 100, 100);
     expect(px).toBe(50);
     expect(py).toBe(50);
+    expect(uvToPixel(1, 1, 32, 32)).toEqual([31, 0]);
+    expect(uvToPixel(0, 0, 32, 32)).toEqual([0, 31]);
+  });
+
+  it("detects whether a mesh has a non-overlapping paint UV layout", () => {
+    const ids = createSequenceIdFactory("paint-uv-ready");
+    const mesh = MeshBuilder.createCube(1, 1, 1, ids.mesh());
+    expect(analyzePaintUvLayout(mesh).ready).toBe(false);
+    projectUvs(mesh, { projection: "box" });
+    setSeams(mesh, [...mesh.edges.keys()], true);
+    packUvs(mesh, { padding: 0.02 });
+    expect(analyzePaintUvLayout(mesh)).toMatchObject({
+      ready: true,
+      missingCornerCount: 0,
+      outOfBoundsCornerCount: 0,
+      overlappingIslandCount: 0,
+      overlappingFaceCount: 0,
+    });
   });
 
   it("commits one stroke as tile patches and restores bytes on cancel", () => {
@@ -144,6 +200,41 @@ describe("@modeling-kit/paint", () => {
     expect(unchanged).toBe(false);
     expect(resolveHitMaterialSlot(mesh, faceId).materialSlot).toBe(0);
     engine.dispose();
+  });
+
+  it("resolves a triangulated 3D hit to one stable texture texel", () => {
+    const ids = createSequenceIdFactory("pixel-hit");
+    const mesh = MeshBuilder.createCube(1, 1, 1, ids.mesh());
+    projectUvs(mesh, { projection: "box" });
+    const faceId = [...mesh.faces.keys()][0]!;
+    const first = resolveSurfaceHitPixel(
+      mesh,
+      { faceId, triangleIndex: 0, u: 0.25, v: 0.25 },
+      32,
+      32,
+    );
+    const again = resolveSurfaceHitPixel(
+      mesh,
+      { faceId, triangleIndex: 0, u: 0.25, v: 0.25 },
+      32,
+      32,
+    );
+    expect(first).toEqual(again);
+    expect(first[0]).toBeGreaterThanOrEqual(0);
+    expect(first[0]).toBeLessThan(32);
+    expect(first[1]).toBeGreaterThanOrEqual(0);
+    expect(first[1]).toBeLessThan(32);
+
+    const atFirstVertex = resolveSurfaceHitPixel(
+      mesh,
+      { faceId, triangleIndex: 0, barycentric: { x: 1, y: 0, z: 0 } },
+      32,
+      32,
+    );
+    expect(atFirstVertex[0]).toBeGreaterThanOrEqual(0);
+    expect(atFirstVertex[0]).toBeLessThan(32);
+    expect(atFirstVertex[1]).toBeGreaterThanOrEqual(0);
+    expect(atFirstVertex[1]).toBeLessThan(32);
   });
 
   it("dilates opaque texels into UV gutter neighbors", () => {

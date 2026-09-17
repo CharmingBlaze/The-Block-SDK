@@ -87,7 +87,7 @@ viewport.dispose();
 editor.dispose();
 ```
 
-`createThreeViewport` creates the renderer, perspective camera, hemisphere + 3-point studio lights, ground grid, damped OrbitControls, resize handling, and adapter sync. Completed left-clicks use GPU ID-buffer picking via `adapter.pickPoint` (CPU `Raycaster` fallback). Pointer-move hover stays on `adapter.pick`. Right-drag orbits; middle-drag dollies. Hosts that already use `@modeling-kit/input` should pass `picking: false` and call `adapter.pickPoint` / `adapter.pick` from `select.pick`.
+`createThreeViewport` creates the renderer, perspective camera, hemisphere + 3-point studio lights, ground grid, damped OrbitControls, resize handling, and adapter sync. Completed left-clicks use GPU ID-buffer picking via `adapter.pickPoint` (CPU `Raycaster` fallback). Pointer-move hover stays on `adapter.pick`. Left click selects (no capture, no orbit); right-drag orbits; middle-drag pans; wheel dollies. Pointer ownership is public via `viewport.gestures`. Hosts that already use `@modeling-kit/input` should pass `picking: false` and call `adapter.pickPoint` / `adapter.pick` from `select.pick`. Do not wire `bindDom` into `createThreeViewport`.
 
 ### AI / agent tools
 

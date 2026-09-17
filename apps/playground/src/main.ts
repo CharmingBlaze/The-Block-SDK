@@ -7,7 +7,6 @@ import {
   type ObjectId,
 } from "@modeling-kit/sdk";
 import { createThreeViewport, type VertexMarkerStyle } from "@modeling-kit/three-adapter";
-import { MOUSE } from "three";
 
 const container = document.getElementById("viewport");
 if (!container) {
@@ -36,7 +35,7 @@ const MARKER_STYLES: ReadonlyArray<{ id: Exclude<VertexMarkerStyle, "custom">; l
 ];
 
 const idleHud =
-  "Click a mesh  ·  Drag to orbit  ·  Shift-drag pan  ·  Scroll zoom  ·  K knife  ·  L loop cut";
+  "Left click select  ·  Right-drag orbit  ·  Middle-drag pan  ·  Scroll zoom  ·  K knife  ·  L loop cut";
 
 function snapOptions() {
   const mesh = editor.activeObject()?.mesh;
@@ -243,6 +242,11 @@ const viewport = createThreeViewport({
 });
 
 function enableLaptopOrbit(): void {
+  viewport.gestures.setNavigation({
+    mouseButtons: { left: "none", middle: "pan", right: "orbit" },
+    wheel: "dolly",
+    touch: { oneFinger: "none", twoFinger: "none" },
+  });
   const controls = viewport.controls;
   if (!controls) {
     return;
@@ -255,11 +259,6 @@ function enableLaptopOrbit(): void {
   controls.rotateSpeed = 0.9;
   controls.zoomSpeed = 0.9;
   controls.panSpeed = 0.8;
-  controls.mouseButtons = {
-    LEFT: MOUSE.ROTATE,
-    MIDDLE: MOUSE.DOLLY,
-    RIGHT: MOUSE.PAN,
-  };
 }
 
 function applyMarkerStyle(index: number): void {

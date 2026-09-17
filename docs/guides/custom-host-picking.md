@@ -2,6 +2,27 @@
 
 `createThreeViewport({ picking: false })` does not attach pointer handlers. The host owns modifiers, click-versus-drag, pointer capture, and tool consumption. Low-level methods stay on the viewport handle. Turnkey options: [`viewport.md`](viewport.md).
 
+Prefer the turnkey `ViewportGestureController` when picking is on. Register hooks or gizmo/tool hit-tests instead of adding a second canvas listener.
+
+```ts
+const viewport = createThreeViewport({
+  container,
+  session,
+  picking: true,
+  gestureHooks: {
+    onPointerDown: (context) => {
+      if (context.event.button !== 0) return undefined;
+      if (myGizmo.hit(context.event)) {
+        return { owner: "gizmo", beginDrag: true };
+      }
+      return undefined; // fall through to selection
+    },
+  },
+});
+```
+
+Fully custom hosts (`picking: false`) still use the pick APIs:
+
 ```ts
 import { createModelingSession, CreatePrimitiveCommand } from "@modeling-kit/sdk";
 import { createThreeViewport } from "@modeling-kit/three-adapter";
@@ -63,3 +84,5 @@ Notes:
 - Modifier keys are read at **pointerup** for click selection.
 - `toMeshLocal` returns `undefined` for identity-only hits. Tools that need XYZ must set `requireSurfacePoint: true` or `purpose: "knife"` / `"placement"` / `"measurement"`.
 - Hover stays on the CPU path (`adapter.pick` or `pickFromClient`) until GPU hover exists.
+- Do not call `setPointerCapture` on select-clicks. Capture belongs to a claimed tool/gizmo drag (`viewport.gestures.registerGizmo` / `registerTool` with `beginDrag: true`, `consumePick` `{ consumed: true, beginDrag: true }`, or `capturePointer` from `@modeling-kit/input` when `picking: false`). Always `releasePointerCapture` on up/cancel, or call `viewport.gestures.cancelActiveGesture()`.
+- Do not mutate OrbitControls private fields. Cancel through `viewport.gestures.cancelActiveGesture("selection-start")`.

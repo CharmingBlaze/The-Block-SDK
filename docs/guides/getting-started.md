@@ -91,7 +91,7 @@ viewport.dispose();
 editor.dispose();
 ```
 
-Completed left-clicks use GPU ID-buffer picking (`adapter.pickPoint`) with a CPU `Raycaster` fallback. Hover stays on `adapter.pick`. Hosts that bind `@modeling-kit/input` should pass `picking: false`. Details: [Viewport](viewport.md), [custom host picking](custom-host-picking.md).
+Completed left-clicks use GPU ID-buffer picking (`adapter.pickPoint`) with a CPU `Raycaster` fallback. Hover stays on `adapter.pick`. Left click selects; right-drag orbits; middle-drag pans; wheel dollies. Hosts that bind `@modeling-kit/input` should pass `picking: false`. Details: [Viewport](viewport.md), [custom host picking](custom-host-picking.md).
 
 ## Workers
 

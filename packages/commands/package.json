@@ -30,6 +30,7 @@
     "@modeling-kit/transform": "workspace:*",
     "@modeling-kit/paint": "workspace:*",
     "@modeling-kit/primitives": "workspace:*",
+    "@modeling-kit/snapping": "workspace:*",
     "@modeling-kit/validation": "workspace:*"
   },
   "main": "./dist/index.js",

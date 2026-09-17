@@ -5,6 +5,7 @@ import {
   CreateMaterialCommand,
   CreatePrimitiveCommand,
   CreateSkeletonCommand,
+  CreateTextureCommand,
   DuplicateObjectsCommand,
   ReparentCommand,
   SetKeyframeCommand,
@@ -103,6 +104,51 @@ describe("ThreeViewportAdapter", () => {
     const material = mesh.material as MeshStandardMaterial;
     expect(material.color.r).toBeCloseTo(1);
     expect(material.color.g).toBeCloseTo(0);
+    adapter.dispose();
+  });
+
+  it("resolves textures on first sync and refreshes painted pixels", () => {
+    const session = createModelingSession(createSequenceIdFactory("texture-view"));
+    const cube = session.execute(
+      new CreatePrimitiveCommand("cube", { width: 1, height: 1, depth: 1 }),
+    );
+    const textureId = session.execute(new CreateTextureCommand({ width: 4, height: 4 }));
+    const materialId = session.execute(
+      new CreateMaterialCommand({
+        name: "Paintable",
+        baseColor: [1, 1, 1, 1],
+        alphaMode: "blend",
+        pixelArt: true,
+      }),
+    );
+    session.execute(new UpdateMaterialCommand({ materialId, patch: { baseColorTexture: textureId } }));
+    session.selection.replace({ domain: "object", objectId: cube.objectId, elementIds: [] });
+    session.execute(new AssignMaterialCommand({ materialId }));
+
+    const adapter = new ThreeViewportAdapter({
+      session,
+      scene: new Scene(),
+      camera: new PerspectiveCamera(50, 1, 0.1, 100),
+      renderer: stubRenderer(),
+      textureResolver: (id) => session.textures.get(id as typeof textureId),
+    });
+    adapter.mount();
+
+    const mesh = adapter.object3D(cube.objectId) as Mesh;
+    const initial = mesh.material as MeshStandardMaterial;
+    expect(initial.map).toBeDefined();
+    expect(initial.map!.userData.modelingTextureId).toBe(textureId);
+    expect(initial.map!.flipY).toBe(true);
+
+    session.textures.get(textureId)!.setPixel(1, 2, [12, 34, 56, 255]);
+    session.events.emit("document:changed", { aspect: "texture", entityIds: [textureId] });
+
+    const refreshed = mesh.material as MeshStandardMaterial;
+    expect(refreshed).not.toBe(initial);
+    expect(refreshed.map).toBeDefined();
+    const image = refreshed.map!.image as { data: Uint8ClampedArray };
+    const offset = (2 * 4 + 1) * 4;
+    expect([...image.data.slice(offset, offset + 4)]).toEqual([12, 34, 56, 255]);
     adapter.dispose();
   });
 

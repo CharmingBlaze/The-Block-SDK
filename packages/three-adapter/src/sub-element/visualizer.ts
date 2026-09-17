@@ -115,7 +115,10 @@ export class SubElementVisualizer {
   }
 
   setTheme(patch?: DeepPartial<SubElementVisualTheme>): void {
-    this.theme = mergeSubElementTheme(defaultSubElementTheme, patch);
+    // Theme updates are patches. Merging every update into the defaults made
+    // unrelated changes (for example toggling topology-edge visibility) reset
+    // a host's vertex marker style back to the default cube.
+    this.theme = patch ? mergeSubElementTheme(this.theme, patch) : defaultSubElementTheme;
     this.lastSelectionKey = "";
     this.lastCoreSelectionKey = "";
     this.lastHoverKey = "";
@@ -274,7 +277,7 @@ export class SubElementVisualizer {
         const overlayLayer = this.layers.get(source.objectId);
         if (
           overlayLayer &&
-          updateOverlayScreenSpace(overlayLayer, source, view, this.theme, change !== "none") === "skipped"
+          updateOverlayScreenSpace(overlayLayer, source, view, this.theme, change !== "none" || stateChanged) === "skipped"
         ) {
           this.perf.skippedViews += 1;
         }
@@ -363,7 +366,9 @@ export class SubElementVisualizer {
         resources: new GpuResourceTracker(),
         meshRevision: -1,
         vertexPositions: new Float32Array(0),
+        vertexScales: new Float32Array(0),
         edgeEndpoints: new Float32Array(0),
+        edgeWidths: new Float32Array(0),
         lastViewHash: Number.NaN,
         presentationKey: "",
         vertexStates: new CompactElementStates(),
@@ -423,6 +428,8 @@ export class SubElementVisualizer {
     layer.faces.rebuild(source.kernel.faces.keys());
     fillVertexPositionBuffer(layer, source);
     fillEdgeEndpointBuffer(layer, source);
+    layer.vertexScales = new Float32Array(layer.vertices.size).fill(1);
+    layer.edgeWidths = new Float32Array(layer.edges.size).fill(this.theme.edges.width);
     buildVertexMeshes(layer, this.theme, this.vertexAssets());
     buildEdgeMeshes(layer, this.theme, this.shared.stick);
     layer.vertexStates.resize(layer.vertices.size);

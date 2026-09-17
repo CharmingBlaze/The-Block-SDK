@@ -70,4 +70,4 @@ const hit = querySnap({
 
 Targets: grid, vertex, edge, midpoint, face, face-surface. Priority plus hysteresis avoid flicker when two candidates are close. Exclude sets keep the dragged component from snapping to itself (SNAP-002).
 
-Viewport gizmos are host-owned. Drive the session transform protocol; do not write `object.position` on derived Three.js nodes as the source of truth.
+Viewport gizmos are host-owned. Drive the session transform protocol; do not write `object.position` on derived Three.js nodes as the source of truth. On `createThreeViewport`, gizmos must register with `viewport.gestures.registerGizmo` (or `consumePick` / stay disabled in the select tool). See [`viewport.md`](viewport.md).

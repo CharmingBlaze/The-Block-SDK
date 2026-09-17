@@ -13,7 +13,25 @@ import {
   resolveElementVisualState,
   visualStatePriority,
   worldSizeForPixels,
+  subElementDisplayForDomain,
 } from "../src/index";
+
+describe("mode-specific overlay display", () => {
+  it("maps modeling modes to exclusive cached overlays", () => {
+    expect(subElementDisplayForDomain("object")).toMatchObject({
+      showVertices: false, showEdges: false, showFaces: false,
+    });
+    expect(subElementDisplayForDomain("vertex")).toMatchObject({
+      showVertices: true, showEdges: false, showFaces: false,
+    });
+    expect(subElementDisplayForDomain("edge")).toMatchObject({
+      showVertices: false, showEdges: true, showFaces: false,
+    });
+    expect(subElementDisplayForDomain("face")).toMatchObject({
+      showVertices: false, showEdges: false, showFaces: "states",
+    });
+  });
+});
 
 function stubRenderer() {
   return {
@@ -131,6 +149,27 @@ describe("element pointer machine", () => {
 });
 
 describe("sub-element adapter overlay", () => {
+  it("switches mode visibility without rebuilding topology buffers", () => {
+    const session = createModelingSession(createSequenceIdFactory("mode"));
+    const cube = session.execute(new CreatePrimitiveCommand("cube", { width: 2, height: 2, depth: 2 }));
+    const adapter = mountAdapter(session);
+    const vertexId = [...session.meshes.get(cube.meshId)!.vertices.keys()][0]!;
+    const edgeId = [...session.meshes.get(cube.meshId)!.edges.keys()][0]!;
+
+    session.selection.replace({ domain: "vertex", objectId: cube.objectId, elementIds: [vertexId] });
+    adapter.setSubElementDisplay(subElementDisplayForDomain("vertex"));
+    const rebuilds = adapter.subElementPerf().topologyRebuilds;
+    expect(adapter.root.getObjectByName("vertex-overlay")?.visible).toBe(true);
+    expect(adapter.root.getObjectByName("edge-thick-overlay")?.visible).toBe(false);
+
+    session.selection.replace({ domain: "edge", objectId: cube.objectId, elementIds: [edgeId] });
+    adapter.setSubElementDisplay(subElementDisplayForDomain("edge"));
+    expect(adapter.root.getObjectByName("vertex-overlay")?.visible).toBe(false);
+    expect(adapter.root.getObjectByName("edge-thick-overlay")?.visible).toBe(true);
+    expect(adapter.subElementPerf().topologyRebuilds).toBe(rebuilds);
+    adapter.dispose();
+  });
+
   it("keeps face selection overlays and isolates hover per viewport", () => {
     const session = createModelingSession(createSequenceIdFactory("viz"));
     const cube = session.execute(new CreatePrimitiveCommand("cube", { width: 2, height: 2, depth: 2 }));
@@ -265,6 +304,8 @@ describe("sub-element adapter overlay", () => {
     expect((overlay() as Mesh).geometry).toBeInstanceOf(SphereGeometry);
     expect(adapter.subElementPerf().topologyRebuilds).toBeGreaterThan(afterCube);
     adapter.setSubElementTheme({ vertices: { style: "circle-sprite" } });
+    expect(overlay()).toBeInstanceOf(Points);
+    adapter.setSubElementTheme({ edges: { width: 2 } });
     expect(overlay()).toBeInstanceOf(Points);
     adapter.dispose();
   });

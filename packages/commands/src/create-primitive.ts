@@ -1,4 +1,5 @@
 import type { Command, CommandContext } from "@modeling-kit/history";
+import type { TransformData } from "@modeling-kit/math";
 import { serializeMesh, type SerializedMesh } from "@modeling-kit/mesh";
 import {
   canonicalizePrimitiveType,
@@ -24,6 +25,7 @@ export class CreatePrimitiveCommand implements Command<CreatePrimitiveResult> {
   constructor(
     primitive: PrimitiveType | string,
     readonly params: CreatePrimitiveParams = {},
+    readonly options: { readonly localTransform?: TransformData } = {},
   ) {
     this.primitive = canonicalizePrimitiveType(primitive);
     this.label = `Create ${primitiveDisplayNames[this.primitive]}`;
@@ -38,6 +40,7 @@ export class CreatePrimitiveCommand implements Command<CreatePrimitiveResult> {
         this.result,
         this.kernel,
         this.params.name ?? primitiveDisplayNames[this.primitive],
+        this.options.localTransform,
       );
       return this.result;
     }
@@ -63,6 +66,7 @@ export class CreatePrimitiveCommand implements Command<CreatePrimitiveResult> {
       this.params.name ?? primitiveDisplayNames[this.primitive],
       meshId,
       faceIds,
+      this.options.localTransform,
     );
     this.kernel = serializeMesh(generated.mesh);
     return this.result;

@@ -1,4 +1,4 @@
-import { InstancedMesh, Matrix4, Points, PointsMaterial, Quaternion, Vector3 } from "three";
+import { BufferAttribute, InstancedMesh, Matrix4, Points, Quaternion, Vector3 } from "three";
 import { clampPixelSize, worldSizeForPixels } from "./screen-space";
 import { hashView } from "./geometry-cache";
 import type { ObjectLayer, OverlayMeshSource, VisualizerView } from "./visualizer-types";
@@ -12,7 +12,7 @@ const _dir = new Vector3();
 const _pos = new Vector3();
 const _quat = new Quaternion();
 const _mid = new Vector3();
-const _camPos = new Vector3();
+const _cameraPoint = new Vector3();
 const _xAxis = new Vector3(1, 0, 0);
 
 export function updateOverlayScreenSpace(
@@ -29,7 +29,7 @@ export function updateOverlayScreenSpace(
     return "skipped";
   }
   layer.lastViewHash = viewHash;
-  view.camera.getWorldPosition(_camPos);
+  view.camera.updateMatrixWorld();
   const camLike = view.camera as unknown as {
     isPerspectiveCamera?: boolean;
     isOrthographicCamera?: boolean;
@@ -39,17 +39,20 @@ export function updateOverlayScreenSpace(
     bottom?: number;
   };
   const vTheme = theme.vertices;
+  const pixelRatio = Math.max(1, view.pixelRatio ?? 1);
   const pixel = clampPixelSize(vTheme.pixelSize, vTheme.minPixelSize, vTheme.maxPixelSize);
+  const physicalPixel = pixel * pixelRatio;
   const pickPad = pixel + vTheme.pickPixelPadding;
+  const physicalPickPad = pickPad * pixelRatio;
   const visual = layer.vertexMesh;
   for (let i = 0; i < layer.vertices.size; i += 1) {
     const px = layer.vertexPositions[i * 3]!;
     const py = layer.vertexPositions[i * 3 + 1]!;
     const pz = layer.vertexPositions[i * 3 + 2]!;
     _pos.set(px, py, pz).applyMatrix4(source.object.matrixWorld);
-    const dist = _pos.distanceTo(_camPos);
-    const world = worldSizeForPixels(camLike, dist, pixel, view.height);
-    const pick = worldSizeForPixels(camLike, dist, pickPad, view.height);
+    const depth = Math.max(1e-8, Math.abs(_cameraPoint.copy(_pos).applyMatrix4(view.camera.matrixWorldInverse).z));
+    const world = worldSizeForPixels(camLike, depth, physicalPixel, view.height * pixelRatio);
+    const pick = worldSizeForPixels(camLike, depth, physicalPickPad, view.height * pixelRatio);
     if (visual instanceof InstancedMesh) {
       _matrix.makeScale(world, world, world);
       _matrix.setPosition(px, py, pz);
@@ -66,8 +69,13 @@ export function updateOverlayScreenSpace(
     visual.count = layer.vertices.size;
   }
   if (visual instanceof Points) {
-    const mat = visual.material as PointsMaterial;
-    mat.size = pixel;
+    const sizes = visual.geometry.getAttribute("pointSize") as BufferAttribute | undefined;
+    if (sizes) {
+      for (let i = 0; i < layer.vertices.size; i += 1) {
+        sizes.setX(i, physicalPixel * (layer.vertexScales[i] ?? 1));
+      }
+      sizes.needsUpdate = true;
+    }
   }
   if (layer.vertexPick) {
     layer.vertexPick.instanceMatrix.needsUpdate = true;
@@ -87,8 +95,13 @@ export function updateOverlayScreenSpace(
       _dir.multiplyScalar(1 / length);
       _pos.copy(_from).add(_to).multiplyScalar(0.5);
       _pos.applyMatrix4(source.object.matrixWorld);
-      const dist = _pos.distanceTo(_camPos);
-      const thick = worldSizeForPixels(camLike, dist, widthPx, view.height);
+      const depth = Math.max(1e-8, Math.abs(_cameraPoint.copy(_pos).applyMatrix4(view.camera.matrixWorldInverse).z));
+      const thick = worldSizeForPixels(
+        camLike,
+        depth,
+        (layer.edgeWidths[i] ?? widthPx) * pixelRatio,
+        view.height * pixelRatio,
+      );
       _mid.copy(_from).add(_to).multiplyScalar(0.5);
       _quat.setFromUnitVectors(_xAxis, _dir);
       _scale.set(Math.max(length, 1e-6), thick, thick);

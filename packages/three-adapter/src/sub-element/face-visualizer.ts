@@ -30,7 +30,9 @@ export function buildFaceMeshes(
 ): void {
   const fillGeom = layer.resources.trackGeometry(new BufferGeometry());
   fillGeom.setAttribute("position", new BufferAttribute(new Float32Array(0), 3).setUsage(DynamicDrawUsage));
-  fillGeom.setAttribute("color", new BufferAttribute(new Float32Array(0), 3).setUsage(DynamicDrawUsage));
+  // A four-component color enables Three's vertex-alpha shader path, so each
+  // selected or hovered face retains its configured transparency.
+  fillGeom.setAttribute("color", new BufferAttribute(new Float32Array(0), 4).setUsage(DynamicDrawUsage));
   const fillMat = layer.resources.trackMaterial(
     new MeshBasicMaterial({
       vertexColors: true,
@@ -103,17 +105,18 @@ export function writeFaces(
     return;
   }
   const lod = planElementLod(layer.faces.size, display.lod.maxFaces, display.lod);
-  const pushFill = (x: number, y: number, z: number, r: number, g: number, b: number): void => {
+  const pushFill = (x: number, y: number, z: number, r: number, g: number, b: number, a: number): void => {
     buffers.fillScratch = growFloats(buffers.fillScratch, fillCount + 3);
-    buffers.fillColorScratch = growFloats(buffers.fillColorScratch, colorCount + 3);
+    buffers.fillColorScratch = growFloats(buffers.fillColorScratch, colorCount + 4);
     buffers.fillScratch[fillCount] = x;
     buffers.fillScratch[fillCount + 1] = y;
     buffers.fillScratch[fillCount + 2] = z;
     buffers.fillColorScratch[colorCount] = r;
     buffers.fillColorScratch[colorCount + 1] = g;
     buffers.fillColorScratch[colorCount + 2] = b;
+    buffers.fillColorScratch[colorCount + 3] = a;
     fillCount += 3;
-    colorCount += 3;
+    colorCount += 4;
   };
   for (let tri = 0; tri < source.mapping.triangleToFace.length; tri += 1) {
     const faceId = source.mapping.triangleToFace[tri]!;
@@ -138,7 +141,7 @@ export function writeFaces(
     }
     for (let k = 0; k < 3; k += 1) {
       const vi = index ? index.getX(tri * 3 + k) : tri * 3 + k;
-      pushFill(posAttr.getX(vi), posAttr.getY(vi), posAttr.getZ(vi), r, g, b);
+      pushFill(posAttr.getX(vi), posAttr.getY(vi), posAttr.getZ(vi), r, g, b, opacity);
     }
     triangles += 1;
   }
@@ -160,7 +163,7 @@ export function writeFaces(
     }
   }
   writeGrowAttribute(layer.faceFill.geometry, "position", 3, buffers.fillScratch, fillCount);
-  writeGrowAttribute(layer.faceFill.geometry, "color", 3, buffers.fillColorScratch, colorCount);
+  writeGrowAttribute(layer.faceFill.geometry, "color", 4, buffers.fillColorScratch, colorCount);
   writeGrowAttribute(layer.faceOutline.geometry, "position", 3, buffers.outlineScratch, outlineCount);
   layer.faceFill.userData.triangleCount = triangles;
   layer.group.userData.triangleCount = triangles;

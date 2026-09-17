@@ -3,7 +3,7 @@ import type { ModelingSession } from "@modeling-kit/commands";
 import { getEffectiveVisibility, isMeshLikeNode, type SceneNode } from "@modeling-kit/document";
 import { createMeshLocalBvh } from "@modeling-kit/mesh";
 import { BufferGeometry, Group, Mesh, type Object3D } from "three";
-import type { SharedGeometry, TrackedObject } from "./adapter-types";
+import type { SharedGeometry, TexturePixelSource, TrackedObject } from "./adapter-types";
 import { applyLocalTransform, resolveDisplayTransform } from "./adapter-transform";
 import { syncDerivedGeometry } from "./geometry";
 import { applyFaceMaterialGroups, disposeMaterials, materialsForRecord } from "./pbr";
@@ -13,6 +13,7 @@ export interface SceneMirrorContext {
   readonly session: ModelingSession;
   readonly tracked: Map<ObjectId, TrackedObject>;
   readonly geometries: Map<MeshId, SharedGeometry>;
+  readonly textureResolver?: (textureId: string) => TexturePixelSource | undefined;
 }
 
 export function rebuildSceneGraph(context: SceneMirrorContext, root: Object3D): void {
@@ -81,7 +82,7 @@ export function syncMeshesById(context: SceneMirrorContext, meshIds: readonly st
   }
 }
 
-export function syncMaterialsOnly(context: SceneMirrorContext): void {
+export function syncMaterialsOnly(context: SceneMirrorContext, force = false): void {
   for (const [objectId, tracked] of context.tracked) {
     if (!(tracked.object instanceof Mesh)) {
       continue;
@@ -98,8 +99,8 @@ export function syncMaterialsOnly(context: SceneMirrorContext): void {
     }
     const materialKey = `${context.session.document.materials.revision}:${record.materialIds.join(",")}`;
     applyFaceMaterialGroups(tracked.geometry, kernel, tracked.mapping);
-    if (tracked.materialKey !== materialKey) {
-      const nextMaterials = materialsForRecord(context.session.document, record);
+    if (force || tracked.materialKey !== materialKey) {
+      const nextMaterials = materialsForRecord(context.session.document, record, context.textureResolver);
       disposeMaterials(tracked.material);
       tracked.object.material = nextMaterials.length === 1 ? nextMaterials[0]! : nextMaterials;
       tracked.material = tracked.object.material;
@@ -249,7 +250,11 @@ function syncMesh(context: SceneMirrorContext, node: SceneNode, object: Mesh): v
   if (record && tracked.geometry && tracked.mapping) {
     applyFaceMaterialGroups(tracked.geometry, kernel, tracked.mapping);
     if (tracked.materialKey !== materialKey) {
-      const nextMaterials = materialsForRecord(context.session.document, record);
+      const nextMaterials = materialsForRecord(
+        context.session.document,
+        record,
+        context.textureResolver,
+      );
       disposeMaterials(tracked.material);
       object.material = nextMaterials.length === 1 ? nextMaterials[0]! : nextMaterials;
       tracked.material = object.material;

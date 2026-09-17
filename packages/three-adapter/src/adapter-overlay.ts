@@ -13,7 +13,7 @@ export interface OverlaySyncContext {
   readonly session: ModelingSession;
   readonly visualizer: SubElementVisualizer;
   readonly camera: Camera;
-  readonly viewport: { width: number; height: number };
+  readonly viewport: { width: number; height: number; pixelRatio: number };
 }
 
 export function collectOverlaySources(context: OverlaySyncContext): OverlayMeshSource[] {
@@ -103,5 +103,6 @@ export function syncOverlays(
     camera: context.camera,
     width: context.viewport.width,
     height: context.viewport.height,
+    pixelRatio: context.viewport.pixelRatio,
   }, mode);
 }

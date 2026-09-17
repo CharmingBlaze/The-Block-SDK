@@ -10,7 +10,7 @@ export interface AdapterSessionHandlers {
   syncTransforms(objectIds: readonly ObjectId[]): void;
   syncVisibility(objectIds: readonly ObjectId[]): void;
   syncNames(objectIds: readonly ObjectId[]): void;
-  syncMaterialsOnly(): void;
+  syncMaterialsOnly(force?: boolean): void;
   flushOrSchedule(): void;
   syncMeshesById(meshIds: readonly string[]): void;
   flushVisuals(): void;
@@ -47,6 +47,7 @@ export function bindAdapterSessionEvents(
       }
       if (change.aspect === "texture") {
         handlers.markDirty(SceneDirtyFlag.Textures);
+        handlers.syncMaterialsOnly(true);
         handlers.flushOrSchedule();
         return;
       }

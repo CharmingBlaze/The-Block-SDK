@@ -1,4 +1,5 @@
 import { type FaceId, type MeshId } from "@modeling-kit/core";
+import type { TransformData } from "@modeling-kit/math";
 import type { CommandContext } from "@modeling-kit/history";
 import {
   deserializeMesh,
@@ -18,6 +19,7 @@ export function persistGeneratedPrimitive(
   name: string,
   meshId: MeshId,
   allocated?: CubeFaceIds,
+  localTransform?: TransformData,
 ): CreatePrimitiveResult {
   const objectId = context.ids.object();
   const kernel = serializeMesh(generated.mesh);
@@ -33,6 +35,7 @@ export function persistGeneratedPrimitive(
     name,
     type: "mesh_instance",
     payloadRef: meshId,
+    ...(localTransform ? { localTransform } : {}),
   });
   const result: CreatePrimitiveResult = {
     objectId,
@@ -50,6 +53,7 @@ export function restoreGeneratedPrimitive(
   result: CreatePrimitiveResult,
   kernel: SerializedMesh,
   name: string,
+  localTransform?: TransformData,
 ): void {
   const mesh = deserializeMesh(kernel);
   context.meshes.set(result.meshId, mesh);
@@ -65,6 +69,7 @@ export function restoreGeneratedPrimitive(
       name,
       type: "mesh_instance",
       payloadRef: result.meshId,
+      ...(localTransform ? { localTransform } : {}),
     });
   }
 }

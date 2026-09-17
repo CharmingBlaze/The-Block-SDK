@@ -277,12 +277,11 @@ export class InputEngine {
       this.releasedButtons.add(packet.button);
     }
     const step = this.pointers.step(packet);
-    const capturePointer = packet.kind === "pointerdown" && this.pointers.tracking;
     switch (step.type) {
       case "none":
         return {
           consumed: this.pointers.tracking,
-          capturePointer,
+          capturePointer: false,
           preventDefault: this.pointers.tracking,
         };
       case "tap":
@@ -292,7 +291,7 @@ export class InputEngine {
         this.pushContext("modal.transform");
         this.emitGesture("begin", step.frame);
         this.emitGesture("update", step.frame);
-        return { consumed: true, capturePointer, preventDefault: true, action: step.frame.action };
+        return { consumed: true, capturePointer: true, preventDefault: true, action: step.frame.action };
       case "gesture-update":
         this.emitGesture("update", step.frame);
         return { consumed: true, capturePointer: false, preventDefault: true, action: step.frame.action };

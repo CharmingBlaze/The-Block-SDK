@@ -17,35 +17,49 @@ export function bindDom(options: BindDomOptions): () => void {
   const keyboardTarget = options.keyboardTarget ?? canvas.ownerDocument.defaultView ?? canvas;
   const isTextFocus = options.isTextFocus ?? defaultIsTextFocus;
 
+  const captureIfRequested = (event: PointerEvent, capturePointer: boolean | undefined): void => {
+    if (!capturePointer) {
+      return;
+    }
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch {
+      // Capture is optional in environments without PointerEvent capture.
+    }
+  };
+  const releaseIfCaptured = (pointerId: number): void => {
+    try {
+      if (canvas.hasPointerCapture(pointerId)) {
+        canvas.releasePointerCapture(pointerId);
+      }
+    } catch {
+      // Ignore missing capture APIs / already-released pointers.
+    }
+  };
   const onPointerDown = (event: PointerEvent): void => {
     const result = engine.dispatch(fromPointer(event, canvas, "pointerdown"));
-    if (result.capturePointer) {
-      canvas.setPointerCapture(event.pointerId);
-    }
+    captureIfRequested(event, result.capturePointer);
     if (result.preventDefault ?? result.consumed) {
       event.preventDefault();
     }
   };
   const onPointerMove = (event: PointerEvent): void => {
     const result = engine.dispatch(fromPointer(event, canvas, "pointermove"));
+    captureIfRequested(event, result.capturePointer);
     if (result.consumed) {
       event.preventDefault();
     }
   };
   const onPointerUp = (event: PointerEvent): void => {
     const result = engine.dispatch(fromPointer(event, canvas, "pointerup"));
-    if (canvas.hasPointerCapture(event.pointerId)) {
-      canvas.releasePointerCapture(event.pointerId);
-    }
+    releaseIfCaptured(event.pointerId);
     if (result.consumed) {
       event.preventDefault();
     }
   };
   const onPointerCancel = (event: PointerEvent): void => {
     engine.dispatch(fromPointer(event, canvas, "pointercancel"));
-    if (canvas.hasPointerCapture(event.pointerId)) {
-      canvas.releasePointerCapture(event.pointerId);
-    }
+    releaseIfCaptured(event.pointerId);
   };
   const onLostCapture = (event: PointerEvent): void => {
     if (engine.isGesturing) {

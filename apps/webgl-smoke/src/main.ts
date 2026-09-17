@@ -4,13 +4,17 @@ import {
   clientToViewportPixel,
   createBufferGeometry,
   DefaultGpuPickingService,
+  ViewportDisplayController,
+  type ViewportRenderMode,
   type GpuPickDrawable,
   type GpuPickRequest,
 } from "@modeling-kit/three-adapter";
 import {
   Mesh,
+  MeshStandardMaterial,
   OrthographicCamera,
   PerspectiveCamera,
+  Scene,
   WebGLRenderer,
 } from "three";
 
@@ -270,6 +274,35 @@ async function runSmoke(): Promise<SmokeReport> {
   service.invalidate("resize");
   const afterResize = await pickAt(service, "object", 1280, 720, "front-and-back");
   record("resize-invalidation", afterResize?.objectId === "cube");
+
+  const displayScene = new Scene();
+  const displayMesh = cubeDrawable.object as Mesh;
+  displayMesh.material = new MeshStandardMaterial({ color: 0x72a7dc, roughness: 0.65 });
+  displayScene.add(displayMesh);
+  const display = new ViewportDisplayController({
+    renderer,
+    scene: displayScene,
+    camera: perspective,
+    presentationRoot: displayMesh,
+  });
+  const renderModes: ViewportRenderMode[] = [
+    "solid", "material", "textured", "unlit", "wireframe",
+    "shaded-wireframe", "normals", "uv-checker", "game-preview",
+  ];
+  for (const mode of renderModes) {
+    display.setRenderMode(mode);
+    display.render();
+    const error = renderer.getContext().getError();
+    record(`render-mode-${mode}`, error === renderer.getContext().NO_ERROR, `glError=${error}`);
+  }
+  display.setRenderMode("solid");
+  display.invalidateShadows();
+  display.render();
+  const firstStaticState = display.shadowNeedsUpdate;
+  display.render();
+  record("static-shadow-map", firstStaticState === false && display.shadowNeedsUpdate === false);
+  display.dispose();
+  (displayMesh.material as MeshStandardMaterial).dispose();
   service.dispose();
   renderer.dispose();
 

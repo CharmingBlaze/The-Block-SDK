@@ -50,7 +50,11 @@ The GPU service does not read the keyboard. Hosts translate modifiers into `Sele
 
 ## Tool consumption
 
-`consumePick` may return `boolean` or `{ consumed, beginDrag? }`. A consumed or dragging session does not run independent pointer-up selection. Tools that need a selection change call the selection controller themselves.
+`consumePick` may return `boolean` or `{ consumed, beginDrag? }`. A consumed or dragging session does not run independent pointer-up selection. Tools that need a selection change call the selection controller themselves. `{ consumed: true, beginDrag: true }` may capture the pointer through `ViewportGestureController.applyClaim`; capture is released on up/cancel. Select-clicks never capture. Gizmos should register `hitTest` with `viewport.gestures.registerGizmo` so selection and a gizmo cannot start from the same event.
+
+## Pointer ownership (turnkey viewport)
+
+`createThreeViewport` owns one `ViewportGestureController` when picking is on. Left button is select/tools/gizmos. Right-drag orbits, middle-drag pans, wheel dollies. Touch never selects unless you opt into navigation through `navigation.touch`. OrbitControls is gated so it does not see left pick-clicks. Do not mutate OrbitControls private state; call `viewport.gestures.cancelActiveGesture`. Details: [`../guides/viewport.md`](../guides/viewport.md).
 
 ## Transparency, instancing, skinning (deferred)
 

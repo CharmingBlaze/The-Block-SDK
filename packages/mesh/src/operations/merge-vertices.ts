@@ -1,4 +1,4 @@
-import type { FaceId, VertexId } from "@modeling-kit/core";
+import type { FaceId, MaterialSlotId, VertexId } from "@modeling-kit/core";
 import { MeshBuilder } from "../builder";
 import type { HalfEdgeMesh } from "../half-edge-mesh";
 import { TopologyMappingBuilder } from "../internal/topology-mapping-builder";
@@ -120,12 +120,20 @@ function applyVertexRemap(
   const facesToRecreate: Array<{
     id: FaceId;
     materialSlot: number;
+    materialSlotId: MaterialSlotId | null;
     isSmooth: boolean;
     vertices: VertexId[];
+    uvs?: [number, number][];
+    uvChannels?: Readonly<Record<string, [number, number]>>[];
+    pinnedUvChannels?: readonly (readonly import("@modeling-kit/core").UVChannelId[])[];
+    normals?: [number, number, number][];
+    colors?: [number, number, number, number][];
   }> = [];
 
   for (const [faceId, face] of mesh.faces) {
-    const remapped = collapseLoop(mesh.getFaceVertices(faceId), remap);
+    const loop = mesh.getFaceVertices(faceId);
+    const collapsed = collapseLoopWithIndices(loop, remap);
+    const remapped = collapsed.vertices;
     if (remapped.length < 3) {
       warnings.push({
         code: "degenerate-face",
@@ -135,11 +143,34 @@ function applyVertexRemap(
       mapping.deleteFace(faceId);
       continue;
     }
+    const corners = mesh
+      .getFaceCorners(faceId)
+      .map((cornerId) => mesh.corners.get(cornerId));
+    const survivingCorners = collapsed.indices.map((index) => corners[index]);
+    const hasUvs = survivingCorners.some((corner) => corner?.uv !== undefined);
+    const hasUvChannels = survivingCorners.some((corner) => corner?.uvChannels !== undefined);
+    const hasPinnedUvChannels = survivingCorners.some((corner) => corner?.pinnedUvChannels !== undefined);
+    const hasNormals = survivingCorners.some((corner) => corner?.normal !== undefined);
+    const hasColors = survivingCorners.some((corner) => corner?.color !== undefined);
     facesToRecreate.push({
       id: faceId,
       materialSlot: face.materialSlot,
+      materialSlotId: face.materialSlotId ?? null,
       isSmooth: face.isSmooth,
       vertices: remapped,
+      ...(hasUvs ? { uvs: survivingCorners.map((corner) => corner?.uv ?? [0, 0]) } : {}),
+      ...(hasUvChannels
+        ? { uvChannels: survivingCorners.map((corner) => corner?.uvChannels ?? {}) }
+        : {}),
+      ...(hasPinnedUvChannels
+        ? { pinnedUvChannels: survivingCorners.map((corner) => corner?.pinnedUvChannels ?? []) }
+        : {}),
+      ...(hasNormals
+        ? { normals: survivingCorners.map((corner) => corner?.normal ?? [0, 0, 0]) }
+        : {}),
+      ...(hasColors
+        ? { colors: survivingCorners.map((corner) => corner?.color ?? [1, 1, 1, 1]) }
+        : {}),
     });
   }
 
@@ -160,7 +191,13 @@ function applyVertexRemap(
     builder.addFace(face.vertices, {
       id: face.id,
       materialSlot: face.materialSlot,
+      ...(face.materialSlotId !== undefined ? { materialSlotId: face.materialSlotId } : {}),
       isSmooth: face.isSmooth,
+      ...(face.uvs ? { uvs: face.uvs } : {}),
+      ...(face.uvChannels ? { uvChannels: face.uvChannels } : {}),
+      ...(face.pinnedUvChannels ? { pinnedUvChannels: face.pinnedUvChannels } : {}),
+      ...(face.normals ? { normals: face.normals } : {}),
+      ...(face.colors ? { colors: face.colors } : {}),
     });
   }
 
@@ -238,18 +275,25 @@ function resolvePosition(
   return [p[0], p[1], p[2]];
 }
 
-function collapseLoop(loop: readonly VertexId[], remap: ReadonlyMap<VertexId, VertexId>): VertexId[] {
+function collapseLoopWithIndices(
+  loop: readonly VertexId[],
+  remap: ReadonlyMap<VertexId, VertexId>,
+): { vertices: VertexId[]; indices: number[] } {
   const remapped: VertexId[] = [];
-  for (const vId of loop) {
+  const indices: number[] = [];
+  for (let index = 0; index < loop.length; index += 1) {
+    const vId = loop[index]!;
     const target = remap.get(vId) ?? vId;
     if (remapped.length === 0 || remapped[remapped.length - 1] !== target) {
       remapped.push(target);
+      indices.push(index);
     }
   }
   if (remapped.length > 1 && remapped[0] === remapped[remapped.length - 1]) {
     remapped.pop();
+    indices.pop();
   }
-  return remapped;
+  return { vertices: remapped, indices };
 }
 
 function clusterByDistance(mesh: HalfEdgeMesh, epsilon: number): VertexId[][] {

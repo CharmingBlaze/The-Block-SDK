@@ -16,6 +16,10 @@ import { ElementPointerMachine, type SubElementHover } from "./sub-element";
 export interface ViewportPointerBinding {
   pickFromClient(clientX: number, clientY: number, domain?: PickDomain): PickResult | null;
   pointer: ElementPointerMachine;
+  handlePointerDown(event: PointerEvent): void;
+  handlePointerMove(event: PointerEvent): void;
+  handlePointerUp(event: PointerEvent): void;
+  handlePointerCancel(event: PointerEvent): void;
   invalidateClicks(): void;
   dispose(): void;
 }
@@ -36,15 +40,29 @@ function hoverFromHit(hit: PickResult | null): SubElementHover | null {
   return null;
 }
 
+function toolResponse(tool: boolean | ToolPickResponse | undefined): ToolPickResponse {
+  if (tool && typeof tool === "object") {
+    return { consumed: tool.consumed, ...(tool.beginDrag ? { beginDrag: true } : {}) };
+  }
+  return { consumed: tool === true };
+}
+
+/**
+ * Click/hover picking only. Never takes pointer capture.
+ * Capture is reserved for claimed tool/gizmo drags on ViewportGestureController.
+ */
 export function bindViewportPointer(options: {
   readonly canvas: HTMLCanvasElement;
   readonly adapter: ThreeViewportAdapter;
   readonly viewport: CreateThreeViewportOptions;
   readonly pickingEnabled: boolean;
   readonly pickDomain: PickDomain;
+  readonly attachListeners?: boolean;
+  readonly onBeginToolDrag?: (pointerId: number) => void;
   isDisposed(): boolean;
 }): ViewportPointerBinding {
   const { canvas, adapter, viewport, pickingEnabled, pickDomain } = options;
+  const attachListeners = options.attachListeners !== false;
   const picking = resolvedPickingOptions(viewport.picking);
   const pointer = new ElementPointerMachine();
   const sessions = new PointerPickSessionStore();
@@ -83,7 +101,7 @@ export function bindViewportPointer(options: {
     };
   };
 
-  const onPointerDown = (event: PointerEvent): void => {
+  const handlePointerDown = (event: PointerEvent): void => {
     if (event.button !== 0) {
       return;
     }
@@ -97,11 +115,6 @@ export function bindViewportPointer(options: {
       y: event.clientY,
       elementId: null,
     });
-    try {
-      canvas.setPointerCapture(event.pointerId);
-    } catch {
-      // Capture is optional on environments without PointerEvent capture.
-    }
     const domain = viewport.resolvePickDomain?.() ?? pickDomain;
     const request = buildRequest(event.clientX, event.clientY, domain);
     const revisions = adapter.pickingRevisions();
@@ -124,17 +137,20 @@ export function bindViewportPointer(options: {
             cameraRevision: revisions.camera,
           }),
         );
-        const tool = viewport.consumePick?.(result ?? null);
-        const response: ToolPickResponse =
-          tool && typeof tool === "object"
-            ? { consumed: tool.consumed, ...(tool.beginDrag ? { beginDrag: true } : {}) }
-            : { consumed: tool === true };
+        const response = toolResponse(viewport.consumePick?.(result ?? null, {
+          clientX: request.clientX,
+          clientY: request.clientY,
+          pointerId,
+        }));
         sessions.applyToolResponse(pointerId, response);
+        if (response.consumed && response.beginDrag) {
+          options.onBeginToolDrag?.(pointerId);
+        }
       }),
     );
   };
 
-  const onPointerUp = (event: PointerEvent): void => {
+  const handlePointerUp = (event: PointerEvent): void => {
     if (!pickingEnabled || event.button !== 0 || !pointerStart) {
       pointerStart = undefined;
       return;
@@ -173,7 +189,7 @@ export function bindViewportPointer(options: {
     });
   };
 
-  const onPointerCancel = (event: PointerEvent): void => {
+  const handlePointerCancel = (event: PointerEvent): void => {
     pointer.cancel("pointercancel");
     adapter.setHover(null);
     pointerStart = undefined;
@@ -181,12 +197,7 @@ export function bindViewportPointer(options: {
     inflight.delete(event.pointerId);
   };
 
-  const onLostCapture = (): void => {
-    pointer.lostCapture();
-    pointerStart = undefined;
-  };
-
-  const onPointerMove = (event: PointerEvent): void => {
+  const handlePointerMove = (event: PointerEvent): void => {
     if (!pickingEnabled) {
       return;
     }
@@ -198,34 +209,40 @@ export function bindViewportPointer(options: {
     });
     const hit = pickFromClient(event.clientX, event.clientY);
     applyHover(hit);
-    viewport.onHoverPick?.(hit);
+    viewport.onHoverPick?.(hit, {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      pointerId: event.pointerId,
+    });
   };
 
-  if (pickingEnabled) {
-    canvas.addEventListener("pointerdown", onPointerDown);
-    canvas.addEventListener("pointerup", onPointerUp);
-    canvas.addEventListener("pointercancel", onPointerCancel);
-    canvas.addEventListener("lostpointercapture", onLostCapture);
-    canvas.addEventListener("pointermove", onPointerMove);
+  if (pickingEnabled && attachListeners) {
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    canvas.addEventListener("pointerup", handlePointerUp);
+    canvas.addEventListener("pointercancel", handlePointerCancel);
+    canvas.addEventListener("pointermove", handlePointerMove);
   }
 
   return {
     pickFromClient,
     pointer,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerCancel,
     invalidateClicks(): void {
       clickPickGeneration += 1;
     },
     dispose(): void {
       sessions.clear();
       inflight.clear();
-      if (!pickingEnabled) {
+      if (!pickingEnabled || !attachListeners) {
         return;
       }
-      canvas.removeEventListener("pointerdown", onPointerDown);
-      canvas.removeEventListener("pointerup", onPointerUp);
-      canvas.removeEventListener("pointercancel", onPointerCancel);
-      canvas.removeEventListener("lostpointercapture", onLostCapture);
-      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerdown", handlePointerDown);
+      canvas.removeEventListener("pointerup", handlePointerUp);
+      canvas.removeEventListener("pointercancel", handlePointerCancel);
+      canvas.removeEventListener("pointermove", handlePointerMove);
     },
   };
 }

@@ -269,6 +269,32 @@ describe("mesh operations", () => {
     expect(welded.mergedCount).toBeGreaterThanOrEqual(1);
   });
 
+  it("preserves corner attributes when merge remaps a non-degenerate face", () => {
+    const ids = createSequenceIdFactory("merge-attrs");
+    const ctx = createMeshOperationContext(ids);
+    const builder = new MeshBuilder(ids.mesh());
+    const a = builder.addVertex(0, 0, 0);
+    const b = builder.addVertex(1, 0, 0);
+    const c = builder.addVertex(0, 1, 0);
+    const d = builder.addVertex(0, 0, 1);
+    const face = builder.addFace([a, b, c], {
+      uvs: [[0, 0], [1, 0], [0, 1]],
+      normals: [[0, 0, 1], [0, 0, 1], [0, 0, 1]],
+      colors: [[1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1]],
+    });
+    builder.addFace([a, c, d]);
+    const mesh = builder.getMesh();
+    mergeVertices(mesh, { vertexIds: [b, d], target: "first" }, ctx);
+    const corners = mesh.getFaceCorners(face).map((id) => mesh.corners.get(id)!);
+    expect(corners).toHaveLength(3);
+    expect(corners.map((corner) => corner.uv)).toEqual([[0, 0], [1, 0], [0, 1]]);
+    expect(corners.map((corner) => corner.color)).toEqual([
+      [1, 0, 0, 1],
+      [0, 1, 0, 1],
+      [0, 0, 1, 1],
+    ]);
+  });
+
   it("dissolves a cube edge into an n-gon", () => {
     const ids = createSequenceIdFactory("diss");
     const ctx = createMeshOperationContext(ids);

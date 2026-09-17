@@ -118,7 +118,7 @@ export interface PickResult {
 3. **Vertex / Edge Resolution:**
    - In vertex/edge domain, raycast uses hit-distance thresholds in screen space against projected vertex markers or edge segments.
    - Screen-space thresholding accounts for perspective/orthographic projection and DPR.
-4. **Turnkey viewport:** `createThreeViewport` from this package (also re-exported as `@modeling-kit/sdk/three`). Host guide: [`../guides/viewport.md`](../guides/viewport.md).
+4. **Turnkey viewport:** `createThreeViewport` from this package (also re-exported as `@modeling-kit/sdk/three`). When picking is on, `ViewportGestureController` owns each pointer (`selection` / `tool` / `gizmo` / `navigation` / `none`); Orbit is right-drag / middle-pan / wheel. Select-clicks never `setPointerCapture`. Host guide: [`../guides/viewport.md`](../guides/viewport.md).
 
 ---
 

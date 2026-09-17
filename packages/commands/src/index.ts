@@ -1,4 +1,16 @@
 export { CreatePrimitiveCommand } from "./create-primitive";
+export {
+  PrimitiveCreationSession,
+  CadPrimitiveDrawSession,
+  PrimitivePlacementSession,
+  type PrimitiveCreationState,
+  type PrimitiveCreationOptions,
+  type PrimitivePointerInput,
+  type PrimitiveRay,
+  type PrimitiveSnapOptions,
+  type PrimitiveWorkPlane,
+  type PrimitivePreview,
+} from "./primitive-creation";
 export { CreateLibraryPrimitiveCommand } from "./create-library-primitive";
 export { ExtrudeProfileCommand } from "./extrude-profile";
 export type {

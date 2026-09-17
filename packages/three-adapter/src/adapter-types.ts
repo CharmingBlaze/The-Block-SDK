@@ -11,11 +11,19 @@ export interface ViewportRenderer {
   setPixelRatio(value: number): void;
 }
 
+export interface TexturePixelSource {
+  readonly width: number;
+  readonly height: number;
+  readonly data: Uint8Array | Uint8ClampedArray;
+}
+
 export interface ThreeViewportAdapterOptions {
   readonly session: ModelingSession;
   readonly scene: Scene;
   readonly camera: Camera;
   readonly renderer: ViewportRenderer;
+  /** Resolve canonical runtime texture pixels for viewport materials. */
+  readonly textureResolver?: (textureId: string) => TexturePixelSource | undefined;
   readonly viewportId?: string;
   readonly autoFlush?: boolean;
   /** Optional object-level accelerator. Canonical picking remains CPU `Raycaster`. */

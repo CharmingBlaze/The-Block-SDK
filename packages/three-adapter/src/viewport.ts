@@ -1,4 +1,4 @@
-import { MOUSE, Vector3, WebGLRenderer } from "three";
+import { Vector3, WebGLRenderer } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { PointPickRequest, PointPickResult, SelectionIntent } from "@modeling-kit/selection";
 import { ThreeViewportAdapter } from "./adapter";
@@ -9,8 +9,17 @@ import {
 } from "./overlays/knife-overlay";
 import type { PickResult } from "./picking";
 import type { PointerPhase } from "./sub-element";
+import { createOrbitEventGate } from "./orbit-event-gate";
+import { createViewportGestureController } from "./viewport-gesture-controller";
+import type { ViewportGestureController } from "./viewport-gesture-types";
 import { bindViewportPointer } from "./viewport-pointer";
+import {
+  applyViewportNavigation,
+  resolvePickingNavigation,
+} from "./viewport-pointer-policy";
 import { createViewportScene } from "./viewport-studio";
+import { ViewportDisplayController } from "./viewport-display-controller";
+import type { ViewportRenderMode, ViewportRenderSettingsInput } from "./viewport-display-settings";
 import {
   applyViewportPointPick,
   resolvedPickingOptions,
@@ -25,11 +34,13 @@ export type {
   ThreeViewportHandle,
   ThreeViewportOptions,
   ThreeViewportPickingOptions,
+  ViewportPointerLocation,
 } from "./viewport-types";
+export type { ViewportRenderMode, ViewportRenderSettingsInput } from "./viewport-display-settings";
 
 /** Zero-config Three.js viewport bound to a headless ModelingSession. */
 export function createThreeViewport(options: CreateThreeViewportOptions): ThreeViewportHandle {
-  const { scene, camera } = createViewportScene(options);
+  const { scene, camera, grid } = createViewportScene(options);
   const picking = resolvedPickingOptions(options.picking);
 
   const renderer = new WebGLRenderer({ antialias: true });
@@ -46,26 +57,110 @@ export function createThreeViewport(options: CreateThreeViewportOptions): ThreeV
     scene,
     camera,
     renderer,
+    ...(options.textureResolver ? { textureResolver: options.textureResolver } : {}),
     gpuPicking: picking.gpuPicking === false ? "off" : "webgl",
     ...(options.spatialAcceleration === false ? { spatialAcceleration: false } : {}),
     ...(options.subElement ? { subElement: options.subElement } : {}),
   });
   adapter.mount();
 
+  const display = new ViewportDisplayController({
+    renderer,
+    scene,
+    camera,
+    presentationRoot: adapter.root,
+    ...(grid ? { grid } : {}),
+    ...((options.renderSettings ?? options.display) ? { initial: options.renderSettings ?? options.display } : {}),
+    lightingEnabled: options.lighting !== "none" && options.lights !== false,
+    getSelectedObjects: () => options.session.selection.objectIds
+      .map((objectId) => adapter.object3D(objectId))
+      .filter((object): object is NonNullable<typeof object> => object !== undefined),
+    setTopologyEdges: (visible) => adapter.setSubElementTheme({
+      edges: {
+        roles: {
+          interior: { opacity: visible ? 0.85 : 0 },
+          boundary: { opacity: visible ? 1 : 0 },
+          seam: { opacity: visible ? 1 : 0 },
+          sharp: { opacity: visible ? 1 : 0 },
+          crease: { opacity: visible ? 1 : 0 },
+        },
+      },
+    }),
+  });
+  const displayUnsubscribers = [
+    options.session.events.on("document:changed", (change) => {
+      if (change.aspect === "material" || change.aspect === "texture" || change.kind === "materials") {
+        display.invalidateDerivedMaterials();
+      }
+      if (change.kind === "transform" || change.kind === "visibility" || change.kind === "hierarchy") {
+        display.invalidateShadows();
+      }
+    }),
+    options.session.events.on("mesh:changed", () => {
+      display.invalidateDerivedMaterials();
+      display.invalidateShadows();
+    }),
+    options.session.events.on("selection:changed", () => display.invalidateShadows()),
+  ];
+
   const pickingEnabled = picking.enabled;
   const pickDomain = options.pickDomain ?? "face";
+  const navigation = resolvePickingNavigation({
+    ...(options.minDistance !== undefined ? { minDistance: options.minDistance } : {}),
+    ...(options.zoomToCursor !== undefined ? { zoomToCursor: options.zoomToCursor } : {}),
+    ...(options.touchNavigation !== undefined ? { touchNavigation: options.touchNavigation } : {}),
+    ...(options.navigation ? { navigation: options.navigation } : {}),
+  });
+
+  let disposed = false;
+  // Viewport picking is not `@modeling-kit/input` bindDom. Do not wire them together.
+  const controlSlot: { controls: OrbitControls | undefined } = { controls: undefined };
+  const gestureSlot: { applyClaim?: ViewportGestureController["applyClaim"] } = {};
+  const navigationTarget = pickingEnabled ? createOrbitEventGate(canvas) : undefined;
+  const pointerBinding = bindViewportPointer({
+    canvas,
+    adapter,
+    viewport: options,
+    pickingEnabled,
+    pickDomain,
+    attachListeners: false,
+    onBeginToolDrag: (pointerId) => {
+      gestureSlot.applyClaim?.(pointerId, { owner: "tool", beginDrag: true });
+    },
+    isDisposed: () => disposed,
+  });
+
+  const gestures = createViewportGestureController({
+    canvas,
+    attachListeners: pickingEnabled,
+    pickingEnabled,
+    navigation,
+    ...(options.minDistance !== undefined ? { minDistance: options.minDistance } : {}),
+    ...(options.zoomToCursor !== undefined ? { zoomToCursor: options.zoomToCursor } : {}),
+    getControls: () => controlSlot.controls,
+    getNavigationTarget: () => navigationTarget,
+    onSelectionDown: pointerBinding.handlePointerDown,
+    onSelectionMove: pointerBinding.handlePointerMove,
+    onSelectionUp: pointerBinding.handlePointerUp,
+    onSelectionCancel: pointerBinding.handlePointerCancel,
+  });
+  if (options.gestureHooks) {
+    gestures.setHooks(options.gestureHooks);
+  }
+  gestureSlot.applyClaim = (pointerId, claim) => gestures.applyClaim(pointerId, claim);
 
   let controls: OrbitControls | undefined;
   if (options.orbitControls !== false) {
-    controls = new OrbitControls(camera, renderer.domElement);
+    const orbitElement = (navigationTarget ?? renderer.domElement) as HTMLElement;
+    controls = new OrbitControls(camera, orbitElement);
     controls.enableDamping = options.damping !== false;
     if (pickingEnabled) {
-      controls.mouseButtons = {
-        LEFT: -1 as unknown as typeof MOUSE.ROTATE,
-        MIDDLE: MOUSE.DOLLY,
-        RIGHT: MOUSE.ROTATE,
-      };
+      applyViewportNavigation(controls, navigation, {
+        ...(options.minDistance !== undefined ? { minDistance: options.minDistance } : {}),
+        ...(options.zoomToCursor !== undefined ? { zoomToCursor: options.zoomToCursor } : {}),
+      });
     }
+    controlSlot.controls = controls;
   }
 
   const resize = (): void => {
@@ -75,15 +170,17 @@ export function createThreeViewport(options: CreateThreeViewportOptions): ThreeV
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
     adapter.resize(width, height, window.devicePixelRatio);
+    display.resize(width, height, window.devicePixelRatio);
   };
   resize();
 
   let frame = 0;
   const tick = (): void => {
     frame = requestAnimationFrame(tick);
+    gestures.enforceNavigation();
     controls?.update();
     adapter.updateView();
-    renderer.render(scene, camera);
+    display.render();
   };
   tick();
 
@@ -100,16 +197,6 @@ export function createThreeViewport(options: CreateThreeViewportOptions): ThreeV
       resizeObserver.observe(options.container);
     }
   }
-
-  let disposed = false;
-  const pointerBinding = bindViewportPointer({
-    canvas,
-    adapter,
-    viewport: options,
-    pickingEnabled,
-    pickDomain,
-    isDisposed: () => disposed,
-  });
 
   const worldPointOf = (hit: PointPickResult | PickResult): { x: number; y: number; z: number } | undefined => {
     if ("kind" in hit) {
@@ -152,6 +239,20 @@ export function createThreeViewport(options: CreateThreeViewportOptions): ThreeV
     renderer,
     adapter,
     controls,
+    gestures,
+    display,
+    setRenderMode(mode: ViewportRenderMode): void {
+      display.setRenderMode(mode);
+    },
+    updateRenderSettings(settings: ViewportRenderSettingsInput): void {
+      display.updateRenderSettings(settings);
+    },
+    setDisplaySettings(settings: ViewportRenderSettingsInput): void {
+      display.updateRenderSettings(settings);
+    },
+    setSubElementDisplay(settings) {
+      adapter.setSubElementDisplay(settings);
+    },
     pickFromClient: pointerBinding.pickFromClient,
     resolvePointPick(request: PointPickRequest) {
       return adapter.pickPoint(request);
@@ -177,9 +278,18 @@ export function createThreeViewport(options: CreateThreeViewportOptions): ThreeV
       window.removeEventListener("resize", onWindowResize);
       resizeObserver?.disconnect();
       pointerBinding.dispose();
+      gestures.dispose();
       controls?.dispose();
       pointerBinding.pointer.cancel("adapter-dispose");
+      for (const unsubscribe of displayUnsubscribers) unsubscribe();
+      display.dispose();
       adapter.dispose();
+      if (grid) {
+        grid.removeFromParent();
+        grid.geometry.dispose();
+        const gridMaterials = Array.isArray(grid.material) ? grid.material : [grid.material];
+        for (const material of gridMaterials) material.dispose();
+      }
       renderer.dispose();
       renderer.domElement.remove();
       knifeOverlay.removeFromParent();

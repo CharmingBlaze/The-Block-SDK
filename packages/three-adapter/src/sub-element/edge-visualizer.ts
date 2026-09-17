@@ -135,6 +135,7 @@ export function writeEdgeColorAt(
   const state = resolveElementVisualState(id, sets);
   const role = classifyEdge(kernel, id);
   const color = edgeDisplayColor(theme, role, state);
+  layer.edgeWidths[index] = theme.edges.states[state].width ?? theme.edges.width;
   const colors = layer.edgeLines.geometry.getAttribute("color") as BufferAttribute;
   colors.setXYZ(index * 2, color.r * color.opacity, color.g * color.opacity, color.b * color.opacity);
   colors.setXYZ(index * 2 + 1, color.r * color.opacity, color.g * color.opacity, color.b * color.opacity);
@@ -168,6 +169,7 @@ export function writeEdgeColors(
     const visible = isLodIndexVisible(i, lod, emphasized) && state !== "hidden";
     const role = classifyEdge(kernel, id);
     const color = edgeDisplayColor(theme, role, state);
+    layer.edgeWidths[i] = theme.edges.states[state].width ?? theme.edges.width;
     const opacity = visible ? color.opacity : 0;
     colors.setXYZ(i * 2, color.r * opacity, color.g * opacity, color.b * opacity);
     colors.setXYZ(i * 2 + 1, color.r * opacity, color.g * opacity, color.b * opacity);

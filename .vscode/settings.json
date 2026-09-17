@@ -1,0 +1,8 @@
+{
+  // Use the workspace TypeScript (5.9.3, matching CI) rather than the editor's
+  // bundled compiler. The bundled compiler is newer and produces cascading
+  // false-positive parse errors on files that `pnpm typecheck` accepts, so
+  // errors shown here can send you chasing bugs that do not exist.
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+  "js/ts.tsdk.promptToUseWorkspaceVersion": true
+}

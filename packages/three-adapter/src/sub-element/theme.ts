@@ -7,6 +7,7 @@ import type {
   SubElementVisualTheme,
   VertexVisualTheme,
 } from "./types";
+import type { OverlaySelectionDomain } from "./visualizer-types";
 
 const hidden: ColorOpacity = { color: 0x000000, opacity: 0 };
 
@@ -22,8 +23,8 @@ export const defaultSubElementTheme: SubElementVisualTheme = {
     pickPixelPadding: 6,
     states: {
       default: { color: 0xf2f4f8, opacity: 1, outlineColor: 0x1a1a24, outlineWidth: 1, scale: 1 },
-      hovered: { color: 0x7ad4ff, opacity: 1, outlineColor: 0x0b3a52, outlineWidth: 1.5, scale: 1.15 },
-      selected: { color: 0xffc14d, opacity: 1, outlineColor: 0x5a3a00, outlineWidth: 1.5, scale: 1.2 },
+      hovered: { color: 0xfbbf24, opacity: 1, outlineColor: 0x78350f, outlineWidth: 1.5, scale: 1.25 },
+      selected: { color: 0xf59e0b, opacity: 1, outlineColor: 0x78350f, outlineWidth: 1.5, scale: 1.5 },
       active: { color: 0xff7a1a, opacity: 1, outlineColor: 0x4a2200, outlineWidth: 2, scale: 1.3 },
       disabled: { color: 0x8b8b98, opacity: 0.45, outlineColor: 0x33333c, scale: 0.9 },
       locked: { color: 0xb7a0ff, opacity: 0.7, outlineColor: 0x2d2150, scale: 1 },
@@ -32,7 +33,7 @@ export const defaultSubElementTheme: SubElementVisualTheme = {
   },
   edges: {
     style: "screen-space",
-    width: 1.5,
+    width: 1,
     pickWidth: 8,
     depthTest: true,
     xray: false,
@@ -45,8 +46,8 @@ export const defaultSubElementTheme: SubElementVisualTheme = {
     },
     states: {
       default: { color: 0x2a2a38, opacity: 0.9, width: 1.5 },
-      hovered: { color: 0x7ad4ff, opacity: 1, width: 2.5 },
-      selected: { color: 0xffc14d, opacity: 1, width: 2.75 },
+      hovered: { color: 0xfbbf24, opacity: 1, width: 2.25 },
+      selected: { color: 0xf59e0b, opacity: 1, width: 2.75 },
       active: { color: 0xff7a1a, opacity: 1, width: 3.25 },
       disabled: { color: 0x6c6c78, opacity: 0.4, width: 1.25 },
       locked: { color: 0xb7a0ff, opacity: 0.65, width: 1.5 },
@@ -60,8 +61,8 @@ export const defaultSubElementTheme: SubElementVisualTheme = {
     frontFaceOnly: false,
     states: {
       default: { color: 0xffffff, opacity: 0, outlineColor: 0x000000, outlineWidth: 0 },
-      hovered: { color: 0x5ec8ff, opacity: 0.18, outlineColor: 0x7ad4ff, outlineWidth: 1.5 },
-      selected: { color: 0xffc14d, opacity: 0.28, outlineColor: 0xffdd88, outlineWidth: 1.75 },
+      hovered: { color: 0xf59e0b, opacity: 0.1, outlineColor: 0xfbbf24, outlineWidth: 1.25 },
+      selected: { color: 0xf59e0b, opacity: 0.2, outlineColor: 0xfcd34d, outlineWidth: 1.75 },
       active: { color: 0xff7a1a, opacity: 0.38, outlineColor: 0xffaa55, outlineWidth: 2 },
       disabled: { color: 0x888899, opacity: 0.12, outlineColor: 0x666677, outlineWidth: 1 },
       locked: { color: 0xb7a0ff, opacity: 0.16, outlineColor: 0xcbb8ff, outlineWidth: 1 },
@@ -83,6 +84,19 @@ export const defaultSubElementDisplay: SubElementDisplayOptions = {
     strategy: "stride",
   },
 };
+
+/** Resolve exclusive, cached overlay visibility for a modeling selection mode. */
+export function subElementDisplayForDomain(
+  domain: OverlaySelectionDomain,
+): SubElementDisplayOptions {
+  return {
+    ...defaultSubElementDisplay,
+    editMode: false,
+    showVertices: domain === "vertex",
+    showEdges: domain === "edge",
+    showFaces: domain === "face" ? "states" : false,
+  };
+}
 
 export function mergeSubElementTheme(
   base: SubElementVisualTheme,

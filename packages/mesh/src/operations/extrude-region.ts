@@ -2,7 +2,7 @@ import type { FaceId, VertexId } from "@modeling-kit/core";
 import { Vector3 } from "@modeling-kit/math";
 import { MeshBuilder } from "../builder";
 import type { HalfEdgeMesh } from "../half-edge-mesh";
-import { collectBoundaryEdges } from "../internal/boundary-cycles";
+import { collectBoundaryEdges, connectedFaceIslands } from "../internal/boundary-cycles";
 import { deleteFace, faceNormal } from "../internal/delete-face";
 import { TopologyMappingBuilder } from "../internal/topology-mapping-builder";
 import type { MeshOperationContext, MeshOperationResult } from "./contract";
@@ -37,8 +37,11 @@ export function extrudeRegion(
 
   const mapping = new TopologyMappingBuilder(mesh);
   const selectedSet = new Set(selected);
-  const regionNormal = averageRegionNormal(mesh, selected);
-  const offset = regionNormal.scale(request.distance);
+  // A Blender region extrude is independent per connected island. Averaging
+  // normals across disconnected selections would move every island in the
+  // same direction, which is visibly wrong for objects such as an L-shaped
+  // selection or two separate faces with different orientations.
+  const vertexOffsets = regionVertexOffsets(mesh, selected, request.distance);
 
   const vertexMap = new Map<VertexId, VertexId>();
   let builder = MeshBuilder.fromMesh(mesh);
@@ -48,6 +51,7 @@ export function extrudeRegion(
         continue;
       }
       const src = mesh.vertices.get(vertexId)!;
+      const offset = vertexOffsets.get(vertexId) ?? new Vector3(0, 0, 0);
       const mapped = builder.addVertex(
         src.position[0] + offset.x,
         src.position[1] + offset.y,
@@ -110,14 +114,34 @@ export function extrudeRegion(
   });
 }
 
-function averageRegionNormal(mesh: HalfEdgeMesh, faceIds: readonly FaceId[]): Vector3 {
-  let n = new Vector3(0, 0, 0);
-  for (const faceId of faceIds) {
-    n = n.add(faceNormal(mesh, faceId));
+function regionVertexOffsets(
+  mesh: HalfEdgeMesh,
+  faceIds: readonly FaceId[],
+  distance: number,
+): Map<VertexId, Vector3> {
+  const sums = new Map<VertexId, { value: Vector3; count: number }>();
+  for (const island of connectedFaceIslands(mesh, faceIds)) {
+    let normal = new Vector3(0, 0, 0);
+    for (const faceId of island) {
+      normal = normal.add(faceNormal(mesh, faceId));
+    }
+    if (normal.length() < 1e-8) {
+      normal = new Vector3(0, 1, 0);
+    } else {
+      normal = normal.normalize();
+    }
+    const offset = normal.scale(distance);
+    for (const faceId of island) {
+      for (const vertexId of mesh.getFaceVertices(faceId)) {
+        const current = sums.get(vertexId);
+        if (current) {
+          current.value = current.value.add(offset);
+          current.count += 1;
+        } else {
+          sums.set(vertexId, { value: offset, count: 1 });
+        }
+      }
+    }
   }
-  if (n.length() < 1e-8) {
-    return new Vector3(0, 1, 0);
-  }
-  return n.normalize();
+  return new Map([...sums].map(([id, value]) => [id, value.value.scale(1 / value.count)]));
 }
-

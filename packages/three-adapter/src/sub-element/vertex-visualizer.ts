@@ -8,7 +8,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   Points,
-  PointsMaterial,
+  ShaderMaterial,
   type Material,
 } from "three";
 import type { CustomVertexMarker, ElementIdSets, SubElementDisplayOptions, SubElementVisualTheme, VertexMarkerStyle } from "./types";
@@ -116,7 +116,8 @@ export function writeVertexColorAt(layer: ObjectLayer, index: number, sets: Elem
   if (mesh instanceof Points) {
     const colors = mesh.geometry.getAttribute("color") as BufferAttribute;
     const a = color.opacity;
-    colors.setXYZ(index, color.r * a, color.g * a, color.b * a);
+    colors.setXYZW(index, color.r, color.g, color.b, a);
+    layer.vertexScales[index] = theme.vertices.states[state].scale ?? 1;
     colors.needsUpdate = true;
     return;
   }
@@ -150,7 +151,8 @@ export function writeVertexColors(
       const visible = isLodIndexVisible(i, lod, emphasized) && state !== "hidden";
       const color = vertexDisplayColor(theme, state);
       const a = visible ? color.opacity : 0;
-      colors.setXYZ(i, color.r * a, color.g * a, color.b * a);
+      colors.setXYZW(i, color.r, color.g, color.b, a);
+      layer.vertexScales[i] = theme.vertices.states[state].scale ?? 1;
     }
     colors.needsUpdate = true;
     return;
@@ -204,19 +206,39 @@ function makeSpriteMaterial(
   theme: SubElementVisualTheme,
   assets: VertexVisualizerAssets,
   style: "square-sprite" | "circle-sprite",
-): PointsMaterial {
-  const texture = spriteTexture(assets, style === "circle-sprite" ? "circle" : "square");
+): ShaderMaterial {
   return layer.resources.trackMaterial(
-    new PointsMaterial({
-      size: theme.vertices.pixelSize,
-      sizeAttenuation: false,
-      vertexColors: true,
-      ...(texture ? { map: texture } : {}),
+    new ShaderMaterial({
       transparent: true,
       depthTest: theme.vertices.depthTest && !theme.vertices.xray,
-      alphaTest: texture ? 0.2 : 0,
+      depthWrite: false,
+      vertexShader: `
+        attribute float pointSize;
+        attribute vec4 color;
+        varying vec4 vColor;
+        void main() {
+          vColor = color;
+          gl_PointSize = pointSize;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          gl_Position.z -= 0.0001 * gl_Position.w;
+        }
+      `,
+      fragmentShader: style === "circle-sprite" ? `
+        varying vec4 vColor;
+        void main() {
+          vec2 centered = gl_PointCoord - vec2(0.5);
+          if (dot(centered, centered) > 0.25 || vColor.a <= 0.0) discard;
+          gl_FragColor = vColor;
+        }
+      ` : `
+        varying vec4 vColor;
+        void main() {
+          if (vColor.a <= 0.0) discard;
+          gl_FragColor = vColor;
+        }
+      `,
     }),
-  ) as PointsMaterial;
+  ) as ShaderMaterial;
 }
 
 function spriteTexture(assets: VertexVisualizerAssets, kind: "square" | "circle"): CanvasTexture | undefined {
@@ -252,7 +274,11 @@ function makeVertexPointGeometry(layer: ObjectLayer): BufferGeometry {
   geometry.setAttribute("position", new BufferAttribute(layer.vertexPositions, 3));
   geometry.setAttribute(
     "color",
-    new BufferAttribute(new Float32Array(layer.vertices.size * 3), 3).setUsage(DynamicDrawUsage),
+    new BufferAttribute(new Float32Array(layer.vertices.size * 4), 4).setUsage(DynamicDrawUsage),
+  );
+  geometry.setAttribute(
+    "pointSize",
+    new BufferAttribute(new Float32Array(layer.vertices.size), 1).setUsage(DynamicDrawUsage),
   );
   return geometry;
 }

@@ -3,6 +3,7 @@ export {
   type ThreeViewportAdapterOptions,
   type ViewportRenderer,
 } from "./adapter";
+export type { TexturePixelSource } from "./adapter-types";
 export {
   AabbTreeSpatialQuery,
   BruteForceSpatialQuery,
@@ -17,6 +18,27 @@ export {
 export { SceneDirtyFlag, type SceneMirrorLifecycle } from "./scene-sync";
 export { createBufferGeometry, syncDerivedGeometry, type RenderMapping } from "./geometry";
 export { createStandardMaterial, defaultViewportMaterial } from "./pbr";
+export { ViewportDisplayController, type ViewportDisplayControllerOptions } from "./viewport-display-controller";
+export {
+  DEFAULT_VIEWPORT_RENDER_SETTINGS,
+  DEFAULT_VIEWPORT_DISPLAY_SETTINGS,
+  ViewportRenderState,
+  ViewportDisplayState,
+  modeShowsTopology,
+  modeSupportsShadows,
+  resolveViewportRenderSettings,
+  resolveViewportDisplaySettings,
+  shadowMapSizeForQuality,
+  gtaoSamplesForQuality,
+  type ShadowQuality,
+  type ViewportDisplayMode,
+  type ViewportDisplaySettings,
+  type ViewportDisplaySettingsInput,
+  type ViewportRenderMode,
+  type ViewportRenderSettings,
+  type ViewportRenderSettingsInput,
+  type ViewportTextureFiltering,
+} from "./viewport-display-settings";
 export { buildSelectionOverlay } from "./overlay";
 export {
   createKnifeOverlay,
@@ -33,7 +55,50 @@ export {
   type PickResult,
   type PickingOptions,
 } from "./picking";
-export { applyPickSelection, clientToNdc, isClickNotDrag } from "./pick-selection";
+export { applyPickSelection, clientToNdc, isClickNotDrag, VIEWPORT_CLICK_SLOP_PX } from "./pick-selection";
+export {
+  applyPickingOrbitPointerMap,
+  applyViewportNavigation,
+  cameraAtMinDistanceOnLookRay,
+  createPickingOrbitPointerMap,
+  DEFAULT_VIEWPORT_CAMERA_POSITION,
+  isPointInsideAabb,
+  mergeViewportNavigation,
+  resolvePickingNavigation,
+  VIEWPORT_GIZMO_DRAG_SLOP_PX,
+  VIEWPORT_MOUSE_UNUSED,
+  VIEWPORT_PICKING_MIN_DISTANCE,
+  VIEWPORT_PICKING_MIN_DISTANCE_FLOOR,
+  type PickingOrbitPointerMap,
+  type PickingOrbitPointerMapOptions,
+} from "./viewport-pointer-policy";
+export { createOrbitEventGate, type OrbitEventGate } from "./orbit-event-gate";
+export {
+  DEFAULT_PICKING_NAVIGATION,
+  type DeepPartialViewportNavigation,
+  type PointerGestureClaim,
+  type PointerGestureContext,
+  type PointerGestureOwner,
+  type ViewportGestureCancelReason,
+  type ViewportGestureController,
+  type ViewportGestureHitTester,
+  type ViewportGestureHooks,
+  type ViewportNavigationConfig,
+  type ViewportNavigationMouseAction,
+  type ViewportNavigationOneFinger,
+  type ViewportNavigationTwoFinger,
+  type ViewportNavigationWheelAction,
+} from "./viewport-gesture-types";
+export {
+  createViewportGestureController,
+  type ViewportGestureControllerOptions,
+} from "./viewport-gesture-controller";
+export {
+  bindViewportPointerRouter,
+  type ViewportPointerOwner,
+  type ViewportPointerRouter,
+  type ViewportPointerRouterOptions,
+} from "./viewport-pointer-router";
 export {
   clientToViewportPixel,
   createFacePickingGeometry,
@@ -73,6 +138,7 @@ export {
   defaultSubElementDisplay,
   mergeSubElementTheme,
   mergeSubElementDisplay,
+  subElementDisplayForDomain,
   resolveElementVisualState,
   visualStatePriority,
   emptyElementIdSets,

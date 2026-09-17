@@ -17,6 +17,16 @@ const REQUIRED_CASES = [
   "camera-view-offset-restored",
   "maximized-viewport",
   "resize-invalidation",
+  "render-mode-solid",
+  "render-mode-material",
+  "render-mode-textured",
+  "render-mode-unlit",
+  "render-mode-wireframe",
+  "render-mode-shaded-wireframe",
+  "render-mode-normals",
+  "render-mode-uv-checker",
+  "render-mode-game-preview",
+  "static-shadow-map",
 ] as const;
 
 test("real WebGL GPU picking smoke", async ({ page }) => {

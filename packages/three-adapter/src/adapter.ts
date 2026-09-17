@@ -57,6 +57,7 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
   private readonly scene: Scene;
   private readonly camera: Camera;
   private readonly renderer: ViewportRenderer;
+  private readonly textureResolver: ThreeViewportAdapterOptions["textureResolver"];
   private readonly tracked = new Map<ObjectId, TrackedObject>();
   private readonly geometries = new Map<MeshId, SharedGeometry>();
   readonly lifecycle = new MeshVisualLifecycleMachine();
@@ -93,6 +94,7 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
     this.scene = options.scene;
     this.camera = options.camera;
     this.renderer = options.renderer;
+    this.textureResolver = options.textureResolver;
     this.viewportId = options.viewportId ?? "viewport-default";
     this.autoFlush = options.autoFlush !== false;
     if (options.spatialQuery) {
@@ -161,7 +163,7 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
         syncTransforms: (objectIds) => this.syncTransforms(objectIds),
         syncVisibility: (objectIds) => this.syncVisibility(objectIds),
         syncNames: (objectIds) => this.syncNames(objectIds),
-        syncMaterialsOnly: () => this.syncMaterialsOnly(),
+        syncMaterialsOnly: (force) => this.syncMaterialsOnly(force),
         flushOrSchedule: () => this.flushOrSchedule(),
         syncMeshesById: (meshIds) => this.syncMeshesById(meshIds),
         flushVisuals: () => this.flushVisuals(),
@@ -292,7 +294,13 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
   setSubElementDisplay(display?: DeepPartial<SubElementDisplayOptions>): void {
     this.assertAlive();
     this.visualizer.setDisplay(display);
-    this.scheduler.invalidate("*", MeshVisualDirtyFlag.Theme | MeshVisualDirtyFlag.Visibility);
+    this.scheduler.invalidate(
+      "*",
+      MeshVisualDirtyFlag.Visibility |
+        MeshVisualDirtyFlag.VertexStates |
+        MeshVisualDirtyFlag.EdgeStates |
+        MeshVisualDirtyFlag.FaceStates,
+    );
     this.flushVisuals();
   }
 
@@ -482,6 +490,7 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
       session: this.session,
       tracked: this.tracked,
       geometries: this.geometries,
+      ...(this.textureResolver ? { textureResolver: this.textureResolver } : {}),
     };
   }
 
@@ -530,9 +539,9 @@ export class ThreeViewportAdapter implements VisibilityPickingAdapter {
     applyTrackedNames(this.sceneMirror(), objectIds);
   }
 
-  private syncMaterialsOnly(): void {
+  private syncMaterialsOnly(force = false): void {
     this.assertAlive();
-    syncMaterialsOnly(this.sceneMirror());
+    syncMaterialsOnly(this.sceneMirror(), force);
   }
 
   private syncMeshesById(meshIds: readonly string[]): void {

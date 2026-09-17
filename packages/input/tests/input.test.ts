@@ -57,17 +57,45 @@ describe("@modeling-kit/input", () => {
     expect(engine.key("KeyW").releasedThisFrame).toBe(true);
   });
 
-  it("requests pointer capture on down when a handler claims the pointer", () => {
+  it("does not request pointer capture on a select-click down", () => {
     const engine = createInputEngine();
     const down = engine.dispatch(
       pointerPacket({ kind: "pointerdown", button: "primary", canvas: { x: 0, y: 0 } }),
     );
-    expect(down.capturePointer).toBe(true);
+    expect(down.capturePointer).toBeFalsy();
     expect(down.consumed).toBe(true);
     const up = engine.dispatch(
       pointerPacket({ kind: "pointerup", button: "primary", canvas: { x: 1, y: 0 }, buttons: 0 }),
     );
     expect(up.capturePointer).toBeFalsy();
+  });
+
+  it("requests pointer capture when a claimed drag gesture begins", () => {
+    const engine = createInputEngine({ slopPx: 4 });
+    engine.onGesture("transform.slide", {
+      begin: () => undefined,
+      update: () => undefined,
+      commit: () => undefined,
+      cancel: () => undefined,
+    });
+    const down = engine.dispatch(
+      pointerPacket({
+        kind: "pointerdown",
+        button: "primary",
+        canvas: { x: 0, y: 0 },
+        modifiers: { shift: true },
+      }),
+    );
+    expect(down.capturePointer).toBeFalsy();
+    const move = engine.dispatch(
+      pointerPacket({
+        kind: "pointermove",
+        canvas: { x: 10, y: 0 },
+        modifiers: { shift: true },
+      }),
+    );
+    expect(move.capturePointer).toBe(true);
+    expect(move.consumed).toBe(true);
   });
 
   it("picks on primary tap and slides after slop with Shift", () => {

@@ -37,6 +37,8 @@ export interface VisualizerView {
   readonly camera: Camera;
   readonly width: number;
   readonly height: number;
+  /** Device pixel ratio used by the renderer, for stable CSS-pixel overlays. */
+  readonly pixelRatio?: number;
 }
 
 export interface ObjectLayer {
@@ -53,7 +55,9 @@ export interface ObjectLayer {
   faceFill?: Mesh;
   faceOutline?: LineSegments;
   vertexPositions: Float32Array;
+  vertexScales: Float32Array;
   edgeEndpoints: Float32Array;
+  edgeWidths: Float32Array;
   lastViewHash: number;
   presentationKey: string;
   readonly vertexStates: CompactElementStates;
