@@ -63,3 +63,18 @@ export {
 } from "./skin/validate-weights";
 export { skinPositions, skinPositions as evaluateLinearBlendSkinning } from "./evaluation/skin-positions";
 export { skinFromBinding, skinToBinding } from "./skin/skin-binding";
+export {
+  dilateWeights,
+  paintWeights,
+  pruneWeights,
+  smoothWeights,
+  type DilateWeightsOptions,
+  type DilateWeightsResult,
+  type PaintWeightsOptions,
+  type PaintWeightsResult,
+  type PruneWeightsOptions,
+  type PruneWeightsResult,
+  type SmoothWeightsOptions,
+  type SmoothWeightsResult,
+  type WeightPaintHit,
+} from "./skin/paint-weights";
