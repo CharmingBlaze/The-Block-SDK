@@ -1,3 +1,18 @@
+/**
+ * @packageDocumentation
+ * `@modeling-kit/sdk/ai` — the AI/agent tool surface.
+ *
+ * Layout (split out of one "god file" for navigability and testability):
+ * - `./ai-types`      Public type contracts (`EditorToolDefinition`, results).
+ * - `./ai-schema`     Runtime JSON-Schema subset validation + error classes.
+ * - `./ai-query-tools` Read-only mesh introspection algorithms (query tools).
+ * - This file         The tool catalog (`TOOLS`), executor (`executeEditorTool`),
+ *                     selection/scene helpers, and the idempotent request cache.
+ *
+ * Invariants: every tool is described by a JSON Schema in `TOOLS`, validated
+ * with `assertValidToolArgs` before execution, returns a discriminated
+ * `EditorToolResult`, and may be made idempotent via `clientRequestId`.
+ */
 import type { EdgeId, FaceId, ObjectId, VertexId } from "@modeling-kit/core";
 import { canonicalizePrimitiveType, type PrimitiveType } from "@modeling-kit/primitives";
 import {
@@ -23,44 +38,30 @@ import {
   type EditorToolFailureCode,
   type ToolValidationIssue,
 } from "./ai-schema";
+import type {
+  EditorToolDefinition,
+  EditorToolFailure,
+  EditorToolResult,
+  EditorToolSuccess,
+  JsonSchemaObject,
+} from "./ai-types";
+import {
+  contiguousSurfaces,
+  facesByAngle,
+  islandCentroids,
+  meshAnomalies,
+  spatialBounds,
+  topologySummary,
+} from "./ai-query-tools";
 
-export interface JsonSchemaObject {
-  readonly type: "object";
-  readonly properties: Record<string, unknown>;
-  readonly required?: readonly string[];
-  readonly additionalProperties: false;
-}
-
-export interface EditorToolDefinition {
-  readonly type: "function";
-  readonly function: {
-    readonly name: string;
-    readonly description: string;
-    readonly parameters: JsonSchemaObject;
-  };
-}
-
-export type EditorToolSuccess = {
-  readonly ok: true;
-  readonly tool: string;
-  readonly inspection: SceneInspectionResult;
-  readonly data?: unknown;
-  readonly clientRequestId?: string;
-};
-
-export type EditorToolFailure = {
-  readonly ok: false;
-  readonly tool: string;
-  readonly error: string;
-  readonly inspection: SceneInspectionResult;
-  readonly code: EditorToolFailureCode;
-  readonly retryable: boolean;
-  readonly field?: string;
-  readonly issues?: readonly ToolValidationIssue[];
-  readonly clientRequestId?: string;
-};
-
-export type EditorToolResult = EditorToolSuccess | EditorToolFailure;
+// Re-export the public type contracts (moved to ./ai-types for isolation).
+export type {
+  EditorToolDefinition,
+  EditorToolFailure,
+  EditorToolResult,
+  EditorToolSuccess,
+  JsonSchemaObject,
+} from "./ai-types";
 
 const PRIMITIVE_TYPES: readonly PrimitiveType[] = [
   "box",
@@ -354,6 +355,59 @@ const TOOLS: Record<string, { description: string; parameters: JsonSchemaObject 
       },
     },
   },
+  get_spatial_bounds: {
+    description: "Return the axis-aligned bounds, center, and size of the active or identified mesh.",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: { objectId: { type: "string" } },
+    },
+  },
+  get_mesh_topology_summary: {
+    description: "Return Euler and manifold topology statistics (counts, components, seams, creases).",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: { objectId: { type: "string" } },
+    },
+  },
+  detect_mesh_anomalies: {
+    description: "Run structural validation and report non-manifold, degenerate, and winding issues.",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: { objectId: { type: "string" } },
+    },
+  },
+  get_faces_by_angle: {
+    description: "Find shared-edge face pairs whose dihedral angle matches a target within a tolerance (degrees).",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      required: ["angle"],
+      properties: {
+        angle: { type: "number" },
+        tolerance: { type: "number" },
+        objectId: { type: "string" },
+      },
+    },
+  },
+  get_contiguous_surfaces: {
+    description: "Partition the mesh into connected face/vertex islands (contiguous surfaces).",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: { objectId: { type: "string" } },
+    },
+  },
+  get_island_centroids: {
+    description: "Return the centroid and bounds of each connected island (component) of the mesh.",
+    parameters: {
+      type: "object",
+      additionalProperties: false,
+      properties: { objectId: { type: "string" } },
+    },
+  },
   import_mesh: {
     description: "Import OBJ text as a new mesh object and return a conversion report.",
     parameters: {
@@ -588,6 +642,32 @@ export function executeEditorTool(
           distance: hit.distance,
           point: hit.worldPosition ? [hit.worldPosition.x, hit.worldPosition.y, hit.worldPosition.z] : undefined,
         });
+      }
+      case "get_spatial_bounds": {
+        const { object, mesh } = requireTargetMesh(editor, record);
+        return success(editor, name, spatialBounds(object, mesh));
+      }
+      case "get_mesh_topology_summary": {
+        const { object, mesh } = requireTargetMesh(editor, record);
+        return success(editor, name, topologySummary(object, mesh));
+      }
+      case "detect_mesh_anomalies": {
+        const { mesh } = requireTargetMesh(editor, record);
+        return success(editor, name, meshAnomalies(mesh));
+      }
+      case "get_faces_by_angle": {
+        const { mesh } = requireTargetMesh(editor, record);
+        const angle = requireNumber(record, "angle");
+        const tolerance = optionalNumber(record, "tolerance") ?? 1;
+        return success(editor, name, facesByAngle(mesh, angle, tolerance));
+      }
+      case "get_contiguous_surfaces": {
+        const { mesh } = requireTargetMesh(editor, record);
+        return success(editor, name, contiguousSurfaces(mesh));
+      }
+      case "get_island_centroids": {
+        const { mesh } = requireTargetMesh(editor, record);
+        return success(editor, name, islandCentroids(mesh));
       }
       case "import_mesh": {
         const imported = importObjWithReport(requireString(record, "text"), editor.session.ids);
@@ -1077,6 +1157,20 @@ function inspectMesh(object: FluentMeshObject): Record<string, unknown> {
     creases,
     tags,
   };
+}
+
+type ActiveMesh = NonNullable<FluentMeshObject["mesh"]>;
+
+function requireTargetMesh(
+  editor: FluentEditor,
+  record: Record<string, unknown>,
+): { object: FluentMeshObject; mesh: ActiveMesh } {
+  const object = resolveTarget(editor, optionalString(record, "objectId")) ?? requireActive(editor);
+  const mesh = object.mesh;
+  if (!mesh) {
+    throw new RangeError("requires a mesh object");
+  }
+  return { object, mesh };
 }
 
 export type { EditorToolFailureCode, ToolValidationIssue } from "./ai-schema";
