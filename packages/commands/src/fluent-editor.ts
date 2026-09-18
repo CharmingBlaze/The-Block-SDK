@@ -1,3 +1,20 @@
+/**
+ * @packageDocumentation
+ * Fluent editor facade. `createEditor()` returns a `FluentEditor` that wraps a
+ * `ModelingSession` with chainable spawn, tagged selection, and modeling
+ * operators for scripts, tests, and AI agents.
+ *
+ * Layout — three mutually-referential classes intentionally co-located:
+ * - `VecDelta` / `FaceSelectFilter` — shared public types.
+ * - `FluentMeshObject` — chainable proxy for one object and its topology.
+ * - `FluentSelection` — active-object transform shorthand.
+ * - `FluentEditor` — session facade + the `spawn` primitive catalog.
+ *
+ * `FluentMeshObject` holds a `FluentEditor`, and `FluentEditor` builds
+ * `FluentMeshObject`s, so splitting them across modules would form an
+ * intra-package import cycle that `pnpm arch:check` rejects. Keep this cluster
+ * together; extract only leaf helpers (e.g. `./fluent-unwrap.ts`).
+ */
 import {
   brand,
   type EdgeId,
@@ -411,6 +428,7 @@ export class FluentMeshObject {
   }
 }
 
+/** Active-object transform shorthand returned by `editor.selection`. */
 export class FluentSelection {
   constructor(private readonly editor: FluentEditor) {}
 

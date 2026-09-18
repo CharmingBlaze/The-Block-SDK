@@ -30,6 +30,23 @@ Pass `tools` to the model as function/tool definitions. On each tool call, run `
 
 `type: "sphere"` is accepted as an alias of `uvSphere`. Cubes are 6-quad polygonal meshes, not voxels.
 
+### The inspect → act loop
+
+The read-only `get_*` / `inspect_*` / `list_*` tools let an agent understand the scene before mutating it. Each returns a structured `data` object (branded IDs, counts, error codes — never render indices):
+
+```ts
+const bounds = executeEditorTool(editor, "get_spatial_bounds", {});
+const topology = executeEditorTool(editor, "get_mesh_topology_summary", {});
+const anomalies = executeEditorTool(editor, "detect_mesh_anomalies", {});
+
+// detect_mesh_anomalies.data has { valid, isManifold, isClosed, errors[], warnings[] }.
+if (!anomalies.ok || (anomalies.data as { valid: boolean }).valid === false) {
+  executeEditorTool(editor, "heal_mesh", {});
+}
+// get_faces_by_angle finds coplanar faces (angle: 0) or sharp edges (angle: 90).
+executeEditorTool(editor, "get_faces_by_angle", { angle: 90, tolerance: 1 });
+```
+
 ## Tool catalog
 
 | Name | Effect |
@@ -59,6 +76,12 @@ Pass `tools` to the model as function/tool definitions. On each tool call, run `
 | `list_objects` | Search by id, name, type, parent, or bounds |
 | `inspect_mesh` | Topology, tags, seams, and creases |
 | `query_near` | Snap-query components near a world point |
+| `get_spatial_bounds` | AABB min/max/center/size + vertex count |
+| `get_mesh_topology_summary` | Counts, tris/quads/ngons, components, seams/creases, Euler χ, manifold |
+| `detect_mesh_anomalies` | Structured validation: errors/warnings with codes + element IDs |
+| `get_faces_by_angle` | Shared-edge face pairs within a dihedral-angle tolerance |
+| `get_contiguous_surfaces` | Connected face/vertex island partition |
+| `get_island_centroids` | Per-island centroid + bounds |
 | `import_mesh` | OBJ text → new object + conversion report |
 | `export_mesh` | OBJ or ASCII STL + conversion report |
 | `begin_transaction` / `commit_transaction` / `rollback_transaction` | Multi-tool undo group |
