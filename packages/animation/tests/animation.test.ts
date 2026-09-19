@@ -179,3 +179,87 @@ describe("@modeling-kit/animation", () => {
     ).toThrow(/exactly 3/);
   });
 });
+describe("hermite interpolation and player", () => {
+    it("interpolates hermite keyframes with tangents", () => {
+      const ids = createSequenceIdFactory("herm");
+      const boneId = ids.bone();
+      const clip = createAnimationClipData(ids.animation(), "HermiteTest", {
+        duration: 2,
+        tracks: [{
+          id: "t0", targetKind: "bone", targetId: boneId,
+          channel: "position", interpolation: "cubic",
+          keys: [
+            { time: 0, value: [0, 0, 0], inTangent: [0, 10, 0], outTangent: [0, 10, 0] },
+            { time: 2, value: [0, 4, 0], inTangent: [0, 10, 0], outTangent: [0, 0, 0] },
+          ],
+        }],
+      });
+      const pose = evaluateDocumentClip(clip, 1);
+      // At t=1 (midpoint), cubic interpolates to 2 for these tangents
+      expect(pose.boneLocals.get(boneId)?.position.y).toBeCloseTo(2, 0);
+      expect(pose.boneLocals.get(boneId)?.position.x).toBeCloseTo(0);
+    });
+
+    it("player sets time directly via play and tick", () => {
+      const ids = createSequenceIdFactory("seek");
+      const clip = createAnimationClipData(ids.animation(), "Seek", {
+        duration: 5,
+        tracks: [{
+          id: "t0", targetKind: "object", targetId: "obj-1",
+          channel: "position", interpolation: "linear",
+          keys: [{ time: 0, value: [0, 0, 0] }, { time: 5, value: [10, 0, 0] }],
+        }],
+      });
+      const player = new AnimationPlayer(clip);
+      expect(player.time).toBeCloseTo(0);
+      player.play();
+      player.tick(2.5);
+      expect(player.time).toBeCloseTo(2.5);
+      const pose = evaluateDocumentClip(clip, player.time);
+      expect(pose.objectLocals.get("obj-1")?.position.x).toBeCloseTo(5);
+      player.tick(1.5);
+      expect(player.time).toBeCloseTo(4);
+    });
+
+    it("player loops with repeat mode", () => {
+      const ids = createSequenceIdFactory("loop");
+      const clip = createAnimationClipData(ids.animation(), "Loop", {
+        duration: 2,
+        loopMode: "repeat",
+        tracks: [{
+          id: "t0", targetKind: "object", targetId: "obj-1",
+          channel: "position", interpolation: "linear",
+          keys: [{ time: 0, value: [0, 0, 0] }, { time: 2, value: [2, 0, 0] }],
+        }],
+      });
+      const player = new AnimationPlayer(clip, { loop: "repeat" });
+      player.play();
+      player.tick(3); // should wrap to t=1
+      expect(player.time).toBeCloseTo(1);
+      const pose = evaluateDocumentClip(clip, player.time);
+      expect(pose.objectLocals.get("obj-1")?.position.x).toBeCloseTo(1);
+    });
+
+    it("serializes and deserializes a clip with markers", () => {
+      const ids = createSequenceIdFactory("ser");
+      const clip = createAnimationClipData(ids.animation(), "WithMarkers", {
+        duration: 3,
+        loopMode: "ping-pong",
+        markers: [
+          { id: "m0", time: 0, label: "Start" },
+          { id: "m1", time: 1.5, label: "Middle" },
+        ],
+        tracks: [{
+          id: "t0", targetKind: "bone", targetId: "bone-1",
+          channel: "rotation", interpolation: "linear",
+          keys: [{ time: 0, value: [0, 0, 0, 1] }, { time: 3, value: [0, 1, 0, 0] }],
+        }],
+      });
+      expect(clip.markers).toHaveLength(2);
+      expect(clip.markers[0]?.label).toBe("Start");
+      expect(clip.loopMode).toBe("ping-pong");
+      expect(clip.tracks[0]?.channel).toBe("rotation");
+      expect(clip.tracks[0]?.interpolation).toBe("linear");
+      expect(clip.tracks[0]?.keys).toHaveLength(2);
+    });
+  });

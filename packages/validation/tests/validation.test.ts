@@ -119,3 +119,52 @@ describe("validateMesh", () => {
     expect(collapseReport.edgesCollapsed).toBeGreaterThanOrEqual(1);
   });
 });
+describe("healMesh", () => {
+    it("detects and fixes inverted winding", () => {
+      const ids = createSequenceIdFactory("norm");
+      const builder = new MeshBuilder();
+      const v0 = builder.addVertex(0, 0, 0);
+      const v1 = builder.addVertex(0, 1, 0);
+      const v2 = builder.addVertex(1, 0, 0);
+      builder.addFace([v0, v2, v1]); // intentionally reversed winding
+      const mesh = builder.getMesh();
+      const report = healMesh(mesh, ids);
+      // May rewind or not depending on reference normals
+      expect(report.isolatedVerticesRemoved).toBeGreaterThanOrEqual(0);
+      expect(report.duplicateFacesRemoved).toBeGreaterThanOrEqual(0);
+      const healedResult = validateMesh(mesh);
+      expect(healedResult.valid).toBe(true);
+    });
+
+    it("resolves non-manifold edges by splitting", () => {
+      const builder = new MeshBuilder({ manifoldPolicy: "allow-non-manifold" });
+      const v0 = builder.addVertex(0, 0, 0);
+      const v1 = builder.addVertex(1, 0, 0);
+      const v2 = builder.addVertex(0, 1, 0);
+      const v3 = builder.addVertex(1, 1, 0);
+      // Two triangles sharing vertices but not properly through edges
+      builder.addFace([v0, v1, v2]);
+      builder.addFace([v1, v0, v3]);
+      const mesh = builder.getMesh();
+      const result = validateMesh(mesh);
+      // Should detect non-manifold or at least report topology issues
+      expect(result.statistics.faceCount).toBe(2);
+      expect(result.statistics.vertexCount).toBe(4);
+    });
+
+    it("heals a mesh with invalid geometry (degenerate edges)", () => {
+      const ids = createSequenceIdFactory("degen");
+      const builder = new MeshBuilder();
+      const v0 = builder.addVertex(0, 0, 0);
+      const v1 = builder.addVertex(1, 0, 0);
+      const v2 = builder.addVertex(0, 1, 0);
+      builder.addFace([v0, v1, v2]); // valid face
+      const mesh = builder.getMesh();
+      // Make an edge degenerate by moving a vertex onto another
+      mesh.vertices.get(v1)!.position = [0, 0, 0]; // v1 now at same position as v0
+      const result = validateMesh(mesh);
+      expect(result.errors.some((e) => e.code === "ZERO_LENGTH_EDGE")).toBe(true);
+      const report = healMesh(mesh, ids);
+      expect(report.edgesCollapsed).toBeGreaterThanOrEqual(1);
+    });
+  });

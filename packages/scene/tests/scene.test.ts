@@ -9,6 +9,8 @@ import {
   getNode,
   groupNodes,
   removeNode,
+  renameNode,
+  reorderChildren,
   reparent,
   setLocalTransform,
   setNodeLocked,
@@ -125,3 +127,67 @@ describe("scene graph", () => {
     expect(getNode(document, extra.id).parentId).toBe(document.scene.rootNodeId);
   });
 });
+describe("deep hierarchy", () => {
+    it("computes world matrices through 3+ levels", () => {
+      const { document, ids } = setup();
+      const root = addNode(document, ids.object(), {
+        name: "R",
+        localTransform: { position: { x: 2, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: { x: 1, y: 1, z: 1 } },
+      });
+      const mid = addNode(document, ids.object(), {
+        name: "M", parentId: root.id,
+        localTransform: { position: { x: 3, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: { x: 1, y: 1, z: 1 } },
+      });
+      const leaf = addNode(document, ids.object(), {
+        name: "L", parentId: mid.id,
+        localTransform: { position: { x: 1, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0, w: 1 }, scale: { x: 1, y: 1, z: 1 } },
+      });
+      const wp = worldMatrix(document, leaf.id).transformPoint(new Vector3(0, 0, 0));
+      expect(wp.x).toBeCloseTo(6, 5); // 2 + 3 + 1
+    });
+
+    it("effectiveVisibility inherits through multiple levels", () => {
+      const { document, ids } = setup();
+      const a = addNode(document, ids.object(), { name: "A" });
+      const b = addNode(document, ids.object(), { name: "B", parentId: a.id });
+      const c = addNode(document, ids.object(), { name: "C", parentId: b.id });
+      expect(effectiveVisibility(document, c.id)).toBe(true);
+      setNodeVisible(document, a.id, false);
+      expect(effectiveVisibility(document, b.id)).toBe(false);
+      expect(effectiveVisibility(document, c.id)).toBe(false);
+      setNodeVisible(document, b.id, true); // parent hidden; local visible doesn't matter
+      expect(effectiveVisibility(document, b.id)).toBe(false);
+    });
+
+    it("effectiveLocked inherits through multiple levels", () => {
+      const { document, ids } = setup();
+      const a = addNode(document, ids.object(), { name: "A" });
+      const b = addNode(document, ids.object(), { name: "B", parentId: a.id });
+      const c = addNode(document, ids.object(), { name: "C", parentId: b.id });
+      expect(effectiveLocked(document, c.id)).toBe(false);
+      setNodeLocked(document, a.id, true);
+      expect(effectiveLocked(document, b.id)).toBe(true);
+      expect(effectiveLocked(document, c.id)).toBe(true);
+    });
+
+    it("renames nodes and reorders children", () => {
+      const { document, ids } = setup();
+      const p = addNode(document, ids.object(), { name: "Parent" });
+      const a = addNode(document, ids.object(), { name: "A", parentId: p.id });
+      const b = addNode(document, ids.object(), { name: "B", parentId: p.id });
+      renameNode(document, p.id, "Renamed");
+      expect(getNode(document, p.id).name).toBe("Renamed");
+      reorderChildren(document, p.id, [b.id, a.id]);
+      expect(getNode(document, p.id).childIds).toEqual([b.id, a.id]);
+    });
+
+    it("removeNode with preserveChildren keeps children under root", () => {
+      const { document, ids } = setup();
+      const root = document.scene.rootNodeId;
+      const p = addNode(document, ids.object(), { name: "P" });
+      const c = addNode(document, ids.object(), { name: "C", parentId: p.id });
+      removeNode(document, p.id, { preserveChildren: true });
+      expect(document.scene.nodes.has(p.id)).toBe(false);
+      expect(getNode(document, c.id).parentId).toBe(root);
+    });
+  });
