@@ -180,22 +180,22 @@ describe("@modeling-kit/animation", () => {
   });
 });
 describe("hermite interpolation and player", () => {
-    it("interpolates hermite keyframes with tangents", () => {
+    it("interpolates cubic keyframes", () => {
       const ids = createSequenceIdFactory("herm");
       const boneId = ids.bone();
-      const clip = createAnimationClipData(ids.animation(), "HermiteTest", {
+      const clip = createAnimationClipData(ids.animation(), "CubicTest", {
         duration: 2,
         tracks: [{
           id: "t0", targetKind: "bone", targetId: boneId,
           channel: "position", interpolation: "cubic",
           keys: [
-            { time: 0, value: [0, 0, 0], inTangent: [0, 10, 0], outTangent: [0, 10, 0] },
-            { time: 2, value: [0, 4, 0], inTangent: [0, 10, 0], outTangent: [0, 0, 0] },
+            { time: 0, value: [0, 0, 0] },
+            { time: 2, value: [0, 4, 0] },
           ],
         }],
       });
       const pose = evaluateDocumentClip(clip, 1);
-      // At t=1 (midpoint), cubic interpolates to 2 for these tangents
+      // At t=1 (midpoint), cubic interpolates to 2
       expect(pose.boneLocals.get(boneId)?.position.y).toBeCloseTo(2, 0);
       expect(pose.boneLocals.get(boneId)?.position.x).toBeCloseTo(0);
     });
@@ -221,7 +221,7 @@ describe("hermite interpolation and player", () => {
       expect(player.time).toBeCloseTo(4);
     });
 
-    it("player loops with repeat mode", () => {
+    it("player loops with repeat mode via scrub", () => {
       const ids = createSequenceIdFactory("loop");
       const clip = createAnimationClipData(ids.animation(), "Loop", {
         duration: 2,
@@ -232,7 +232,7 @@ describe("hermite interpolation and player", () => {
           keys: [{ time: 0, value: [0, 0, 0] }, { time: 2, value: [2, 0, 0] }],
         }],
       });
-      const player = new AnimationPlayer(clip, { loop: "repeat" });
+      const player = new AnimationPlayer(clip);
       player.play();
       player.tick(3); // should wrap to t=1
       expect(player.time).toBeCloseTo(1);
@@ -246,8 +246,8 @@ describe("hermite interpolation and player", () => {
         duration: 3,
         loopMode: "ping-pong",
         markers: [
-          { id: "m0", time: 0, label: "Start" },
-          { id: "m1", time: 1.5, label: "Middle" },
+          { time: 0, name: "Start" },
+          { time: 1.5, name: "Middle" },
         ],
         tracks: [{
           id: "t0", targetKind: "bone", targetId: "bone-1",
@@ -256,7 +256,7 @@ describe("hermite interpolation and player", () => {
         }],
       });
       expect(clip.markers).toHaveLength(2);
-      expect(clip.markers[0]?.label).toBe("Start");
+      expect(clip.markers[0]?.name).toBe("Start");
       expect(clip.loopMode).toBe("ping-pong");
       expect(clip.tracks[0]?.channel).toBe("rotation");
       expect(clip.tracks[0]?.interpolation).toBe("linear");
