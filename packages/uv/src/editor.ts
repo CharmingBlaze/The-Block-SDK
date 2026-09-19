@@ -62,6 +62,46 @@ export function createUvEditor(options: CreateUvEditorOptions): UVEditor {
   return new UVEditor(options);
 }
 
+/**
+ * Headless UV editor for interactive UV mapping.
+ *
+ * `UVEditor` manages the complete lifecycle of UV editing: selection, hover,
+ * marquee/lasso, transform (move/rotate/scale), and channel switching — all
+ * without any rendering dependency. Host applications connect via
+ * {@link UVViewAdapter} instances that receive structured draw-data batches.
+ *
+ * ## Features
+ *
+ * - **Selection** — vertex, edge, face, island modes with replace/add/remove/toggle
+ * - **Marquee/lasso** — box-select and freeform polygon select
+ * - **Transform** — move, rotate, scale with pin-respect and preview-commit-cancel
+ * - **Topology-aware** — linked selection, grow/shrink, invert, select-all
+ * - **3D sync** — bidirectional selection sync with the 3D viewport
+ * - **Multi-channel** — switch UV channels without recreating the editor
+ * - **Lifecycle management** — proper `ResourceLifecycleMachine` with `dispose()`
+ *
+ * ## Usage
+ *
+ * ```ts
+ * import { createUvEditor } from "@modeling-kit/uv";
+ *
+ * const editor = createUvEditor({
+ *   mesh,
+ *   textureResolution: { width: 1024, height: 1024 },
+ *   onCommit: (patch) => executeCommand(new ProjectUvCommand(patch)),
+ * });
+ *
+ * editor.pointerDown([0.5, 0.5], { mode: "face" });
+ * editor.pointerUp([0.5, 0.5]);
+ * editor.beginTransform({ operation: "move" });
+ * editor.updateTransform({ translate: [0.1, 0] });
+ * editor.commitTransform();
+ * editor.dispose();
+ * ```
+ *
+ * @see {@link UVViewAdapter} for rendering integration
+ * @see {@link UvTransformSession} for the transform state machine
+ */
 export class UVEditor {
   readonly meshId: MeshId;
   channelId: UVChannelId;

@@ -16,6 +16,36 @@ import type {
   MeshComponent,
 } from "./types";
 
+/**
+ * Canonical half-edge mesh data structure for The Block SDK.
+ *
+ * A HalfEdgeMesh is the **single source of truth** for all mesh geometry. It stores
+ * five component maps — vertices, edges, half-edges, corners, faces — all keyed by
+ * branded string IDs ({@link VertexId}, {@link EdgeId}, etc.).
+ *
+ * ## Key properties
+ *
+ * - **O(1) adjacency** — `getFaceVertices()`, `getEdgeFaces()`, `getVertexFaces()`, etc.
+ * - **Manifold enforcement** — each edge connects at most two faces; boundary edges have
+ *   one face (twin is `undefined`).
+ * - **Revision tracking** — eight granular counters let viewport adapters incrementally
+ *   sync only what changed (topology, positions, UVs, seams, pins, materials).
+ * - **Corner attributes** — each `CornerRecord` stores per-face-vertex UVs, normals, and
+ *   colors, decoupled from vertex position.
+ *
+ * ## Usage
+ *
+ * Typically constructed via {@link MeshBuilder} rather than directly:
+ *
+ * ```ts
+ * import { MeshBuilder } from "@modeling-kit/mesh";
+ * const cube = MeshBuilder.createCube(1);
+ * console.log(cube.faces.size); // 6
+ * ```
+ *
+ * @see {@link MeshBuilder} for programmatic construction
+ * @see {@link ../docs/architecture/mesh-kernel.md} for full topology specification
+ */
 export class HalfEdgeMesh {
   public readonly id: MeshId;
   public readonly vertices: Map<VertexId, VertexRecord> = new Map();

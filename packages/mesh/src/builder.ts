@@ -48,6 +48,42 @@ export interface CubeFaceIds {
   readonly negZ: FaceId;
 }
 
+/**
+ * Programmatic mesh construction API.
+ *
+ * MeshBuilder is the **primary way to create HalfEdgeMesh instances**. It handles:
+ *
+ * - **Vertex merging** — duplicate positions at the same 3D coordinate are automatically
+ *   welded to the same vertex ID.
+ * - **Edge deduplication** — faces sharing edge vertices see the same edge and half-edges,
+ *   enforcing manifold connectivity.
+ * - **Manifold enforcement** — `"strict-manifold"` (default) rejects faces that would create
+ *   more than two faces sharing one edge. Use `"allow-non-manifold"` to permit T-junctions.
+ * - **Revision batching** — `"deferred"` revision mode accumulates topology changes and
+ *   bumps the revision counter once on `getMesh()`, avoiding intermediate invalid states.
+ *
+ * ## Usage
+ *
+ * ```ts
+ * import { MeshBuilder } from "@modeling-kit/mesh";
+ *
+ * // Simple quad
+ * const builder = new MeshBuilder({ revisionMode: "deferred" });
+ * const v0 = builder.addVertex(0, 0, 0);
+ * const v1 = builder.addVertex(1, 0, 0);
+ * const v2 = builder.addVertex(1, 1, 0);
+ * const v3 = builder.addVertex(0, 1, 0);
+ * builder.addFace([v0, v1, v2, v3]);
+ * const mesh = builder.getMesh();
+ *
+ * // Convenience static builders
+ * const cube = MeshBuilder.createCube(2);
+ * const sphere = MeshBuilder.createUVSphere(1, 16, 32);
+ * ```
+ *
+ * @see {@link HalfEdgeMesh} for the mesh data structure
+ * @see {@link AddFaceOptions} for per-face attribute configuration
+ */
 export class MeshBuilder {
   private mesh: HalfEdgeMesh;
   private vCount = 0;
