@@ -4,51 +4,15 @@ import type { HalfEdgeMesh } from "../../half-edge-mesh";
 import { faceNormal } from "../../internal/delete-face";
 import type { MeshOperationContext, MeshOperationWarning } from "../contract";
 import type { CutEndpoint } from "../cut-face";
+import type {
+  KnifeCutPlan, KnifePlan, KnifePlanHit, KnifePlanRequest,
+  KnifePoint, PlannedCut, Vec3Tuple,
+} from "./knife-types";
 
-export type Vec3Tuple = readonly [number, number, number];
-
-export interface KnifePoint {
-  readonly faceId: FaceId;
-  readonly position: Vec3;
-  readonly attachment:
-    | { readonly type: "vertex"; readonly vertexId: VertexId }
-    | { readonly type: "edge"; readonly edgeId: EdgeId; readonly t: number }
-    | { readonly type: "face" };
-}
-
-export interface PlannedCut {
-  readonly faceId: FaceId;
-  readonly start: CutEndpoint;
-  readonly end: CutEndpoint;
-}
-
-export interface KnifeCutPlan {
-  readonly cuts: readonly PlannedCut[];
-  readonly warnings: readonly MeshOperationWarning[];
-}
-
-export interface KnifePlanRequest {
-  readonly points: readonly Vec3Tuple[];
-  readonly snapRadius?: number;
-}
-
-export interface KnifePlanHit {
-  readonly point: Vec3Tuple;
-  readonly endpoint: CutEndpoint;
-  readonly faceIds: readonly FaceId[];
-}
-
-export interface KnifePlanCut {
-  readonly faceId: FaceId;
-  readonly from: CutEndpoint;
-  readonly to: CutEndpoint;
-}
-
-export interface KnifePlan {
-  readonly hits: readonly KnifePlanHit[];
-  readonly cuts: readonly KnifePlanCut[];
-  readonly warnings: readonly MeshOperationWarning[];
-}
+export type {
+  KnifeCutPlan, KnifePlan, KnifePlanCut, KnifePlanHit,
+  KnifePlanRequest, KnifePoint, PlannedCut, Vec3Tuple,
+} from "./knife-types";
 
 export function cutEndpointPoint(mesh: HalfEdgeMesh, endpoint: CutEndpoint): Vec3Tuple {
   if (endpoint.kind === "vertex") {
