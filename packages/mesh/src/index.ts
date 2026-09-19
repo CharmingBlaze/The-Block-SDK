@@ -186,3 +186,9 @@ export {
   type ValidationMode,
   type Vec3Tuple,
 } from "./operations";
+export {
+  slideVertex, computeProportionalInfluence, applyFalloff,
+  type ProportionalFalloff, type ProportionalVertex,
+  type ProportionalEditOptions, type VertexSlideRequest,
+  type VertexSlideResult,
+} from "./operations";

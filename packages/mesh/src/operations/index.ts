@@ -126,3 +126,5 @@ export {
   type RepairCreaseWeightsResult,
   type SetEdgeCreaseWeightsRequest,
 } from "./creases";
+export { slideVertex, type VertexSlideRequest, type VertexSlideResult } from "./vertex-slide";
+export { computeProportionalInfluence, applyFalloff, type ProportionalFalloff, type ProportionalVertex, type ProportionalEditOptions } from "./proportional-edit";
