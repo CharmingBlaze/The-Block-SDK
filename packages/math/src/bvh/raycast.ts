@@ -8,6 +8,26 @@ interface RaycastState<T> {
   best: BvhRayHit<T> | null;
 }
 
+/**
+ * BVH-accelerated raycast against an AABB tree.
+ *
+ * Traverses the BVH depth-first, skipping branches whose AABB is behind
+ * the current best hit. Accepts an optional `testLeaf` callback for custom
+ * primitive intersection (e.g., ray-triangle test, ray-sphere test).
+ *
+ * @param root     - BVH root node (undefined → returns null).
+ * @param ray      - The query ray.
+ * @param testLeaf - Optional per-primitive intersection tester.
+ * @returns The closest hit with item and distance, or null.
+ *
+ * @example
+ * ```ts
+ * const hit = raycastAabbBvh(bvhRoot, ray, (tri, prim, r) => {
+ *   const t = intersectRayTriangle(r.origin, r.direction, tri.a, tri.b, tri.c);
+ *   return t ?? null;
+ * });
+ * ```
+ */
 export function raycastAabbBvh<T>(
   root: BvhNode<T> | undefined,
   ray: Ray,

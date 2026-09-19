@@ -2,6 +2,26 @@ import { assertFinite } from "./scalar";
 import type { BoundingBox } from "./bbox";
 import { Vector3, type Vec3 } from "./vec3";
 
+/**
+ * 3D ray with origin and normalized direction.
+ *
+ * Provides AABB slab-method intersection (`intersectBox`) and point-at-distance
+ * (`at`). Used throughout the SDK for picking, spatial queries, BVH traversal,
+ * and occlusion testing.
+ *
+ * ## Usage
+ *
+ * ```ts
+ * import { Ray, Vector3 } from "@modeling-kit/math";
+ *
+ * const ray = new Ray(new Vector3(0, 0, 0), { x: 1, y: 0, z: 0 });
+ * const point = ray.at(5); // Vector3(5, 0, 0)
+ * const t = ray.intersectBox(bbox); // number | null
+ * ```
+ *
+ * @see {@link BoundingBox} for AABB intersection targets
+ * @see {@link ./bvh/raycast.ts} for BVH-accelerated raycasting
+ */
 export class Ray {
   readonly direction: Vector3;
 

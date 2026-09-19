@@ -147,19 +147,71 @@ editor.dispose();
 - **`SubElementVisualizer`** creates instanced meshes for vertices (circles) and edges (lines) — these sit on a dedicated overlay layer and update incrementally.
 - GPU resources (geometries, materials, textures, render targets) are **disposed** on `dispose()` — no leaks.
 - See `docs/architecture/three-adapter.md` for detailed architecture and performance characteristics.
-  type AnimationPlaybackHandle,
-} from "@modeling-kit/three-adapter";
-```
 
-## Gesture & Navigation Exports
+## Picking & Raycasting System
+
+The SDK has a **multi-layered picking system** that cascades from fast GPU picking to precise CPU raycasts:
+
+| Layer | Method | Use Case |
+|-------|--------|----------|
+| **GPU ID-Buffer** | RGB-encoded pick ID rendered to offscreen buffer | Click picking (16M+ IDs), face and object domain |
+| **CPU Raycaster** | Three.js `Raycaster` + sub-element overlay picking | Hover, vertex/edge picking |
+| **Spatial Query** | BVH-accelerated AABB raycast | Object-level spatial queries, occlusion culling |
+| **Hybrid Picking** | GPU first → CPU fallback → refinement | Robust click picking with surface point resolution |
+| **Ray Occlusion** | Headless ray-triangle Möller–Trumbore | Box/lasso select visibility testing |
+
+### Pick Domains
 
 ```ts
-import {
-  createViewportGestureController, createOrbitEventGate,
-  bindViewportPointerRouter,
-  type ViewportGestureController,
-  type ViewportNavigationConfig,
-  type ViewportGestureClaim, type ViewportGestureOwner,
-  type ViewportPointerRouter,
-} from "@modeling-kit/three-adapter";
+type PickDomain = "object" | "face" | "edge" | "vertex";
 ```
+
+- **`"object"`** — fastest, GPU ID-buffer works directly
+- **`"face"`** — GPU ID → CPU refinement resolves exact face + triangle
+- **`"edge"`** — CPU Raycaster finds nearest edge within pixel threshold
+- **`"vertex"`** — CPU Raycaster finds nearest vertex within pixel threshold
+
+### Ray Class (Headless)
+
+```ts
+import { Ray, Vector3, BoundingBox } from "@modeling-kit/math";
+
+const ray = new Ray(new Vector3(0, 0, 5), { x: 0, y: 0, z: -1 });
+const t = ray.intersectBox(new BoundingBox(
+  new Vector3(-1, -1, -1), new Vector3(1, 1, 1)
+)); // → 4.0
+const point = ray.at(t); // → Vector3(0, 0, 1)
+```
+
+### BVH Raycast
+
+```ts
+import { buildAabbBvh, raycastAabbBvh, Ray } from "@modeling-kit/math";
+
+const bvh = buildAabbBvh(primitives); // array of { bounds: BoundingBox, item: T }
+const hit = raycastAabbBvh(bvh, ray, (item, prim, r) => {
+  // Custom intersection test per primitive
+  return item.intersect(r);
+});
+```
+
+### GPU Picking
+
+```ts
+import { encodePickId, decodePickId } from "@modeling-kit/three-adapter";
+
+// Encode object ID → RGB
+const rgb = encodePickId(42); // { r: 0, g: 0, b: 0.000164... }
+
+// Decode RGB pixel → object ID
+const id = decodePickId(r, g, b); // 42
+```
+
+### Ray Occlusion (Headless Selection)
+
+```ts
+import { createRayOccluder } from "@modeling-kit/selection";
+
+const occluder = createRayOccluder(mesh, cameraPosition);
+const hidden = occluder({ id: "v-5", domain: "vertex", world: { x: 1, y: 2, z: 3 }, screen: { x: 100, y: 200 } });
+// hidden === true if another face blocks the ray
