@@ -128,3 +128,14 @@ export {
 } from "./creases";
 export { slideVertex, type VertexSlideRequest, type VertexSlideResult } from "./vertex-slide";
 export { computeProportionalInfluence, applyFalloff, type ProportionalFalloff, type ProportionalVertex, type ProportionalEditOptions } from "./proportional-edit";
+export { validateFaceInsertion, type AddFaceRequest as AddFaceRequestForValidation } from "./face-insertion";
+export {
+  AttributePropagationService,
+  attributePropagationDefaults,
+  type AttributePolicy,
+  type AttributeSplitContext,
+  type AttributeInterpolationContext,
+  type AttributeDuplicateContext,
+  type AttributeRemapPolicy,
+  type AttributeRemapResult,
+} from "./attribute-propagation";

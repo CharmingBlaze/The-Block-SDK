@@ -44,6 +44,20 @@ Tooling setup (Serena, Repomix, dependency-cruiser, Knip, fast-check) is Cursor-
 | R1-T016 | geometry-extrude profile adapter | VERIFIED | `@modeling-kit/primitives` (+ commands/tools) | `tasks/R1-T016.md` |
 | R1-T017 | meshoptimizer derived-triangle adapter | VERIFIED | `@modeling-kit/meshopt` | `tasks/R1-T017.md` |
 
+## Phase 2 — Correctness foundation (Sol 3D / ViperCAD hardening)
+
+Sourced from Sol 3D architecture review. Implement in order; each unblocks the next.
+
+| Task ID | Title | State | Allowed packages | Packet |
+| ------- | ----- | ----- | ---------------- | ------ |
+| R2-T001 | Mesh invariant hardening — `validateMeshInvariants`, raw-record loop checks, dev-mode post-op injection | DRAFT | `@modeling-kit/validation`, `@modeling-kit/mesh` (internal/assert-mesh only) | `tasks/R2-T001.md` |
+| R2-T002 | MeshBuilder atomic rollback — staged insertion, all-or-nothing commit, rollback on mid-insertion error | DRAFT | `@modeling-kit/mesh` (builder.ts only) | `tasks/R2-T002.md` |
+| R2-T003 | Attribute propagation service — `AttributePropagationService`, `AttributePolicy` per operator, migrate bevel/extrude/inset/loop-cut | DRAFT | `@modeling-kit/mesh` (internal + operations) | `tasks/R2-T003.md` |
+| R2-T004 | Triangulation fixture corpus — arrow, L, star, thin, collinear, reversed, large-coord, near-degenerate; per-triangle assertion helpers | DRAFT | `@modeling-kit/mesh` | `tasks/R2-T004.md` |
+| R2-T005 | Animation schema unification — single `AnimationClipData` canonical form, legacy `KeyframeTrack` becomes adapter only, structured `DataLossReport` | DRAFT | `@modeling-kit/animation` | `tasks/R2-T005.md` |
+
+**Phase 2 constraint:** Do not start R2-T003 until R2-T001 and R2-T002 are VERIFIED. Do not start R2-T004 until R2-T001 is VERIFIED.
+
 ## Release
 
 Tag-triggered npm publish is in `.github/workflows/release.yml`. First public version is still `0.1.0` until `NPM_TOKEN` exists and `v0.1.0` is pushed. Exact-commit CI is green on `5a3d941` ([run 35063242733](https://github.com/CharmingBlaze/The-Block-SDK/actions/runs/35063242733)). Guide: `docs/guides/publishing.md`.

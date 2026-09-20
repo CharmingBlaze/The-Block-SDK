@@ -12,6 +12,7 @@ import {
 import { HalfEdgeMesh } from "./half-edge-mesh";
 import { polygonArea } from "./polygon-triangulation";
 import type { VertexRecord, EdgeRecord, HalfEdgeRecord, CornerRecord, FaceRecord } from "./types";
+import { validateFaceInsertion, type AddFaceRequest as AddFaceRequestForValidation } from "./operations/face-insertion";
 
 export type ManifoldPolicy = "strict-manifold" | "allow-non-manifold";
 
@@ -202,7 +203,8 @@ export class MeshBuilder {
   }
 
   addFace(vertexIds: readonly VertexId[], options?: AddFaceOptions): FaceId {
-    this.validateFaceInput(vertexIds, options);
+    // Enhanced preflight validation using the comprehensive validator
+    this.validateFaceInputWithPreflight(vertexIds, options);
 
     const fId =
       options?.id ?? brand<string, "FaceId">(this.allocateId(this.mesh.faces, "f", "fCount"));
@@ -213,6 +215,14 @@ export class MeshBuilder {
     const n = vertexIds.length;
     const planned = this.planFaceHalfEdges(vertexIds);
 
+    // Transactional insertion: build all records first, then apply
+    const newRecords = {
+      edges: new Map<EdgeId, EdgeRecord>(),
+      corners: new Map<CornerId, CornerRecord>(),
+      halfEdges: new Map<HalfEdgeId, HalfEdgeRecord>(),
+      face: null as FaceRecord | null,
+    };
+
     const halfEdgeIds: HalfEdgeId[] = [];
     const cornerIds: CornerId[] = [];
 
@@ -221,21 +231,20 @@ export class MeshBuilder {
       const vTo = vertexIds[(i + 1) % n]!;
       const plan = planned[i]!;
 
-      if (this.mesh.edges.has(plan.edgeId) === false) {
+      if (this.mesh.edges.has(plan.edgeId) === false && !newRecords.edges.has(plan.edgeId)) {
         const edgeRecord: EdgeRecord = {
           id: plan.edgeId,
           halfEdge: plan.halfEdgeId,
           isSeam: false,
         };
-        this.mesh.edges.set(plan.edgeId, edgeRecord);
-        this.setUndirected(vFrom, vTo, plan.edgeId);
-        this.edgeFaceCount.set(plan.edgeId, 0);
+        newRecords.edges.set(plan.edgeId, edgeRecord);
       }
 
       const cId = brand<string, "CornerId">(this.allocateId(this.mesh.corners, "c", "cCount"));
-      if (this.mesh.corners.has(cId)) {
+      if (this.mesh.corners.has(cId) || Array.from(newRecords.corners.keys()).some(id => id === cId)) {
         throw new RangeError(`Duplicate corner id: ${cId}`);
       }
+      
       const uv = options?.uvs?.[i];
       const normal = options?.normals?.[i];
       const color = options?.colors?.[i];
@@ -251,61 +260,166 @@ export class MeshBuilder {
         ...(normal !== undefined ? { normal } : {}),
         ...(color !== undefined ? { color } : {}),
       };
-      this.mesh.corners.set(cId, cornerRecord);
+      newRecords.corners.set(cId, cornerRecord);
       cornerIds.push(cId);
 
-      if (this.mesh.halfEdges.has(plan.halfEdgeId)) {
+      if (this.mesh.halfEdges.has(plan.halfEdgeId) || newRecords.halfEdges.has(plan.halfEdgeId)) {
         throw new RangeError(`Duplicate half-edge id: ${plan.halfEdgeId}`);
       }
+      
       const twinId = this.getDirected(vTo, vFrom) ?? null;
       const heRecord: HalfEdgeRecord = {
         id: plan.halfEdgeId,
         edgeId: plan.edgeId,
         origin: vFrom,
         twin: twinId,
-        next: plan.halfEdgeId,
-        prev: plan.halfEdgeId,
+        next: plan.halfEdgeId, // Temporary self-reference
+        prev: plan.halfEdgeId, // Temporary self-reference
         face: fId,
         corner: cId,
       };
-      this.mesh.halfEdges.set(plan.halfEdgeId, heRecord);
-      this.setDirected(vFrom, vTo, plan.halfEdgeId);
+      newRecords.halfEdges.set(plan.halfEdgeId, heRecord);
       halfEdgeIds.push(plan.halfEdgeId);
-
-      if (twinId) {
-        const twinRecord = this.mesh.halfEdges.get(twinId);
-        if (twinRecord) {
-          twinRecord.twin = plan.halfEdgeId;
-        }
-      }
-
-      this.edgeFaceCount.set(plan.edgeId, (this.edgeFaceCount.get(plan.edgeId) ?? 0) + 1);
-
-      const vRecord = this.mesh.vertices.get(vFrom);
-      if (vRecord && !vRecord.halfEdge) {
-        vRecord.halfEdge = plan.halfEdgeId;
-      }
     }
 
+    // Now set up next/prev links
     for (let i = 0; i < n; i++) {
       const curr = halfEdgeIds[i]!;
       const next = halfEdgeIds[(i + 1) % n]!;
       const prev = halfEdgeIds[(i - 1 + n) % n]!;
-      const he = this.mesh.halfEdges.get(curr)!;
+      const he = newRecords.halfEdges.get(curr)!;
       he.next = next;
       he.prev = prev;
     }
 
-    const faceRecord: FaceRecord = {
+    // Create face record
+    newRecords.face = {
       id: fId,
       halfEdge: halfEdgeIds[0]!,
       materialSlot: options?.materialSlot ?? 0,
       materialSlotId: options?.materialSlotId ?? null,
       isSmooth: options?.isSmooth ?? false,
     };
-    this.mesh.faces.set(fId, faceRecord);
+
+    // Apply all changes atomically
+    this.applyFaceInsertionTransaction(newRecords, halfEdgeIds, fId, vertexIds, planned);
+
     this.noteTopologyChange();
     return fId;
+  }
+
+  private validateFaceInputWithPreflight(vertexIds: readonly VertexId[], options?: AddFaceOptions): void {
+    // First run the existing validation
+    this.validateFaceInput(vertexIds, options);
+
+    // Then run comprehensive preflight validation
+    const request: AddFaceRequestForValidation = {
+      vertexIds,
+      ...(options?.id !== undefined ? { id: options.id } : {}),
+      ...(options?.materialSlot !== undefined ? { materialSlot: options.materialSlot } : {}),
+      ...(options?.isSmooth !== undefined ? { isSmooth: options.isSmooth } : {}),
+      ...(options?.uvs !== undefined ? { uvs: options.uvs } : {}),
+      ...(options?.uvChannels !== undefined ? { uvChannels: options.uvChannels } : {}),
+      ...(options?.pinnedUvChannels !== undefined ? { pinnedUvChannels: options.pinnedUvChannels } : {}),
+      ...(options?.normals !== undefined ? { normals: options.normals } : {}),
+      ...(options?.colors !== undefined ? { colors: options.colors } : {}),
+    };
+
+    const tolerance = {
+      epsilon: 1e-6,
+      minEdgeLength: 1e-6,
+      minFaceArea: 1e-14, // More lenient for cube faces
+    };
+
+    const issues = validateFaceInsertion(
+      this.mesh,
+      request,
+      tolerance,
+      this.manifoldPolicy,
+    );
+
+    if (issues.length > 0) {
+      // Use the first issue's message as the error
+      // This preserves compatibility with existing tests
+      throw new RangeError(issues[0]!.message);
+    }
+  }
+
+  private applyFaceInsertionTransaction(
+    newRecords: {
+      edges: Map<EdgeId, EdgeRecord>;
+      corners: Map<CornerId, CornerRecord>;
+      halfEdges: Map<HalfEdgeId, HalfEdgeRecord>;
+      face: FaceRecord | null;
+    },
+    halfEdgeIds: HalfEdgeId[],
+    faceId: FaceId,
+    vertexIds: readonly VertexId[],
+    planned: Array<{ edgeId: EdgeId; halfEdgeId: HalfEdgeId }>,
+  ): void {
+    // Apply edges - only those that don't already exist
+    for (const [edgeId, edgeRecord] of newRecords.edges) {
+      if (!this.mesh.edges.has(edgeId)) {
+        this.mesh.edges.set(edgeId, edgeRecord);
+        
+        // Update undirected edge map
+        const halfEdge = newRecords.halfEdges.get(edgeRecord.halfEdge);
+        if (halfEdge) {
+          const vFrom = halfEdge.origin;
+          // Get the "to" vertex from the next half-edge in the face
+          const nextHalfEdge = newRecords.halfEdges.get(halfEdge.next);
+          if (nextHalfEdge) {
+            const vTo = nextHalfEdge.origin;
+            this.setUndirected(vFrom, vTo, edgeId);
+          }
+        }
+        
+        this.edgeFaceCount.set(edgeId, 0);
+      }
+    }
+
+    // Apply corners
+    for (const [cornerId, cornerRecord] of newRecords.corners) {
+      this.mesh.corners.set(cornerId, cornerRecord);
+    }
+
+    // Apply half-edges and update twin links
+    for (const [halfEdgeId, halfEdgeRecord] of newRecords.halfEdges) {
+      this.mesh.halfEdges.set(halfEdgeId, halfEdgeRecord);
+      
+      // Update directed edge map
+      const vFrom = halfEdgeRecord.origin;
+      const nextHalfEdge = newRecords.halfEdges.get(halfEdgeRecord.next);
+      if (nextHalfEdge) {
+        const vTo = nextHalfEdge.origin;
+        this.setDirected(vFrom, vTo, halfEdgeId);
+      }
+      
+      // Update twin links if twin exists
+      if (halfEdgeRecord.twin) {
+        const twinRecord = this.mesh.halfEdges.get(halfEdgeRecord.twin);
+        if (twinRecord) {
+          twinRecord.twin = halfEdgeId;
+        }
+      }
+      
+      // Update vertex half-edge reference if needed
+      const vRecord = this.mesh.vertices.get(vFrom);
+      if (vRecord && !vRecord.halfEdge) {
+        vRecord.halfEdge = halfEdgeId;
+      }
+    }
+
+    // Apply face
+    if (newRecords.face) {
+      this.mesh.faces.set(faceId, newRecords.face);
+    }
+
+    // Update edge face counts
+    for (const plan of planned) {
+      const currentCount = this.edgeFaceCount.get(plan.edgeId) ?? 0;
+      this.edgeFaceCount.set(plan.edgeId, currentCount + 1);
+    }
   }
 
   private validateFaceInput(vertexIds: readonly VertexId[], options?: AddFaceOptions): void {

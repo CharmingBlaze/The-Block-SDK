@@ -1,15 +1,44 @@
-import type { EdgeId, FaceId } from "@modeling-kit/core";
+import type { EdgeId, FaceId, HalfEdgeId } from "@modeling-kit/core";
 import { Vector3 } from "@modeling-kit/math";
 import type { HalfEdgeMesh } from "@modeling-kit/mesh";
 import type { MeshValidationResult, MeshIssue, MeshStatistics } from "./types";
 
 const EPSILON = 1e-6;
 
-export function validateMesh(mesh: HalfEdgeMesh): MeshValidationResult {
+export interface MeshInvariantReport {
+  readonly valid: boolean;
+  readonly errors: readonly MeshIssue[];
+  readonly warnings: readonly MeshIssue[];
+  readonly statistics: MeshStatistics;
+}
+
+export interface ValidateMeshInvariantsOptions {
+  readonly geometryTolerance?: GeometryTolerance;
+  readonly strictManifold?: boolean;
+}
+
+interface GeometryTolerance {
+  readonly epsilon: number;
+  readonly minEdgeLength: number;
+  readonly minFaceArea: number;
+}
+
+export function validateMeshInvariants(
+  mesh: HalfEdgeMesh,
+  options?: ValidateMeshInvariantsOptions,
+): MeshInvariantReport {
   const errors: MeshIssue[] = [];
   const warnings: MeshIssue[] = [];
 
-  // 1. Check vertices: finiteness
+  const tolerance = options?.geometryTolerance ?? {
+    epsilon: EPSILON,
+    minEdgeLength: EPSILON,
+    minFaceArea: EPSILON * EPSILON,
+  };
+  // Note: strictManifold option is available but not currently used in validation
+  // const strictManifold = options?.strictManifold ?? false;
+
+  // 1. Check vertices: finiteness and references
   for (const [vId, v] of mesh.vertices) {
     const [x, y, z] = v.position;
     if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
@@ -31,7 +60,177 @@ export function validateMesh(mesh: HalfEdgeMesh): MeshValidationResult {
     }
   }
 
-  // 2. Check edges: zero-length & manifold integrity
+  // 2. Check half-edge links: twin symmetry and next/prev consistency
+  const seenHalfEdges = new Set<HalfEdgeId>();
+  const directedEdges = new Map<string, HalfEdgeId>(); // "from_to" -> halfEdgeId
+  
+  for (const [heId, he] of mesh.halfEdges) {
+    seenHalfEdges.add(heId);
+    
+    // Check vertex reference exists
+    if (!mesh.vertices.has(he.origin)) {
+      errors.push({
+        code: "MISSING_VERTEX_REFERENCE",
+        message: `Half-edge ${heId} references missing vertex ${he.origin}`,
+        elementIds: [heId],
+        recoverable: false,
+      });
+    }
+    
+    // Check twin link symmetry
+    if (he.twin) {
+      const twin = mesh.halfEdges.get(he.twin);
+      if (!twin) {
+        errors.push({
+          code: "MISSING_TWIN_LINK",
+          message: `Half-edge ${heId} references missing twin ${he.twin}`,
+          elementIds: [heId],
+          recoverable: false,
+        });
+      } else if (twin.twin !== heId) {
+        errors.push({
+          code: "MISSING_TWIN_LINK",
+          message: `Half-edge ${heId} twin ${he.twin} does not link back`,
+          elementIds: [heId, he.twin],
+          recoverable: false,
+        });
+      }
+    }
+    
+    // Check next/prev links
+    if (he.next) {
+      const next = mesh.halfEdges.get(he.next);
+      if (!next) {
+        errors.push({
+          code: "INVALID_NEXT_PREV_LINK",
+          message: `Half-edge ${heId} references missing next ${he.next}`,
+          elementIds: [heId],
+          recoverable: false,
+        });
+      } else if (next.prev !== heId) {
+        errors.push({
+          code: "INVALID_NEXT_PREV_LINK",
+          message: `Half-edge ${heId} next ${he.next} does not link back via prev`,
+          elementIds: [heId, he.next],
+          recoverable: false,
+        });
+      }
+    }
+    
+    if (he.prev) {
+      const prev = mesh.halfEdges.get(he.prev);
+      if (!prev) {
+        errors.push({
+          code: "INVALID_NEXT_PREV_LINK",
+          message: `Half-edge ${heId} references missing prev ${he.prev}`,
+          elementIds: [heId],
+          recoverable: false,
+        });
+      } else if (prev.next !== heId) {
+        errors.push({
+          code: "INVALID_NEXT_PREV_LINK",
+          message: `Half-edge ${heId} prev ${he.prev} does not link back via next`,
+          elementIds: [heId, he.prev],
+          recoverable: false,
+        });
+      }
+    }
+    
+    // Record directed edge for duplicate check
+    const toVertex = (() => {
+      if (he.twin) {
+        const twin = mesh.halfEdges.get(he.twin);
+        return twin ? twin.origin : null;
+      }
+      if (he.next) {
+        const next = mesh.halfEdges.get(he.next);
+        return next ? next.origin : null;
+      }
+      return null;
+    })();
+    
+    if (toVertex) {
+      const key = `${he.origin}_${toVertex}`;
+      const existing = directedEdges.get(key);
+      if (existing && existing !== heId) {
+        errors.push({
+          code: "DUPLICATE_DIRECTED_EDGE",
+          message: `Duplicate directed edge from ${he.origin} to ${toVertex}: ${existing} and ${heId}`,
+          elementIds: [heId, existing, he.origin, toVertex],
+          recoverable: false,
+        });
+      } else {
+        directedEdges.set(key, heId);
+      }
+    }
+  }
+
+  // 3. Check corners
+  for (const [cId, corner] of mesh.corners) {
+    // Check corner references
+    if (!mesh.vertices.has(corner.vertexId)) {
+      errors.push({
+        code: "INVALID_CORNER_REFERENCE",
+        message: `Corner ${cId} references missing vertex ${corner.vertexId}`,
+        elementIds: [cId],
+        recoverable: false,
+      });
+    }
+    
+    if (!mesh.faces.has(corner.faceId)) {
+      errors.push({
+        code: "INVALID_CORNER_REFERENCE",
+        message: `Corner ${cId} references missing face ${corner.faceId}`,
+        elementIds: [cId],
+        recoverable: false,
+      });
+    }
+    
+    // Check attribute arrays for finite values
+    if (corner.uv && (!Number.isFinite(corner.uv[0]) || !Number.isFinite(corner.uv[1]))) {
+      errors.push({
+        code: "NON_FINITE_ATTRIBUTE_VALUE",
+        message: `Corner ${cId} has non-finite UV value`,
+        elementIds: [cId],
+        recoverable: true,
+      });
+    }
+    
+    if (corner.normal && (!Number.isFinite(corner.normal[0]) || !Number.isFinite(corner.normal[1]) || !Number.isFinite(corner.normal[2]))) {
+      errors.push({
+        code: "NON_FINITE_ATTRIBUTE_VALUE",
+        message: `Corner ${cId} has non-finite normal value`,
+        elementIds: [cId],
+        recoverable: true,
+      });
+    }
+    
+    if (corner.color && (!Number.isFinite(corner.color[0]) || !Number.isFinite(corner.color[1]) || !Number.isFinite(corner.color[2]) || !Number.isFinite(corner.color[3]))) {
+      errors.push({
+        code: "NON_FINITE_ATTRIBUTE_VALUE",
+        message: `Corner ${cId} has non-finite color value`,
+        elementIds: [cId],
+        recoverable: true,
+      });
+    }
+  }
+
+  // 4. Check faces for orphaned corners
+  for (const [fId] of mesh.faces) {
+    const corners = mesh.getFaceCorners(fId);
+    for (const cornerId of corners) {
+      if (!mesh.corners.has(cornerId)) {
+        errors.push({
+          code: "ORPHANED_CORNER",
+          message: `Face ${fId} references missing corner ${cornerId}`,
+          elementIds: [fId, cornerId],
+          recoverable: false,
+        });
+      }
+    }
+  }
+
+  // 5. Check edges: zero-length & manifold integrity
   for (const [eId, edge] of mesh.edges) {
     const he = mesh.halfEdges.get(edge.halfEdge);
     if (!he) {
@@ -68,10 +267,10 @@ export function validateMesh(mesh: HalfEdgeMesh): MeshValidationResult {
       ) {
         const p1 = new Vector3(a[0], a[1], a[2]);
         const p2 = new Vector3(b[0], b[1], b[2]);
-        if (p1.distanceTo(p2) < EPSILON) {
+        if (p1.distanceTo(p2) < tolerance.minEdgeLength) {
           errors.push({
             code: "ZERO_LENGTH_EDGE",
-            message: `Edge ${eId} has zero length (< ${EPSILON}) between ${vFrom.id} and ${vTo.id}`,
+            message: `Edge ${eId} has zero length (< ${tolerance.minEdgeLength}) between ${vFrom.id} and ${vTo.id}`,
             elementIds: [eId, vFrom.id, vTo.id],
             recoverable: true,
           });
@@ -242,4 +441,9 @@ function directedFaceEdge(
     return null;
   }
   return [loop[i]!, loop[(i + 1) % loop.length]!];
+}
+
+// Backward compatibility export
+export function validateMesh(mesh: HalfEdgeMesh): MeshValidationResult {
+  return validateMeshInvariants(mesh);
 }
